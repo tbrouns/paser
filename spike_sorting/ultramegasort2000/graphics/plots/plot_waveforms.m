@@ -75,20 +75,21 @@ show = get_spike_indices(spikes, show );
 
 % populate data structure
 
-waveform_avg = mean(spikes.waveforms,1);
-ymin         = min(waveform_avg(:));
-ymax         = max(waveform_avg(:));
-p2p          = ymax - ymin; 
-ymax         = ymax + p2p;
-ymin         = ymin - p2p;
-
-data.ylims       = [ymin, ymax];
 data.valid_modes = valid_modes;
 data.colormode   = colormode;
 spiketimes       = sort(spikes.unwrapped_times(show));
 data.rpv         = sum(diff(spiketimes) <= (spikes.params.refractory_period * .001));
 data.waveforms   = spikes.waveforms(show,:,:);
 data.cmap        = spikes.params.display.cmap;
+
+waveform_avg = mean(data.waveforms,1);
+ymin         = min(waveform_avg(:));
+ymax         = max(waveform_avg(:));
+p2p          = ymax - ymin; 
+ymax         = ymax + 0.5 * p2p;
+ymin         = ymin - 0.5 * p2p;
+
+data.ylims       = [ymin, ymax];
 
 if any(data.valid_modes(2:3))
     data.colors = spikes.info.kmeans.colors;
