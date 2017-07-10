@@ -5,11 +5,10 @@ function ums_wrapper(subject,session,fpath)
 % metadata to include: channels
 % features to include: combine different .continuous together and spike
 % sort multiple sessions together; combine arbitrary sequences of
-% electrodes into tetrodes; denoise (magnet artifacts); 
-
+% electrodes into tetrodes; denoise (magnet artifacts);
 
 if nargin < 3;
-    fpath = [];
+    fpath = uigetdir([],'Select data folder');
 end
 
 %% create metadata variable: to be expanded in future versions with data
@@ -23,17 +22,19 @@ clear subject session
 %% user defined variables:
 
 % Sets termination criterion for cluster aggregation. Higher values allow
-% less aggregation. Lower values allow more aggregation.
-agg_cutoff = [0.00001 0.0001 0.001]; 
+% less aggregation. Lower values allow more aggregation. Aggregation is
+% stopped when overlap density is less than the given % of main cluster
+% density
+agg_cutoff = [0.00001 0.0001 0.001 0.01];
 
 refractory_period = 1.5; % ms
-threshold         = 4.0; % stds
+threshold         = 4.0; % STDs
 
 detect_method = 'mad'; % maximum absolute deviation
 
 % Band-pass filter parameters
-bp_high     = 6000;
-bp_low      = 600;
+bp_high     = 6000; % Hz
+bp_low      = 600;  % Hz
 bp_order    = 10;
 
 pattern = 'CH';
@@ -43,12 +44,12 @@ tdata = 10; % cut data in sections of X minutes
 
 %% Find files
 
-files_unsorted    = dir([fpath '*' pattern '*' ext]);
+files_unsorted = dir([fpath '*' pattern '*' ext]);
 if (size(files_unsorted,1) == 0);
     disp('No .CONTINUOUS files in folder. Select different path.');
     return;
 end
-files_unsorted    = char(files_unsorted.name);
+files_unsorted = char(files_unsorted.name);
 
 %% sort files
 
@@ -70,7 +71,7 @@ files = files(~cellfun('isempty',files)); % remove empty cells
 
 numtets = numfiles / 4;
 
-for iTetrode = 1:numtets;
+for iTetrode = 7:numtets;
     tic
     for iElectrode = 1:4; % load all tetrode data
         
@@ -94,47 +95,51 @@ for iTetrode = 1:numtets;
         data_channel    = filtfilt(B,A,data_channel);
         
         labels{iElectrode} = num2str(iFile);
-        data(iElectrode,:) = data_channel;
+        data(iElectrode,:) = data_channel - mean(data_channel);
         
     end
     
     clear data_channel
     
+    % set parameters for spike detection
+    
+    spikes = ss_default_params(Fs);
+    spikes.params.detect_method     = detect_method;
+    spikes.params.refractory_period = refractory_period;
+    spikes.params.thresh            = threshold;
+    
+    % UMS spike detection
+    
+    nsamples_section = tdata * 60 * Fs;
+    nsamples_total   = size(data,2);
+    nsection         = floor(nsamples_total / nsamples_section);
+    nsamples_section = floor(nsamples_total / nsection); % process data in sections
+    iStart           = 1;
+    
+    for iSection = 1:nsection
+        data_section    = data(:,iStart:iStart + nsamples_section - 1);
+        data_section    = {data_section'};
+        spikes          = ss_detect(data_section,spikes);
+        iStart          = iStart + nsamples_section;
+    end
+    
+    %clear data data_section
+    
+    spikes = ss_align(spikes);
+    spikes = ss_kmeans(spikes);
+    spikes = ss_energy(spikes);
+    
     for AGcutoff = 1:length(agg_cutoff)
-        
-        % set parameters for spike detection
-        
-        spikes = ss_default_params(Fs);
-        spikes.params.agg_cutoff        = agg_cutoff(AGcutoff);
-        spikes.params.detect_method     = detect_method;
-        spikes.params.refractory_period = refractory_period;
-        spikes.params.thresh            = threshold;
-        
-        % UMS spike detection
-        
-        nsamples_section = tdata * 60 * Fs;
-        nsamples_total   = size(data,2);
-        nsection         = floor(nsamples_total / nsamples_section);
-        nsamples_section = floor(nsamples_total / nsection); % process data in sections
-        iStart           = 1;
-        
-        
-        for iSection = 1:nsection
-            data_section    = data(:,iStart:iStart + nsamples_section - 1);
-            data_section    = {data_section'};
-            spikes          = ss_detect(data_section,spikes);
-            iStart          = iStart + nsamples_section;
-        end
-        
-        %clear data data_section
-        
-        spikes = ss_align(spikes);
-        spikes = ss_kmeans(spikes);
-        spikes = ss_energy(spikes);
+        spikes.params.agg_cutoff = agg_cutoff(AGcutoff);
         spikes = ss_aggregate(spikes);
-        
         metadata.tetrode = iTetrode;
-        save(['Spikes_'  metadata.subject '_' metadata.session '_T' num2str(iTetrode) '_AG' num2str(spikes.params.agg_cutoff) '_ST' num2str(spikes.params.thresh) '.mat'],'spikes','metadata');
+        save([...
+            'Spikes_'   metadata.subject ...
+            '_'         metadata.session ...
+            '_T'        num2str(iTetrode,                   '%02d')   ...
+            '_AG'       num2str(spikes.params.agg_cutoff,   '%10.2e') ...
+            '_ST'       num2str(spikes.params.thresh,       '%04.1f') ...
+            '.mat'], 'spikes','metadata');
     end
     
     toc

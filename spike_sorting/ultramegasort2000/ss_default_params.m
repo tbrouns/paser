@@ -1,5 +1,5 @@
 
-function spikes = ss_default_params(Fs, varargin )
+function spikes = ss_default_params(varargin )
 % UltraMegaSort2000 by Hill DN, Mehta SB, & Kleinfeld D  - 07/12/2010
 %
 % ss_default_params - initializes a spikes object with the default
@@ -25,7 +25,7 @@ function spikes = ss_default_params(Fs, varargin )
     %
   
     % spike detection parameters
-    spikes.params.Fs            = Fs;                               % Hz, sampling rate of spike data
+    spikes.params.Fs            = 30000;                            % Hz, sampling rate of spike data
     spikes.params.detect_method = 'auto';                           % 'auto' = threshold calculated from background noise, 'manual' = user defined threshold
     spikes.params.thresh        = 3.9;                              % for 'auto', set number of standard deviations above background noise
     spikes.params.window_size   = 1.5;                              % ms, width of a spike

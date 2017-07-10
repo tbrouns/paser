@@ -31,22 +31,6 @@ num_channels = size(spikes.waveforms,3);
 num_samples  = size(spikes.waveforms,2);
 s            =  std(memberwaves);
 
-% calculate cross-correlation
-
-xc = zeros(num_channels);
-sd = reshape(s,num_samples,num_channels);
-
-for ichan = 1:num_channels
-    for jchan = ichan:num_channels
-        xc(ichan,jchan) = xcorr(sd(:,ichan),sd(:,jchan),0); % xcorr with zero lag
-    end
-end
-
-waves = reshape(mean(memberwaves),num_samples,num_channels);
-id = double(max(abs(waves)) > abs(spikes.info.detect.thresh));
-id = id' * id;
-xc = xc .* id;
-
 % plot it
 cla reset
 set(line(1:length(s),s) ,'Color', [.3 .5 .3],'LineWidth',1.5)
@@ -73,8 +57,8 @@ xlabel('Sample')
 ylabel('Residuals')
 uistack(p,'bottom')
 
-
 % calculate significance cutoff for standard deviation estimates via the chi2 distribution
+
 function [lb,ub] = std_bounds( stdev, N, p )
 
 if nargin < 3, p = .95; end

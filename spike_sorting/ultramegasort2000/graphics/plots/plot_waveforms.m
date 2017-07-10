@@ -78,7 +78,7 @@ show = get_spike_indices(spikes, show );
 data.valid_modes = valid_modes;
 data.colormode   = colormode;
 spiketimes       = sort(spikes.unwrapped_times(show));
-data.rpv         = sum(diff(spiketimes) <= (spikes.params.refractory_period * .001));
+data.rpv         = sum(diff(spiketimes) <= (spikes.params.refractory_period * 0.001));
 data.waveforms   = spikes.waveforms(show,:,:);
 data.cmap        = spikes.params.display.cmap;
 
@@ -231,7 +231,7 @@ end
 % prep axes
 cla;
 legend off
-set(gca,'Color',[ 1 1 1])
+set(gca,'Color',[1 1 1])
 hold on
 
 %
@@ -281,16 +281,16 @@ if num_channels > 1
     l = zeros(num_channels-1,1);
     if displaymode == 2
         for j = 1:num_channels-1
-            l(j) = line( 1 + num_samples * j * [1 1], ylims, max(clusts)*[1 1] + 1);
+            l(j) = line(1 + num_samples * j * [1 1], ylims, max(clusts)*[1 1] + 1);
         end
         set(l,'ButtonDownFcn', {@raise_band, l})
     else
         for j = 1:num_channels-1
-            l(j) = line( 1 + num_samples * j * [1 1], ylims);
+            l(j) = line(1 + num_samples * j * [1 1], ylims);
         end
         set(l,'ButtonDownFcn', {@raise_me})
     end
-    set(l, 'Color',data.barcolor,'LineWidth',1.5 ) % electrode dividers
+    set(l,'Color',data.barcolor,'LineWidth',1.5 ) % electrode dividers
 end
 
 ylim([data.ylims]);
