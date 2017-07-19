@@ -6,16 +6,16 @@ function [p,mu,stdev,n,x] = ss_undetected(spikes,use)
 % Usage:
 %     [p,mu,stdev,criteria] = ss_undetected(spikes,use)
 %
-% Description:  
-%    Estimates how fraction of spikes associated with a given cluster that 
-% may have gone undetected, by fitting a Gaussian with a missing tail to a 
-% histogram of the detection criterion applied to each spike event.  
+% Description:
+%    Estimates how fraction of spikes associated with a given cluster that
+% may have gone undetected, by fitting a Gaussian with a missing tail to a
+% histogram of the detection criterion applied to each spike event.
 %
 % See undetected.m for more information.
 %
 % Input:
 %   spikes - spikes structure
-%   use    - a cluster ID or an array describing which spikes to 
+%   use    - a cluster ID or an array describing which spikes to
 %            use as the first cluster
 %          - see get_spike_indices.m
 %
@@ -27,18 +27,16 @@ function [p,mu,stdev,n,x] = ss_undetected(spikes,use)
 %  x            - bin centers for histogram used to fit Gaussian
 %
 
-    % apply detection criteria to each waveform on each channel in cluster
-    select = get_spike_indices(spikes, use );      
-    waveforms = spikes.waveforms(select,:,:);
-    
-    % threshes
-    threshes = spikes.info.detect.thresh;
+% apply detection criteria to each waveform on each channel in cluster
+select    = get_spike_indices(spikes, use);
+waveforms = spikes.waveforms(select,:,:);
 
-    criteria_func = spikes.params.detect_method;
-    
-    % call undetected
-    [p,mu,stdev,n,x] = undetected(waveforms,threshes,criteria_func);
-    
+% threshes
+threshes = spikes.info.detect.thresh;
+
+% call undetected
+[p,mu,stdev,n,x] = undetected(waveforms,threshes);
+
 end
 
 

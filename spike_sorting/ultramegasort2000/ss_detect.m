@@ -95,11 +95,11 @@ if ~iscell(data)
     data = cellfun(@squeeze,data,'UniformOutput',false);
 end
 
-append = isfield( spikes, 'waveforms' );
-if append, disp( 'Appending spikes in data using previous threshold.');end
+append = isfield(spikes, 'waveforms' );
+if append, disp('Appending spikes in data using previous threshold.'); end
 % determine which trial we are on if appending
 if append
-    pre_trials = length( spikes.info.detect.dur);
+    pre_trials = length(spikes.info.detect.dur);
 else
     pre_trials = 0;
 end
@@ -107,16 +107,16 @@ end
 % set some constants
 params = spikes.params;
 num_trials      = length(data);
-num_channels    = size( data{1}, 2);
-window_samples  = round( params.Fs * params.window_size / 1000);
-shadow          = round( params.Fs * params.shadow /1000);
-samples_before  = round( params.Fs * params.cross_time /1000);
-samples_after   = round( params.Fs * params.max_jitter / 1000)+ window_samples - (1+samples_before);
-jitter_range    = samples_before - 1 + [1:round(spikes.params.max_jitter * spikes.params.Fs/1000)];
+num_channels    = size(data{1}, 2);
+window_samples  = round(params.Fs * params.window_size / 1000);
+shadow          = round(params.Fs * params.shadow / 1000);
+samples_before  = round(params.Fs * params.cross_time / 1000);
+samples_after   = round(params.Fs * params.max_jitter / 1000) + window_samples - (1 + samples_before);
+jitter_range    = samples_before - 1 + (1:round(spikes.params.max_jitter * spikes.params.Fs / 1000));
 
 % determine threshold
 
-spikes.info.detect.cov = get_covs( data, window_samples );
+spikes.info.detect.cov = get_covs(data, window_samples);
 stds = zeros([1 num_channels]);
 mads = zeros([1 num_channels]); % maximum absolute deviation
 for j = 1:num_trials
@@ -145,83 +145,82 @@ if ~append
     spikes.trials     = [];
     spikes.info.detect.event_channel = [];
 end
-progress_bar(0, max(floor(num_trials/100),1), ['Extracting Spikes . . . Thresh: ', num2str(thresh,2)] )
+
+progress_bar(0, max(floor(num_trials/100),1), ['Extracting Spikes . . . Thresh: ', num2str(thresh,2)])
+
 for j = 1:num_trials
     progress_bar(j/num_trials); % BA
     
     % get crossings on all channels for this trial
-    crossings   = [];
-    channel     = [];
+    crossings = [];
     for k = 1:num_channels
-        crossings = [crossings find( data{j}(1:end-1,k) > thresh(k) & data{j}(2:end,k) <= thresh(k) )' ];
-        channel(end+1:length(crossings)) = k;
+        crossings = [crossings find(data{j}(1:end-1,k) > thresh(k) & data{j}(2:end,k) <= thresh(k))']; %#ok
     end
     
-    [crossings, i]  = sort(crossings);
-    channel         = channel(i);
+    crossings = sort(crossings);
     
-    % remove  bad crossings, but remove them from channel first
-    channel  (1 + find( diff(crossings) <= shadow )) = [];    
-    crossings(1 + find( diff(crossings) <= shadow )) = [];
-    channel  (crossings <  samples_before) = [];    
-    crossings(crossings <= samples_before) = [];
-    channel  (crossings > size(data{j},1) - samples_after) = [];    
+    % remove bad crossings
+    crossings(1 + find(diff(crossings) <= shadow )) = [];
+    crossings(crossings <= samples_before) = []; 
     crossings(crossings > size(data{j},1) - samples_after) = [];
     
     % update spiketimes, trials, and waveforms
-    spikes.spiketimes   =  [spikes.spiketimes crossings / params.Fs];
-    spikes.trials       =  [spikes.trials pre_trials + (j * ones( [1 length(crossings)] ))];
-    w = zeros( [length(crossings) samples_before+1+samples_after num_channels], 'single' );
+    spikes.spiketimes = [spikes.spiketimes crossings / params.Fs];
+    spikes.trials     = [spikes.trials pre_trials + (j * ones([1 length(crossings)]))];
+    w = zeros([length(crossings), samples_before + 1 + samples_after, num_channels], 'single' );
     
     for k = 1:length(crossings)
-        indices = crossings(k) + [-samples_before:samples_after];
-        w(k,:,:) = data{j}(indices, :) ;
+        indices = crossings(k) + (-samples_before:samples_after);
+        w(k,:,:) = data{j}(indices, :);
     end
-    spikes.waveforms    =  [spikes.waveforms; w ];
+    spikes.waveforms = [spikes.waveforms; w];
     
-    spikes.info.detect.dur( j + pre_trials ) = size( data{j}, 1) / params.Fs;
+    spikes.info.detect.dur(j + pre_trials) = size(data{j}, 1) / params.Fs;
 end
 
 clear data
 
+% find spike amplitudes
+amplitudes = max(sign(-params.thresh) * spikes.waveforms,[],2);
+amplitudes = max(amplitudes,[],3);
+
 % save everything
-spikes.waveforms        = single(spikes.waveforms);
-spikes.spiketimes       = single(spikes.spiketimes);
-spikes.trials           = single(spikes.trials);
-spikes.unwrapped_times  = single( unwrap_time( spikes.spiketimes, spikes.trials, spikes.info.detect.dur, spikes.params.display.trial_spacing ) );
+spikes.waveforms       = single(spikes.waveforms);
+spikes.amplitudes      = single(amplitudes');
+spikes.spiketimes      = single(spikes.spiketimes);
+spikes.trials          = single(spikes.trials);
+spikes.unwrapped_times = single(unwrap_time(spikes.spiketimes, spikes.trials, spikes.info.detect.dur, spikes.params.display.trial_spacing));
 
 % identify which channel the event occurred on
-divisor = repmat( spikes.info.detect.thresh, [size(spikes.waveforms,1) 1] );
-[~, spikes.info.detect.event_channel] = max( squeeze( min( spikes.waveforms(:,jitter_range,:), [], 2 ) )./divisor, [], 2 );
+divisor = repmat(spikes.info.detect.thresh, [size(spikes.waveforms,1) 1]);
+[~, spikes.info.detect.event_channel] = max(squeeze(min(spikes.waveforms(:,jitter_range,:), [], 2))./divisor, [], 2);
 spikes.info.detect.event_channel = single(spikes.info.detect.event_channel);
 
 % save some more data that will be useful later
 spikes.info.detect.align_sample = samples_before + 1;
-[pca.u,pca.s,pca.v] = svd(detrend(spikes.waveforms(:,:),'constant'), 0);             % SVD the data matrix
+[pca.u,pca.s,pca.v] = svd(detrend(spikes.waveforms(:,:),'constant'), 0); % SVD the data matrix
 spikes.info.pca = pca;
 
 % report detection rate
 detect_rate = length(spikes.spiketimes) / sum(spikes.info.detect.dur);
-disp( ['Detected on average ' num2str( detect_rate ) ' events per second of data '] );
-
+disp( ['Detected on average ' num2str(detect_rate) ' events per second of data '] );
 
 % get covariance matrix of background nosie by randomly sampling 10000 timepoints
-function c = get_covs( data, samples )
+function c = get_covs(data, samples)
 
-num_trials      = length(data);
-num_channels    = size(data{1},2);
+num_trials   = length(data);
+num_channels = size(data{1},2);
+num_samples  = zeros(num_trials,1);
 
 for j = 1:num_trials, num_samples(j) = size(data{j},1); end
 
 max_samples = 10000;
-waves       = zeros( [max_samples samples num_channels] );
-tr_index    = ceil( num_trials * rand([1 max_samples]) );
-data_index  = ceil( (num_samples(tr_index)-samples) .* rand([1 max_samples]) );
+waves       = zeros([max_samples samples num_channels]);
+tr_index    = ceil(num_trials * rand([1 max_samples]));
+data_index  = ceil((num_samples(tr_index)-samples) .* rand([1 max_samples]));
 
 for j = 1:max_samples
-    waves(j,:,:) = data{tr_index(j)}(data_index(j)+[0:samples-1],:);
+    waves(j,:,:) = data{tr_index(j)}(data_index(j) + (0:samples-1),:);
 end
 
-c = cov( waves(:,:) );
-
-
+c = cov(waves(:,:));

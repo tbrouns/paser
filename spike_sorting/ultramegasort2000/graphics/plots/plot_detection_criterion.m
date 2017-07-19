@@ -26,27 +26,25 @@ function p = plot_detection_criterion(spikes,clus)
 %
 
     % check arguments
-    if ~isfield(spikes,'waveforms'), error('No waveforms found in spikes object.'); end 
-    if nargin < 3, display = 1; end
-    if nargin < 2, show = 'all'; end 
+    if ~isfield(spikes,'waveforms'), error('No waveforms found in spikes object.'); end
   
     % grab data
     [p,mu,stdev,n,x] = ss_undetected(spikes,clus);
     
     % determine global extreme if there are other detection criterion plots on the current figure
     my_sign = sign(mu);
-    ax = findobj( gcf, 'Tag', 'detection_criterion' );
+    ax = findobj(gcf, 'Tag', 'detection_criterion');
     my_ex = max(abs(x));
     if ~isempty(ax)
         xlims = get(ax(1),'XLim');
         if max(abs(xlims)) > my_ex
-            global_ex = max(abs(xlims))*my_sign;
+            global_ex = max(abs(xlims)) * my_sign;
         else
-            global_ex = my_ex*my_sign;
-            set(ax, 'XLim', sort( [global_ex 0]) )
+            global_ex = my_ex * my_sign;
+            set(ax, 'XLim', sort([global_ex 0]))
         end
     else
-        global_ex = my_ex*my_sign;
+        global_ex = my_ex * my_sign;
     end
 
     % Now make an estimate of how many spikes are missing, given the Gaussian and the cutoff

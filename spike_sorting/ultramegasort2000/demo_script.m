@@ -5,7 +5,7 @@ num_channels =  4;
 trial_dur    = 20;
 
 load waveform
-Fr           = 20;
+Fr      = 20;
 scaler1 = [6 3 1 4];
 scaler2 = [2 6 3 1];
 
@@ -22,12 +22,13 @@ for j = 1:num_channels
 end
 
 % embed spikes
-for j =1:num_trials
-    locs = ceil( rand( [1 trial_dur * Fr] ) * (trial_dur*Fs - length(w))  );
+for j = 1:num_trials
+    locs = ceil(rand([1 trial_dur * Fr]) * (trial_dur * Fs - length(w)));
     for k = 1:length(locs)
-        if rand>.5, ws = ws1; else, ws = ws2; end
-        data{j}(locs(k) + [1:length(w)], : ) = data{j}(locs(k) + [1:length(w)], : ) + ws;
-
+        if rand > 0.5;  ws = ws1; 
+        else            ws = ws2; 
+        end
+        data{j}(locs(k) + (1:length(w)), :) = data{j}(locs(k) + [1:length(w)], :) + ws;
     end
 end
 

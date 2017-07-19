@@ -11,31 +11,28 @@ if nargin < 3;
     fpath = uigetdir([],'Select data folder');
 end
 
+if (fpath(end) ~= '\'); fpath = [fpath, '\']; end
+
 %% create metadata variable: to be expanded in future versions with data
 % from the electronics notebook
 metadata.tetrode = [];
 metadata.subject = subject;
 metadata.session = session;
-metadata.dir = cd;
+metadata.dir     = cd;
 
 clear subject session
+
 %% user defined variables:
 
 % Sets termination criterion for cluster aggregation. Higher values allow
 % less aggregation. Lower values allow more aggregation. Aggregation is
 % stopped when overlap density is less than the given % of main cluster
 % density
-agg_cutoff = [0.00001 0.0001 0.001 0.01];
-
-refractory_period = 1.5; % ms
-threshold         = 4.0; % STDs
-
-detect_method = 'mad'; % maximum absolute deviation
 
 % Band-pass filter parameters
-bp_high     = 6000; % Hz
-bp_low      = 600;  % Hz
-bp_order    = 10;
+bp_high  = 6000; % Hz
+bp_low   = 600;  % Hz
+bp_order = 10;
 
 pattern = 'CH';
 ext     = '.continuous';
@@ -44,7 +41,7 @@ tdata = 10; % cut data in sections of X minutes
 
 %% Find files
 
-files_unsorted = dir([fpath '*' pattern '*' ext]);
+files_unsorted = dir([fpath '\*' pattern '*' ext]);
 if (size(files_unsorted,1) == 0);
     disp('No .CONTINUOUS files in folder. Select different path.');
     return;
@@ -71,8 +68,9 @@ files = files(~cellfun('isempty',files)); % remove empty cells
 
 numtets = numfiles / 4;
 
-for iTetrode = 7:numtets;
+for iTetrode = 1:numtets;
     tic
+    metadata.tetrode = iTetrode;
     for iElectrode = 1:4; % load all tetrode data
         
         iFile = (iTetrode - 1) * 4 + iElectrode;
@@ -84,15 +82,16 @@ for iTetrode = 7:numtets;
         
         Fs  = info.header.sampleRate;
         
-        if (iElectrode == 1) % new tetrode
-            labels  = cell(4,1);
-            data    = zeros(4,length(data_channel));
-        end
-        
         % Band-pass filter
         
-        [B,A]           = butter(bp_order,[bp_low bp_high]/(Fs/2),'bandpass');
-        data_channel    = filtfilt(B,A,data_channel);
+        [B,A]        = butter(bp_order,[bp_low bp_high]/(Fs/2),'bandpass');
+        data_channel = filtfilt(B,A,data_channel);
+        data_channel = single(data_channel); % convert to single type
+        
+        if (iElectrode == 1) % new tetrode
+            labels  = cell(4,1);
+            data    = zeros(4,length(data_channel),'single');
+        end
         
         labels{iElectrode} = num2str(iFile);
         data(iElectrode,:) = data_channel - mean(data_channel);
@@ -101,12 +100,7 @@ for iTetrode = 7:numtets;
     
     clear data_channel
     
-    % set parameters for spike detection
-    
-    spikes = ss_default_params(Fs);
-    spikes.params.detect_method     = detect_method;
-    spikes.params.refractory_period = refractory_period;
-    spikes.params.thresh            = threshold;
+    spikes = ss_default_params(Fs); % set parameters for spike detection
     
     % UMS spike detection
     
@@ -117,31 +111,68 @@ for iTetrode = 7:numtets;
     iStart           = 1;
     
     for iSection = 1:nsection
-        data_section    = data(:,iStart:iStart + nsamples_section - 1);
-        data_section    = {data_section'};
-        spikes          = ss_detect(data_section,spikes);
-        iStart          = iStart + nsamples_section;
+        data_section = data(:,iStart:iStart + nsamples_section - 1);
+        data_section = {data_section'};
+        spikes       = ss_detect(data_section,spikes);
+        iStart       = iStart + nsamples_section;
     end
     
     %clear data data_section
     
-    spikes = ss_align(spikes);
-    spikes = ss_kmeans(spikes);
-    spikes = ss_energy(spikes);
+    % Cluster detected spikes
     
-    for AGcutoff = 1:length(agg_cutoff)
-        spikes.params.agg_cutoff = agg_cutoff(AGcutoff);
-        spikes = ss_aggregate(spikes);
-        metadata.tetrode = iTetrode;
-        save([...
-            'Spikes_'   metadata.subject ...
-            '_'         metadata.session ...
-            '_T'        num2str(iTetrode,                   '%02d')   ...
-            '_AG'       num2str(spikes.params.agg_cutoff,   '%10.2e') ...
-            '_ST'       num2str(spikes.params.thresh,       '%04.1f') ...
-            '.mat'], 'spikes','metadata');
+    if (strcmp(spikes.params.cluster_method,'ums'))
+        
+        spikes   = ums_clustering(spikes);
+        spikes   = ss_aggregate(spikes);
+        clusters = ums_clusterfilter(spikes); %#ok
+        
+        save([... 
+        'Spikes_'   metadata.subject ...
+        '_'         metadata.session ...
+        '_T'        num2str(metadata.tetrode,             '%02d') ...
+        '_'         spikes.params.cluster_method                  ...
+        '_ST'       num2str(spikes.params.thresh,       '%04.1f') ...
+        '_N'        num2str(size(spikes.waveforms,1),     '%06d') ...
+        '_AG'       num2str(spikes.params.agg_cutoff,   '%10.2e') ...
+        '.mat'],'spikes','clusters','metadata');
+        
+    elseif (strcmp(spikes.params.cluster_method,'fmm'))
+        
+        spikes    = ss_align(spikes);
+        nchan     = size(spikes.waveforms,3);
+        waveforms = zeros(size(spikes.waveforms,1),nchan*size(spikes.waveforms,2));
+        n         = size(spikes.waveforms,2);
+        for ichan = 1:nchan
+            waveforms(:,n*(ichan-1)+1:n*ichan) = spikes.waveforms(:,:,ichan);
+        end
+        
+        Sorter          = FMM(waveforms',spikes.params.fmm_k);
+        Sorter.align    = false;
+        Sorter.FMMparam = spikes.params.fmm_p; %% Changes how aggresively to cluster, range 0-1
+        Sorter.initialize;
+        Sorter.runVBfit;
+        
+        assigns                    = getMAPassignment(Sorter);
+        spikes.assigns             = assigns;
+        spikes.info.kmeans.assigns = assigns;
+        numclusts                  = max(spikes.info.kmeans.assigns);
+        cmap                       = jetm(numclusts);
+        spikes.info.kmeans.colors  = cmap(randperm(numclusts),:);
+        
+        clusters = ums_clusterfilter(spikes); %#ok
+        
+        save([... 
+        'Spikes_'   metadata.subject ...
+        '_'         metadata.session ...
+        '_T'        num2str(metadata.tetrode,             '%02d') ...
+        '_'         spikes.params.cluster_method                  ...
+        '_ST'       num2str(spikes.params.thresh,       '%04.1f') ...
+        '_N'        num2str(size(spikes.waveforms,1),     '%06d') ...
+        '_AG'       num2str(spikes.params.fmm_p,        '%10.2e') ...
+        '.mat'],'spikes','clusters','metadata');
     end
-    
+        
     toc
     
 end

@@ -19,7 +19,6 @@ function [proj,u,s,v] = pcasvd(data)
 %   all rows of the matrix DATA to be the zero vector.  This is therefore
 %   enforced if it is not already the case.
 
-
-data = detrend(data, 'constant');   % remove mean row
-[u,s,v] = svd(data, 0);             % SVD the data matrix
-proj = data * v;                    % compute (mean-subtracted) pca projections
+data    = detrend(data, 'constant'); % remove mean row
+[u,s,v] = svd(data, 0);              % SVD the data matrix
+proj    = data * v;                  % compute (mean-subtracted) pca projections

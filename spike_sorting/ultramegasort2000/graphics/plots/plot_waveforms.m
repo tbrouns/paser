@@ -1,4 +1,4 @@
-function plot_waveforms( spikes, show, colormode,issubtree)
+function plot_waveforms(spikes, show, colormode,issubtree)
 % UltraMegaSort2000 by Hill DN, Mehta SB, & Kleinfeld D  - 07/12/2010
 %
 % plot_waveforms - display waveforms for a collection of spikes
@@ -89,7 +89,7 @@ p2p          = ymax - ymin;
 ymax         = ymax + 0.5 * p2p;
 ymin         = ymin - 0.5 * p2p;
 
-data.ylims       = [ymin, ymax];
+data.ylims = [ymin, ymax];
 
 if any(data.valid_modes(2:3))
     data.colors = spikes.info.kmeans.colors;

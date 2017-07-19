@@ -26,16 +26,16 @@ function [ev,lb,ub,RPV] = ss_rpv_contamination( spikes, use  )
 %
 
     % get spiketime data
-    select = get_spike_indices(spikes, use );      
-    spiketimes = sort( spikes.unwrapped_times(select) );
+    select     = get_spike_indices(spikes, use);      
+    spiketimes = sort(spikes.unwrapped_times(select));
 
     % get parameters for calling rp_violations
-    N = length(select);
-    T = sum( spikes.info.detect.dur );
-    RP = (spikes.params.refractory_period - spikes.params.shadow) * .001; 
-    RPV  = sum( diff(spiketimes)  <= (spikes.params.refractory_period * .001) );
+    N   = length(select);
+    T   = sum(spikes.info.detect.dur);
+    RP  = (spikes.params.refractory_period - spikes.params.shadow) * 0.001; 
+    RPV = sum(diff(spiketimes) <= (spikes.params.refractory_period * 0.001));
 
     % calculate contamination
-    [ev,lb,ub] = rpv_contamination(N, T, RP, RPV );
+    [ev,lb,ub] = rpv_contamination(N, T, RP, RPV);
   
 end

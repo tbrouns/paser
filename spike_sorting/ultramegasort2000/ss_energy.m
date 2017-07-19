@@ -55,18 +55,18 @@ elseif (~isfield(spikes.info, 'kmeans'))
     disp('SS:overcluster_not_computed', 'The data must be overclustered before computing energy');
     return
 end
-numclusts   = length(unique(spikes.info.kmeans.assigns));
-d           = diag(spikes.info.pca.s);
-r           = find( cumsum(d)/sum(d) >.95,1);
-waves       = (spikes.waveforms(:,:) * spikes.info.pca.v(:,1:r))';
+numclusts = length(unique(spikes.info.kmeans.assigns));
+d         = diag(spikes.info.pca.s);
+r         = find(cumsum(d)/sum(d) > 0.95, 1);
+waves     = (spikes.waveforms(:,:) * spikes.info.pca.v(:,1:r))';
 
 %%%%% PREPARE SOME INFORMATION
 
 waveclust = cell(numclusts,1); % collect spikes for each cluster
 numpts    = zeros(numclusts,1);
 for clust = 1:numclusts;
-    waveclust{clust}    = waves(:,spikes.info.kmeans.assigns == clust);
-    numpts(clust)       = size(waveclust{clust},2);
+    waveclust{clust} = waves(:,spikes.info.kmeans.assigns == clust);
+    numpts(clust)    = size(waveclust{clust},2);
 end
 clear waves
 
@@ -75,58 +75,64 @@ scale = sqrt(sum(diag(spikes.info.kmeans.W))) / 10;
 
 %%%%% PREPARE TO LOOP
 
+mex      = 0;
 parallel = 0;
-
-if (~parallel)
-    
-    k       = 0;
-    sumpts  = sum(tril(numpts * ones(1,length(numpts))));
-    total   = sum(sumpts);
-    progress_bar(0,1,'Computing Interaction Energies . . .')
-    interface_energy  = zeros(numclusts);
-    
-    %%%%% PAIRWISE DISTANCES LOOP
-    
-    for clust1 = 1:numclusts
-        X  = waveclust{clust1};
-        for clust2 = clust1:numclusts   % clust2 starts at clust1 so we get intra- too
-            % Compute pairwise Euclidean distance matrix
-            % use formula that (x-y)^2 = x^2 + y^2 - 2xy
-            % Note that this formula can cause small negative values due to
-            % round-off, so we take absolute value
-            Y = waveclust{clust2};
-            dists = abs(bsxfun(@plus,dot(X,X,1),dot(Y,Y,1)')-(2*Y'*X));
-            interface_energy(clust1,clust2) = sum(exp(-realsqrt(dists(:))/scale));
-        end
-        k = k + sumpts(clust1);
-        progress_bar(k/total,[]);
-    end
+tic
+if (mex)
+    interface_energy = pairwise(waveclust,scale);
+    interface_energy = reshape(interface_energy,n,n);
+    interface_energy = interface_energy';
 else
-    id1 = tril((1:numclusts)' * ones(1,numclusts));
-    id1 = reshape(id1,1,[]);
-    id2 = repmat(1:numclusts,numclusts,1);
-    id2 = reshape(id2,1,[]);
-    id3 = 1:length(id1);
-    id3(id1 == 0) = [];
-    id2(id1 == 0) = [];
-    id1(id1 == 0) = [];
-    IDs     = [id2;id1];
-    npairs  = size(IDs,2);
-    ie      = zeros(npairs,1);
-    
-    parfor iclust = 1:npairs
-        X = waveclust{IDs(1,iclust)};
-        Y = waveclust{IDs(2,iclust)};
-        dists = abs(bsxfun(@plus,dot(X,X,1),dot(Y,Y,1)')-(2*Y'*X));
-        ie(iclust) = sum(exp(-realsqrt(dists(:))/scale));
+    if (~parallel)
+        k       = 0;
+        sumpts  = sum(tril(numpts * ones(1,length(numpts))));
+        total   = sum(sumpts);
+        progress_bar(0,1,'Computing Interaction Energies . . .')
+        interface_energy  = zeros(numclusts);
+        
+        %%%%% PAIRWISE DISTANCES LOOP
+        
+        for clust1 = 1:numclusts
+            X  = waveclust{clust1};
+            for clust2 = clust1:numclusts   % clust2 starts at clust1 so we get intra- too
+                % Compute pairwise Euclidean distance matrix
+                % use formula that (x-y)^2 = x^2 + y^2 - 2xy
+                % Note that this formula can cause small negative values due to
+                % round-off, so we take absolute value
+                Y = waveclust{clust2};
+                dists = abs(bsxfun(@plus,dot(X,X,1),dot(Y,Y,1)')-(2*Y'*X));
+                interface_energy(clust1,clust2) = sum(exp(-realsqrt(dists(:))/scale));
+            end
+            k = k + sumpts(clust1);
+            progress_bar(k/total,[]);
+        end
+    else
+        id1 = tril((1:numclusts)' * ones(1,numclusts));
+        id1 = reshape(id1,1,[]);
+        id2 = repmat(1:numclusts,numclusts,1);
+        id2 = reshape(id2,1,[]);
+        id3 = 1:length(id1);
+        id3(id1 == 0) = [];
+        id2(id1 == 0) = [];
+        id1(id1 == 0) = [];
+        IDs     = [id2;id1];
+        npairs  = size(IDs,2);
+        ie      = zeros(npairs,1);
+        
+        parfor iclust = 1:npairs
+            X = waveclust{IDs(1,iclust)};
+            Y = waveclust{IDs(2,iclust)};
+            dists = abs(bsxfun(@plus,dot(X,X,1),dot(Y,Y,1)')-(2*Y'*X));
+            ie(iclust) = sum(exp(-realsqrt(dists(:))/scale));
+        end
+        
+        interface_energy      = zeros(numclusts * numclusts,1);
+        interface_energy(id3) = ie;
+        interface_energy      = reshape(interface_energy',numclusts,numclusts);
+        
     end
-    
-    interface_energy        = zeros(numclusts * numclusts,1);
-    interface_energy(id3)   = ie;
-    interface_energy        = reshape(interface_energy',numclusts,numclusts);
-    
 end
-
+toc
 %%%%% CORRECTION TERMS
 % The energy matrix so far includes a contribution in the intra-cluster
 % energies that is not found in the inter-cluster energies; namely, the
@@ -154,11 +160,13 @@ connect_strength    = 2 .* norm_energy ./ (self + self');
 connect_strength    = connect_strength .* (1-eye(numclusts));           % diag entries <- 0, so we won't agg clusters with themselves
 
 % initialize
-[val,pos(1)] = max(max(connect_strength) ) ;
+[~,pos(1)] = max(max(connect_strength));
 for j = 2:numclusts
-    [val1,pos1] = max(connect_strength(:,pos(j-1)) );
-    [val2,pos2] = max(connect_strength(pos(j-1),: ));
-    if val1 >= val2, pos(j) = pos1; else, pos(j) = pos2; end
+    [val1,pos1] = max(connect_strength(:,pos(j-1)));
+    [val2,pos2] = max(connect_strength(pos(j-1),:));
+    if val1 >= val2; pos(j) = pos1;
+    else             pos(j) = pos2;
+    end
     connect_strength(:,pos(j-1)) = -inf;
     connect_strength(pos(j-1),:) = -inf;
 end
@@ -169,18 +177,19 @@ ie      = spikes.info.interface_energy;
 c       = spikes.info.kmeans.centroids;
 
 for j = 1:numclusts
-    assigns( spikes.info.kmeans.assigns == pos(j) ) = j;
+    assigns(spikes.info.kmeans.assigns == pos(j)) = j;
     for k = 1:numclusts
         if k > j
             if pos(k) > pos(j)
-                ie( j,k) = spikes.info.interface_energy( pos(j),pos(k) );
+                ie(j,k) = spikes.info.interface_energy(pos(j),pos(k));
             else
-                ie( j,k) = spikes.info.interface_energy( pos(k),pos(j) );
+                ie(j,k) = spikes.info.interface_energy(pos(k),pos(j));
             end
         end
     end
     c(j,:) = spikes.info.kmeans.centroids(pos(j),:);
 end
+
 spikes.info.kmeans.assigns = assigns;
 spikes.info.interface_energy = ie;
 spikes.info.kmeans.centroids = c;

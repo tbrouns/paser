@@ -41,14 +41,14 @@ presorted = 1;   % already sorted events?
 if (strcmpi(varargin{end},'sort')),
     presorted = 0;
     varargin = varargin(1:end-1);   
-	if(length(varargin)==0), error('Not enough arguments.'); end;
+	if(isempty(varargin)), error('Not enough arguments.'); end;
 end;
 
 if (length(varargin{1}) == 1), y = x;    % make auto-corr case look like X
-else,
+else
     y = varargin{1};
     varargin = varargin(2:end);
-	if(length(varargin)==0), error('Not enough arguments.'); end;
+	if(isempty(varargin)), error('Not enough arguments.'); end;
 end
 if (length(y)<=1),  error('Point processes must consist of >1 event.');  end;
 if (~isvector(x)), error('Matrix data are not supported.');  end;

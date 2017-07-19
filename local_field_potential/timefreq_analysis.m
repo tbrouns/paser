@@ -14,11 +14,19 @@ clear all
 % tstep       = 0.3; %      time bin size (sec)
 % fstep       = 1.0; % frequency bin size (Hz)
 
-fig1 = figure;
+fig1 = figure;  set(gcf,'position',get(0,'screensize'));
+fig2 = figure;  set(gcf,'position',get(0,'screensize'));
+
+% Spectrum parameters
 
 twin        = 1.0; % length of time window (sec)
 fmin        = 1.0; % frequency range min (Hz)
 fmax        = 60;  % frequency range max (Hz)
+
+Fbands = [1 4 7 15 31 fmax];
+nfreq  = length(Fbands) - 1;
+
+% Filter parameters
 
 N      = 3:12;          % Try different filter orders
 F_low  = 0.1:0.1:fmin;  % Try different frequencies (in Hz)
@@ -109,11 +117,10 @@ for iTetrode = 1:numfiles
         
         for iChan = 1:4
             for iSection = 1:nsections
-                dat         = data.trial{1,1}(iChan,iStart:iStart+nsection);
-                [S,F,T,P]   = spectrogram(dat-mean(dat),interval,overlap,nfft,Fs);
-                
+                dat       = data.trial{1,1}(iChan,iStart:iStart+nsection);
+                [S,F,T,P] = spectrogram(dat-mean(dat),interval,overlap,nfft,Fs);
+                                
                 figure(fig1);
-                set(gcf,'position',get(0,'screensize'));
                 imagesc(T,F,10*log10(P));
                 colorbar
                 axis xy
@@ -121,6 +128,21 @@ for iTetrode = 1:numfiles
                 xlabel('Time [s]');
                 ylabel('Frequency [Hz]');
                 export_fig(['Spectrogram_' num2str(iTetrode) '_' num2str(iChan) '_' num2str(iSection)]);
+                
+                figure(fig2);
+                clf
+                ColorSet = varycolor(nfreq);
+                hold on;
+                for i = 1:nfreq
+                    semilogy(T, mean(P(Fbands(i):Fbands(i+1), :)), 'Color',ColorSet(i,:),'LineWidth',2)
+                end
+                set(gca,'TickLabelInterpreter', 'latex');
+                set(gca, 'YScale', 'log')
+                xlabel('$$\bf{Time \ (s)}$$' ,          'Interpreter', 'Latex')
+                ylabel('$$\bf{Power \ (\mu V^2)}$$' ,   'Interpreter', 'Latex')
+                legend('Delta','Theta','Alpha','Beta','Gamma');
+                export_fig(['Spectrum_' num2str(iTetrode) '_' num2str(iChan) '_' num2str(iSection) '_2']);
+
                 iStart = iStart + nsection + 1;
             end
         end

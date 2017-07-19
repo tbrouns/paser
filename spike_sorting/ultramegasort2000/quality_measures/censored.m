@@ -24,7 +24,6 @@ function c = censored( tau_c, M, T )
 %
 % Output:
 %       c    - estimated false negative fraction from censoring
-%
 
-    c = (tau_c/1000) * M / T;
+c = (tau_c / 1000) * M / T;
 

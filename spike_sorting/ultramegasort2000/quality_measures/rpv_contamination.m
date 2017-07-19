@@ -55,19 +55,19 @@ function [ev,lb,ub] = rpv_contamination(N, T, RP, RPV )
 %
 
    conf_int = 95; % percent confidence interval
-   lambda = N/T;  % mean firing rate for cluster 
+   lambda   = N/T;  % mean firing rate for cluster 
 
    % get Poisson confidence interval on number of expected RPVs
-   [dummy, interval] = poissfit(RPV, (100-conf_int)/100 ); 
+   [~, interval] = poissfit(RPV, (100 - conf_int) / 100); 
    
    % convert contamination from number of RPVs to a percentage of spikes
-   lb = convert_to_percentage( interval(1), RP, N, T, lambda ); 
-   ub = convert_to_percentage( interval(2), RP, N, T, lambda ); 
-   ev = convert_to_percentage( RPV        , RP, N, T, lambda );
+   lb = convert_to_percentage(interval(1), RP, N, T, lambda); 
+   ub = convert_to_percentage(interval(2), RP, N, T, lambda); 
+   ev = convert_to_percentage(RPV        , RP, N, T, lambda);
   
 end
 
-function p = convert_to_percentage( RPV, RP, N, T, lambda )
+function p = convert_to_percentage(RPV, RP, N, T, lambda)
     % converts contamination from number of RPVs to a percentage of spikes
 
     RPVT = 2 * RP * N; % total amount of time in which an RPV could occur
@@ -75,7 +75,7 @@ function p = convert_to_percentage( RPV, RP, N, T, lambda )
     p =  RPV_lambda / lambda; % estimate of % contamination of cluster
     
     % force p to be a real number in [0 1]
-    if isnan(p), p = 0; end  
-    if p>1, p= 1; end     
+    if isnan(p); p = 0; end
+    if p > 1;    p = 1; end
         
 end

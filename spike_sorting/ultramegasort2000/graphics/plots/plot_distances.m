@@ -6,11 +6,11 @@ function [z,dof] = plot_distances( spikes, show, method)
 % Usage:
 %    [z,dof] = plot_distances( spikes, show, method );
 %
-% Description:  
-%    Plots histogram of Mahalanobis distance (z-value) from each waveform 
-% to the mean for a specified set of spike events.  Also plotted is the 
-% theoretical curve for a Gaussian distribution with the same number of 
-% degrees of freedom, as calculated from the chi2 distribution. This 
+% Description:
+%    Plots histogram of Mahalanobis distance (z-value) from each waveform
+% to the mean for a specified set of spike events.  Also plotted is the
+% theoretical curve for a Gaussian distribution with the same number of
+% degrees of freedom, as calculated from the chi2 distribution. This
 % function is intended to be used as part of outlier removal. If the distribution
 % of data points at large z-values is inconsistent with the Chi2 distribution,
 % the user may want to remove these events as outliers.
@@ -31,51 +31,51 @@ function [z,dof] = plot_distances( spikes, show, method)
 %    dof           - degrees of freedom used in chi2 calculation
 %
 
-    % parameter checking
-    if ~isfield(spikes,'waveforms'), error('No waveforms found in spikes object.'); end
-    if nargin < 2, show = 1:size(spikes.waveforms,1); end
-    if nargin< 3, method = spikes.params.display.default_outlier_method; end
-        
-    % which spikes are we showing?
-    show = get_spike_indices(spikes, show );  
-    data.waveforms = spikes.waveforms(show,:);
-    data.noise_cov = spikes.info.detect.cov;
-    num_dims = size(data.waveforms(:,:),2);
-    
-    % initialize axes
-    cla reset
-    set(gca,'UserData', data.waveforms );
-    xlabel( 'Z-score');
-    ylabel('Count');
-        
-    % get z-scores
-    if method == 1
-        data.data_cov  = cov( data.waveforms );
-        [z,dof] = get_zvalues( data.waveforms, data.data_cov );
-    elseif method == 2
-        [z,dof] = get_zvalues( data.waveforms, data.noise_cov );
-    end
-       
-    % make histogram
-    
-    x1      = 0:max(z);   
-   [n1,x1]  = histcounts(z,x1);
-    
-    [maxN,maxNi]    = max(n1);
-    maxNi           = maxNi + find(n1(maxNi:end) > 0.01 * maxN, 1, 'last');
-    x1              = 0:x1(maxNi);
-    
-    histogram(z,x1);
+% parameter checking
+if ~isfield(spikes,'waveforms'), error('No waveforms found in spikes object.'); end
+if nargin < 2, show = 1:size(spikes.waveforms,1); end
+if nargin < 3, method = spikes.params.display.default_outlier_method; end
 
-    hndl = findobj(gca,'Type','patch'); 
-    set(hndl,'FaceColor',[ 0 0 1] )
-        
-    % plot theoretical values
-    y =  chi2pdf(x1,dof);
-    y = y * length(z) * ( x1(2)-x1(1));
+% which spikes are we showing?
+show           = get_spike_indices(spikes, show);
+data.waveforms = spikes.waveforms(show,:);
+data.noise_cov = spikes.info.detect.cov;
 
-    l = line(x1,y);
-    set(l,'Color',[0 1 0],'LineWidth',1.5)
+% initialize axes
+cla reset
+set(gca,'UserData', data.waveforms);
+xlabel('Z-score');
+ylabel('Count');
 
-        
-    end
+% get z-scores
+if method == 1
+    data.data_cov  = cov(data.waveforms);
+    [z,dof] = get_zvalues(data.waveforms, data.data_cov);
+elseif method == 2
+    [z,dof] = get_zvalues(data.waveforms, data.noise_cov);
+end
+
+% make histogram
+
+x1      = 0:max(z);
+[n1,x1] = histcounts(z,x1);
+
+[maxN,maxNi] = max(n1);
+maxNi        = maxNi + find(n1(maxNi:end) > 0.01 * maxN, 1, 'last');
+x1           = 0:x1(maxNi);
+
+histogram(z,x1);
+xlim([0 200]);
+xlabel('Z-score'); ylabel('Count');
+
+hndl = findobj(gca,'Type','patch');
+set(hndl,'FaceColor',[ 0 0 1] )
+
+% plot theoretical values
+y = chi2pdf(x1,dof);
+y = y * length(z) * (x1(2) - x1(1));
+
+l = line(x1,y);
+set(l,'Color',[0 1 0],'LineWidth',1.5)
+
+end

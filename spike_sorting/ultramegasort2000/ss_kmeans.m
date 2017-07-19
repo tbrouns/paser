@@ -63,81 +63,77 @@ function spikes = ss_kmeans(spikes, options)
 % Undocumented option: OPTIONS.PROGRESS (default: 1) determines whether the progress
 %                                 bar is displayed during the clustering.
 
-debug = 1;
-
-%%%%%%%%%% ARGUMENT CHECKING
+%% ARGUMENT CHECKING
 if (~isfield(spikes, 'waveforms') || (size(spikes.waveforms, 1) < 1))
     error('SS:waveforms_undefined', 'The SS object does not contain any waveforms!');
 end
 
-%%%%%%%%%% CONSTANTS
-d       = diag(spikes.info.pca.s);
-r       = find( cumsum(d)/sum(d) >.95,1);
-%waves = spikes.info.pca.scores(:,1:r);
-waves   = spikes.waveforms(:,:) * spikes.info.pca.v(:,1:r);
+%% CONSTANTS
+d     = diag(spikes.info.pca.s);
+r     = find(cumsum(d) / sum(d) > 0.95, 1);
+waves = spikes.waveforms(:,:) * spikes.info.pca.v(:,1:r);
 
-%waves = spikes.waveforms;         % using a reference without structure notation is better for R13 acceleration
-%waves = reshape( waves, size(waves,1),  size(waves,2)*size(waves,3) );
-[M,N]                   = size(waves);
-target_clustersize      = spikes.params.kmeans_clustersize;
-jitter                  = meandist_estim(waves) / 100 / N;        % heuristic
+[M,N]              = size(waves);
+target_clustersize = M * spikes.params.kmeans_clustersize;
+jitter             = meandist_estim(waves) / 100 / N;        % heuristic
 
-%%%%%%%%%% DEFAULTS
-opts.divisions          = round(log2(M / target_clustersize));  % power of 2 that gives closest to target_clustersize, but in [4..7]
-opts.divisions          = max(min(opts.divisions, 7), 4);       % restrict to 16-128 clusters; heuristic.
-opts.reps               = 1;                                    % just one repetition
-opts.reassign_converge  = 0;                                    % stop only when no points are reassigned ...
-opts.reassign_rough     = round(0.005 * M);                     % (no need to get full convergence for intermediate runs)
-opts.mse_converge       = 0;                                    % ... and by default, we don't use the mse convergence criterion
-opts.progress           = 1;
+%% DEFAULTS
+opts.divisions         = round(log2(M / target_clustersize));  % power of 2 that gives closest to target_clustersize, but in [4..7]
+opts.divisions         = max(min(opts.divisions, 7), 4);       % restrict to 16-128 clusters; heuristic.
+opts.reps              = 1;                                    % just one repetition
+opts.reassign_converge = 0;                                    % stop only when no points are reassigned ...
+opts.reassign_rough    = round(0.005 * M);                     % (no need to get full convergence for intermediate runs)
+opts.mse_converge      = 0;                                    % ... and by default, we don't use the mse convergence criterion
+opts.progress          = 1;
+opts.split_big         = 0;
 if (nargin > 1)
     supplied = lower(fieldnames(options));   % which options did the user specify?
     for op = 1:length(supplied)              % copy those over the defaults
-        if (version('-release') < 13)        % annoyingly, pre-R13 Matlab doesn't do dynamic field names, ...
-            opts = setfield(opts, supplied(op), getfield(options, supplied(op)));  % so we use an older syntax
-        else
-            opts.(supplied{op}) = options.(supplied{op});  % this is the preferred syntax as of R13 --
-        end                                                %   we include it b/c 'setfield' is deprecated
+        opts.(supplied{op}) = options.(supplied{op});
     end
 end
 
-%%%%%%%%%% CLUSTERING
-wavelist        = (1:M)';
-assigns         = ones(M, opts.reps,'single');
-mse             = Inf * ones(1, opts.reps);
-randnstate      = randn('state');
+%% CLUSTERING
+wavelist   = (1:M)';
+assigns    = ones(M, opts.reps,'single');
+mse        = Inf * ones(1, opts.reps);
+randnstate = randn('state');
 
 for rep = 1:opts.reps                                 % TOTAL # REPETITIONS
     
     centroid = mean(waves, 1);  % always start here
+    itercounter = zeros(opts.divisions,1);
     
     for iter = 1:opts.divisions                       % # K-MEANS SPLITS
-                
-        oldmse              = Inf;
-        oldassigns          = zeros(M, 1,'single');
-        assign_converge     = 0;
-        mse_converge        = 0;
-        itercounter(iter)   = 0;
+        oldmse            = Inf;
+        oldassigns        = zeros(M,1,'single');
+        assign_converge   = 0;
+        mse_converge      = 0;
+        itercounter(iter) = 0;
         
-        if (iter == opts.divisions), progress = opts.progress; reassign_criterion = opts.reassign_converge;
-        else                         progress = 0;             reassign_criterion = opts.reassign_rough;
+        %         if (iter == opts.divisions); reassign_criterion = opts.reassign_converge;
+        %         else                         reassign_criterion = opts.reassign_rough;
+        %         end
+        
+        reassign_criterion = opts.reassign_rough;
+        
+        if (opts.split_big)
+            if (iter == opts.divisions)  % do some extra splitting on clusters that look too big
+                toobig   = find(clustersizes > 2*target_clustersize);
+                splitbig = centroid(toobig,:) + randn(length(toobig), size(centroid,2));
+                centroid = [centroid; splitbig];
+            end
         end
         
-        if ((iter == opts.divisions) && debug)  % do some extra splitting on clusters that look too big
-            toobig      = find(clustersizes > 2 * target_clustersize);
-            splitbig    = centroid(toobig,:) + randn(length(toobig), size(centroid,2));
-            centroid    = [centroid; splitbig];
-        end
-        
-        centroid = [centroid; centroid] + jitter * randn(2 * size(centroid, 1), size(centroid,2)); % split & jitter
+        centroid = [centroid; centroid] + jitter * randn(2*size(centroid,1), size(centroid,2)); % split & jitter
         
         if (opts.progress)
             progress_bar(0, 1, sprintf('Calculating %d means.', size(centroid,1))); % crude ...
         end
-                
-        while (~(assign_converge || mse_converge))     % convergence?
+        
+        while (~(assign_converge || mse_converge)) % convergence?
             numclusts = size(centroid,1);  % this might not be 2^iter if any have been emptied
-                        
+            
             %%%%% E STEP
             % Vectorized distance computation:
             %         dist(x,y)^2 = (x-y)'(x-y) = x'x + y'y - 2 x'y,
@@ -155,44 +151,44 @@ for rep = 1:opts.reps                                 % TOTAL # REPETITIONS
                 singlespike = find(assigns(:,rep) == singleton);   % ... and its lone member ...
                 clustdistsq(singlespike, singleton) = single(Inf); % ... and find its next best assignment
                 [bestdists(singlespike), assigns(singlespike, rep)] = min(clustdistsq(singlespike,:));
-                
                 clustersizes(singleton) = 0;                       % bookkeeping for cluster counts
                 clustersizes(assigns(singlespike, rep)) = clustersizes(assigns(singlespike, rep)) + 1;
-            end 
-               
+            end
+            
             %%%%% M STEP
             % Recompute cluster means based on new assignments . . .
-
-            centroid  = zeros(numclusts, N);
-                        
+            
+            centroid = zeros(numclusts, N);
+            
             for iclust = 1:numclusts
                 centroid(iclust,:) = sum(waves(assigns == iclust,:));
             end
             
-            for clust = 1:numclusts
-                if (clustersizes(clust) > 0)
-                    centroid(clust,:) = centroid(clust,:) ./ clustersizes(clust);
-                end
-            end
+            id = clustersizes > 0;
+            centroid(id,:) = bsxfun(@rdivide,centroid(id,:),clustersizes(id)');
+            
             centroid(clustersizes == 0,:)   = [];
             clustersizes(clustersizes == 0) = [];
-                        
+            
             %%%%% Compute convergence info
-            mse(rep)        = mean(bestdists);
-            mse_converge    = ((1 - (mse(rep)/oldmse)) <= opts.mse_converge);   % fractional change
-            oldmse          = mse(rep);
+            mse(rep)     = mean(bestdists);
+            mse_converge = (1 - (mse(rep)/oldmse)) <= opts.mse_converge;   % fractional change
+            oldmse       = mse(rep);
             
             changed_assigns = sum(assigns(:,rep) ~= oldassigns);
-            assign_converge = (changed_assigns <= reassign_criterion);   % num waveforms reassigned
-            if (progress)
-                new_progress =  ((M - changed_assigns) / M).^10;
-                progress_bar(new_progress, 10); % crude ...
-            end
+            assign_converge = changed_assigns <= reassign_criterion;   % num waveforms reassigned
+            
             oldassigns = assigns(:,rep);
             itercounter(iter) = itercounter(iter) + 1;
+            
+            if (mod(itercounter(iter),5) == 0)
+                tot = size(assigns,1) - reassign_criterion;
+                progress_bar((tot - changed_assigns) / tot,[]);
+            end
         end
     end
 end
+
 spikes.info.kmeans.iteration_count = itercounter;
 spikes.info.kmeans.randn_state = randnstate;
 
@@ -204,13 +200,12 @@ spikes.info.kmeans.mse = bestmse;
 % We also save the winning cluster centers as a convenience
 numclusts = max(spikes.info.kmeans.assigns);
 spikes.info.kmeans.centroids = zeros(numclusts, N);
-for clust = 1:numclusts
-    members = find(spikes.info.kmeans.assigns == clust);
-    spikes.info.kmeans.centroids(clust,:) = mean(waves(members,:), 1);
+for iclust = 1:numclusts
+    spikes.info.kmeans.centroids(iclust,:) = mean(waves(spikes.info.kmeans.assigns == iclust,:), 1);
 end
 
 % And W, B, T matrices -- easy since T & B are fast to compute and T = W + B)
-spikes.info.kmeans.T = cov(waves);             % normalize everything by M-1, not M
+spikes.info.kmeans.T = cov(waves); % normalize everything by M-1, not M
 spikes.info.kmeans.B = cov(spikes.info.kmeans.centroids(spikes.info.kmeans.assigns, :));
 spikes.info.kmeans.W = spikes.info.kmeans.T - spikes.info.kmeans.B;
 

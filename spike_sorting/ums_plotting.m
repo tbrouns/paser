@@ -1,4 +1,4 @@
-files = dir('Spikes*');
+files = dir('Spikes*.mat');
 files = char(files.name);
 numfiles = length(files(:,1));
 
