@@ -15,7 +15,7 @@ if nargin < 4;
     savePath = []; % save in current working directory
 end
 
-if (loadPath(end) ~= '\' && ~isempty(loadpath)); loadPath = [loadPath, '\']; end
+if (loadPath(end) ~= '\' && ~isempty(loadPath)); loadPath = [loadPath, '\']; end
 if (savePath(end) ~= '\' && ~isempty(savePath)); savePath = [savePath, '\']; end
 
 %% create metadata variable: to be expanded in future versions with data
