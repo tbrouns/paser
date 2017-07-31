@@ -1,4 +1,4 @@
-function ums_wrapper(subject,session,fpath)
+function ums_wrapper(subject,session,loadPath,savePath)
 
 % ums_wrapper ('YZ02','R170')
 
@@ -8,10 +8,15 @@ function ums_wrapper(subject,session,fpath)
 % electrodes into tetrodes; denoise (magnet artifacts);
 
 if nargin < 3;
-    fpath = uigetdir([],'Select data folder');
+    loadPath = uigetdir([],'Select data folder');
 end
 
-if (fpath(end) ~= '\'); fpath = [fpath, '\']; end
+if nargin < 4;
+    savePath = []; % save in current working directory
+end
+
+if (loadPath(end) ~= '\' && ~isempty(loadpath)); loadPath = [loadPath, '\']; end
+if (savePath(end) ~= '\' && ~isempty(savePath)); savePath = [savePath, '\']; end
 
 %% create metadata variable: to be expanded in future versions with data
 % from the electronics notebook
@@ -37,11 +42,11 @@ bp_order = 10;
 pattern = 'CH';
 ext     = '.continuous';
 
-tdata = 10; % cut data in sections of X minutes
+tdata = 60; % cut data in sections of X minutes
 
 %% Find files
 
-files_unsorted = dir([fpath '\*' pattern '*' ext]);
+files_unsorted = dir([loadPath '\*' pattern '*' ext]);
 if (size(files_unsorted,1) == 0);
     disp('No .CONTINUOUS files in folder. Select different path.');
     return;
@@ -75,7 +80,7 @@ for iTetrode = 1:numtets;
         
         iFile = (iTetrode - 1) * 4 + iElectrode;
         
-        filename = [fpath files{iFile}];
+        filename = [loadPath files{iFile}];
         filename = strtrim(filename);
         
         [data_channel, ~, info] = load_open_ephys_data(filename); % data in microvolts
@@ -101,18 +106,21 @@ for iTetrode = 1:numtets;
     clear data_channel
     
     spikes = ss_default_params(Fs); % set parameters for spike detection
-    
+        
     % UMS spike detection
     
     nsamples_section = tdata * 60 * Fs;
     nsamples_total   = size(data,2);
-    nsection         = floor(nsamples_total / nsamples_section);
+    nsection         =  ceil(nsamples_total / nsamples_section);
     nsamples_section = floor(nsamples_total / nsection); % process data in sections
     iStart           = 1;
-    
+        
     for iSection = 1:nsection
         data_section = data(:,iStart:iStart + nsamples_section - 1);
         data_section = {data_section'};
+        if (spikes.params.artifact_removal); 
+            [data_section,spikes] = ums_artifact_removal(data_section,spikes); 
+        end
         spikes       = ss_detect(data_section,spikes);
         iStart       = iStart + nsamples_section;
     end
@@ -162,7 +170,7 @@ for iTetrode = 1:numtets;
         
         clusters = ums_clusterfilter(spikes); %#ok
         
-        save([... 
+        save([savePath ... 
         'Spikes_'   metadata.subject ...
         '_'         metadata.session ...
         '_T'        num2str(metadata.tetrode,             '%02d') ...

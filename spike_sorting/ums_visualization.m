@@ -1,6 +1,8 @@
-function ums_visualization(spikes,clusters,metadata,type)
+function ums_visualization(spikes,clusters,metadata,type,savePath)
 
-if (nargin < 4); type = 'single'; end
+if (nargin < 4 || isempty(type)); type = 'single'; end
+if (nargin < 5); savePath = []; end % save in current working directory
+if (savePath(end) ~= '\'); savePath = [savePath, '\']; end
 
 close all
 
@@ -30,7 +32,7 @@ for i = 1 : nclus
         subplot(2,3,4); plot_detection_criterion(spikes,icluster);
         subplot(2,3,5); plot_isi(spikes,icluster);
         subplot(2,3,6); plot_stability(spikes,icluster);
-        export_fig([...
+        export_fig([savePath ...
             'Spikes_'   metadata.subject ...
             '_'         metadata.session ...
             '_T'        num2str(metadata.tetrode,         '%02d')   ...

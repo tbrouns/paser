@@ -20,19 +20,19 @@ function spikes = ss_align( spikes )
 %
 
 % Check for previous alignment
-if isfield( spikes.info, 'align' )
+if isfield(spikes.info, 'align')
     disp('Spike data is already aligned.')
 else
     
     % make helper variables
-    w               = spikes.waveforms;
-    num_spikes      = size(w,1);
-    num_samples     = size(w,2);
-    num_channels    = size(w,3);
-    max_samples     = round(spikes.params.max_jitter * spikes.params.Fs/1000);
-    keep_samples    = num_samples-max_samples;
-    thresh_sample   = spikes.info.detect.align_sample;
-    thresh_channel  = spikes.info.detect.event_channel;
+    w              = spikes.waveforms;
+    num_spikes     = size(w,1);
+    num_samples    = size(w,2);
+    num_channels   = size(w,3);
+    max_samples    = round(spikes.params.max_jitter * spikes.params.Fs/1000);
+    keep_samples   = num_samples-max_samples;
+    thresh_sample  = spikes.info.detect.align_sample;
+    thresh_channel = spikes.info.detect.event_channel;
     
     % build a matrix of only the waveforms that triggered spike detection
     w2  = zeros([num_spikes num_samples]);
@@ -56,12 +56,12 @@ else
     spikes.info.align.aligned = 1;
 end
 
-[pca.u,pca.s,pca.v] = svd(detrend(spikes.waveforms(:,:),'constant'), 0);             % SVD the data matrix
+[pca.u,pca.s,pca.v] = svd(detrend(spikes.waveforms(:,:),'constant'), 0); % SVD the data matrix
 spikes.info.pca = pca;
 
 %  HELPER FUNCTIONS
 
-function shifts = get_offsets( w2, thresh_sample, max_samples )
+function shifts = get_offsets(w2, thresh_sample, max_samples)
 % find the alignment point in a matrix of data
 
 num_spikes  = size(w2,1);

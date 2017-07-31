@@ -1,4 +1,4 @@
-function spikes = ss_default_params(varargin)
+function spikes = ss_default_params(Fs)
 % UltraMegaSort2000 by Hill DN, Mehta SB, & Kleinfeld D  - 07/12/2010
 %
 % ss_default_params - initializes a spikes object with the default
@@ -21,8 +21,13 @@ function spikes = ss_default_params(varargin)
 
 %% ALGORITHMIC PARAMETERS
 
+spikes.params.artifact_removal = 1;   % remove artifacts?
+spikes.params.artifact_length  = 2.5; % ms
+spikes.params.artifact_thresh  = 25;  % stds above noise
+spikes.params.artifact_p2ptime = 0.3; % time between min and max peaks (ms)
+
 % spike detection parameters
-spikes.params.Fs            = 30000;  % Hz, sampling rate of spike data
+spikes.params.Fs            = Fs;  % Hz, sampling rate of spike data
 spikes.params.detect_method = 'mad'; % 'auto' = threshold calculated from background noise, 'manual' = user defined threshold
 spikes.params.thresh        = 3.0;    % for 'auto', set number of standard deviations above background noise
 spikes.params.window_size   = 1.5;    % ms, width of a spike
@@ -99,10 +104,5 @@ spikes.params.display.margin       = 140; % number of pixels between plots
 spikes.params.display.outer_margin = 80;  % number of pixels around at figure margin
 spikes.params.display.width        = 140; % number of pixels in plot width
 spikes.params.display.aspect_ratio = 2/3; % aspect ratio of plots
-
-
-for j = 1:(length(varargin)/2)
-    spikes.params = setfield(spikes.params, varargin{(2 * j) - 1}, varargin{2 * j});
-end
 
 end

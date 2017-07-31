@@ -696,7 +696,6 @@ for iter = 1:300
     L         = Lsb + sum(Ln) + Lent + K * FMM;
     Ls(iter)  = L; %#ok
     
-    fprintf('Current Lower Bound: %s\n',L)
     if iter > 40
         reldiff = (Ls(iter) - Ls(iter-1)) ./ (Ls(5) - Ls(4));
         rds(iter) = reldiff; %#ok 

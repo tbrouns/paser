@@ -71,7 +71,7 @@ if nargin < 2; show      = 1:size(spikes.waveforms,1);      end
 
 % which spikes are we showing?
 
-show = get_spike_indices(spikes, show );
+show = get_spike_indices(spikes, show);
 
 % populate data structure
 
@@ -167,7 +167,7 @@ for j = 1:length(my_axes)
 end
 
 % make user context menu
-function cmenu = get_menu( colormode, displaymode,valid_modes,ax )
+function cmenu = get_menu(colormode, displaymode,valid_modes,ax)
 
 cmenu = uicontextmenu;
 
