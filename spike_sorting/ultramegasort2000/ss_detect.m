@@ -1,4 +1,4 @@
-function spikes = ss_detect( data, spikes )
+function spikes = ss_detect(data, spikes)
 % UltraMegaSort2000 by Hill DN, Mehta SB, & Kleinfeld D  - 07/12/2010
 %
 % ss_detect - Detection of spikes in multi-channel data over multiple trials
@@ -95,8 +95,8 @@ if ~iscell(data)
     data = cellfun(@squeeze,data,'UniformOutput',false);
 end
 
-append = isfield(spikes, 'waveforms' );
-if append, disp('Appending spikes in data using previous threshold.'); end
+append = isfield(spikes, 'waveforms');
+
 % determine which trial we are on if appending
 if append
     pre_trials = length(spikes.info.detect.dur);
@@ -106,37 +106,37 @@ end
 
 % set some constants
 params = spikes.params;
-num_trials      = length(data);
-num_channels    = size(data{1}, 2);
-window_samples  = round(params.Fs * params.window_size / 1000);
-shadow          = round(params.Fs * params.shadow / 1000);
-samples_before  = round(params.Fs * params.cross_time / 1000);
-samples_after   = round(params.Fs * params.max_jitter / 1000) + window_samples - (1 + samples_before);
-jitter_range    = samples_before - 1 + (1:round(spikes.params.max_jitter * spikes.params.Fs / 1000));
+num_trials     = length(data);
+num_channels   = size(data{1}, 2);
+window_samples = round(params.Fs * params.window_size / 1000);
+shadow         = round(params.Fs * params.shadow      / 1000);
+samples_before = round(params.Fs * params.cross_time  / 1000);
+samples_after  = round(params.Fs * params.max_jitter  / 1000) + window_samples - (1 + samples_before);
+jitter_range   = samples_before - 1 + (1:round(spikes.params.max_jitter * spikes.params.Fs / 1000));
 
 % determine threshold
 
 spikes.info.detect.cov = get_covs(data, window_samples);
-stds = zeros([1 num_channels]);
-mads = zeros([1 num_channels]); % maximum absolute deviation
+
+thresh  = zeros(num_trials,num_channels);
+stds    = zeros(num_trials,num_channels);
+
 for j = 1:num_trials
-    stds = stds + std(data{j});
-    mads = mads + median(abs(data{j})) / 0.6745;
+    stdev     = std(data{j});
+    stds(j,:) = stdev;
+    if     isequal(spikes.params.detect_method, 'auto')
+        thresh(j,:) = -params.thresh * stdev;
+    elseif isequal(spikes.params.detect_method, 'manual')
+        thresh(j,:) =  params.thresh;
+    elseif isequal(spikes.params.detect_method, 'mad') % maximum absolute deviation
+        thresh(j,:) = -params.thresh * (median(abs(data{j})) / 0.6745);
+    else
+        error('Unknown spike detection method.')
+    end
 end
 
-spikes.info.detect.stds = stds / num_trials;
-
-if isequal( spikes.params.detect_method, 'auto' )
-    thresh = stds/num_trials * -params.thresh;
-elseif isequal( spikes.params.detect_method, 'manual' )
-    thresh = params.thresh;
-elseif isequal( spikes.params.detect_method, 'mad' )
-    thresh = mads/num_trials * -params.thresh;
-else
-    error( 'Unknown spike detection method.')
-end
-
-spikes.info.detect.thresh = thresh;
+spikes.info.detect.stds   = mean(stds,1);
+spikes.info.detect.thresh = mean(thresh,1);
 
 % find all threshold crossings
 if ~append
@@ -146,31 +146,31 @@ if ~append
     spikes.info.detect.event_channel = [];
 end
 
-progress_bar(0, max(floor(num_trials/100),1), ['Extracting Spikes . . . Thresh: ', num2str(thresh,2)])
-
 for j = 1:num_trials
-    progress_bar(j/num_trials); % BA
     
     % get crossings on all channels for this trial
-    crossings = [];
+    crossings = zeros(num_channels,size(data{j},1)-1);
     for k = 1:num_channels
-        crossings = [crossings find(data{j}(1:end-1,k) > thresh(k) & data{j}(2:end,k) <= thresh(k))']; %#ok
+        crossings(k,:) = (data{j}(1:end-1,k) > thresh(j,k) & data{j}(2:end,k) <= thresh(j,k))';
     end
     
-    crossings = sort(crossings);
-    
+    cross_num = sum(crossings);
+    crossings = find(sum(crossings));
+        
     % remove bad crossings
-    crossings(1 + find(diff(crossings) <= shadow )) = [];
-    crossings(crossings <= samples_before) = []; 
+    crossings(1 + find(diff(crossings) <= shadow)) = [];
+    crossings(crossings <= samples_before) = [];
     crossings(crossings > size(data{j},1) - samples_after) = [];
+        
+    spikes.nspikes = cross_num(crossings);
     
     % update spiketimes, trials, and waveforms
     spikes.spiketimes = [spikes.spiketimes crossings / params.Fs];
     spikes.trials     = [spikes.trials pre_trials + (j * ones([1 length(crossings)]))];
-    w = zeros([length(crossings), samples_before + 1 + samples_after, num_channels], 'single' );
+    w = zeros([length(crossings), samples_before + 1 + samples_after, num_channels], 'single');
     
-    for k = 1:length(crossings)
-        indices = crossings(k) + (-samples_before:samples_after);
+    for k = 1:length(crossings) % use bsxfun here for speed-up
+        indices  = crossings(k) + (-samples_before:samples_after);
         w(k,:,:) = data{j}(indices, :);
     end
     spikes.waveforms = [spikes.waveforms; w];
@@ -181,12 +181,9 @@ end
 clear data
 
 % find spike amplitudes
-amplitudes = max(sign(-params.thresh) * spikes.waveforms,[],2);
-amplitudes = max(amplitudes,[],3);
 
 % save everything
 spikes.waveforms       = single(spikes.waveforms);
-spikes.amplitudes      = single(amplitudes');
 spikes.spiketimes      = single(spikes.spiketimes);
 spikes.trials          = single(spikes.trials);
 spikes.unwrapped_times = single(unwrap_time(spikes.spiketimes, spikes.trials, spikes.info.detect.dur, spikes.params.display.trial_spacing));
@@ -210,7 +207,7 @@ function c = get_covs(data, samples)
 
 num_trials   = length(data);
 num_channels = size(data{1},2);
-num_samples  = zeros(num_trials,1);
+num_samples  = zeros(1,num_trials);
 
 for j = 1:num_trials, num_samples(j) = size(data{j},1); end
 

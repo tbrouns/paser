@@ -1,4 +1,4 @@
-function [ev,lb,ub,RPV] = ss_rpv_contamination( spikes, use  )
+function [ev,lb,ub,RPV] = ss_rpv_contamination(spikes, use)
 % UltraMegaSort2000 by Hill DN, Mehta SB, & Kleinfeld D  - 07/09/2010
 %
 % ss_rpv_contamination - wrapper for rpv_contamination.m

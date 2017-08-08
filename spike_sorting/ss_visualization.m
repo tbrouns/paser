@@ -1,15 +1,28 @@
-function ums_visualization(spikes,clusters,metadata,type,savePath)
-
-if (nargin < 4 || isempty(type)); type = 'single'; end
-if (nargin < 5); savePath = []; end % save in current working directory
-if (savePath(end) ~= '\'); savePath = [savePath, '\']; end
+function ss_visualization(spikes,clusters,type,savePath,filename)
 
 close all
+
+if (nargin < 3 || isempty(type)); type = 'single'; end
+if (nargin < 4); savePath = []; end % save in current working directory
+if (nargin < 5); filename = []; 
+else             filename = [filename(1:end-34) '_'];
+end
+
+if (~isempty(savePath)); 
+    if (savePath(end) ~= '\'); 
+        savePath = [savePath, '\']; 
+    end 
+end
 
 % Only plot single units
 
 if (strcmp(type,'single'))
     tf = ~strcmp({clusters.vars(:).unit},{'single'});
+    clusters.vars(tf) = [];
+    
+    % Only plot significant amplitude units
+
+    tf = ~cell2mat({clusters.vars.flag});
     clusters.vars(tf) = [];
 end
 
@@ -33,13 +46,8 @@ for i = 1 : nclus
         subplot(2,3,5); plot_isi(spikes,icluster);
         subplot(2,3,6); plot_stability(spikes,icluster);
         export_fig([savePath ...
-            'Spikes_'   metadata.subject ...
-            '_'         metadata.session ...
-            '_T'        num2str(metadata.tetrode,         '%02d')   ...
-            '_'         spikes.params.cluster_method                ...
-            '_AG'       num2str(spikes.params.agg_cutoff, '%10.2e') ...
-            '_ST'       num2str(spikes.params.thresh,     '%04.1f') ...
-            '_Cluster'  num2str(icluster,                 '%03d')]);
+            filename ...
+            'Cluster'  num2str(icluster,                 '%03d')]);
     end
 end
 

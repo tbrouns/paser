@@ -1,4 +1,4 @@
-function [z,dof] = plot_distances( spikes, show, method)
+function [x,y,z,dof] = plot_distances(spikes, show, method, display)
 % UltraMegaSort2000 by Hill DN, Mehta SB, & Kleinfeld D  - 07/12/2010
 %
 % plot_distances - Histogram the distance of waveforms from cluster center.
@@ -35,17 +35,12 @@ function [z,dof] = plot_distances( spikes, show, method)
 if ~isfield(spikes,'waveforms'), error('No waveforms found in spikes object.'); end
 if nargin < 2, show = 1:size(spikes.waveforms,1); end
 if nargin < 3, method = spikes.params.display.default_outlier_method; end
+if nargin < 4, display = 1; end
 
 % which spikes are we showing?
 show           = get_spike_indices(spikes, show);
 data.waveforms = spikes.waveforms(show,:);
 data.noise_cov = spikes.info.detect.cov;
-
-% initialize axes
-cla reset
-set(gca,'UserData', data.waveforms);
-xlabel('Z-score');
-ylabel('Count');
 
 % get z-scores
 if method == 1
@@ -55,27 +50,38 @@ elseif method == 2
     [z,dof] = get_zvalues(data.waveforms, data.noise_cov);
 end
 
-% make histogram
+% histogram binning
+x     = 0:max(z);
+[n,x] = histcounts(z,x);
 
-x1      = 0:max(z);
-[n1,x1] = histcounts(z,x1);
+[maxN,maxNi] = max(n);
+maxNi        = maxNi + find(n(maxNi:end) > 0.01 * maxN, 1, 'last');
+x            = 0:x(maxNi);
 
-[maxN,maxNi] = max(n1);
-maxNi        = maxNi + find(n1(maxNi:end) > 0.01 * maxN, 1, 'last');
-x1           = 0:x1(maxNi);
+% calculate theoretical values
 
-histogram(z,x1);
-xlim([0 200]);
-xlabel('Z-score'); ylabel('Count');
+y = chi2pdf(x,dof);
+y = y * length(z) * (x(2) - x(1));
 
-hndl = findobj(gca,'Type','patch');
-set(hndl,'FaceColor',[ 0 0 1] )
+% plotting
 
-% plot theoretical values
-y = chi2pdf(x1,dof);
-y = y * length(z) * (x1(2) - x1(1));
+if (display)
 
-l = line(x1,y);
-set(l,'Color',[0 1 0],'LineWidth',1.5)
+    % initialize axes
+    cla reset
+    set(gca,'UserData', data.waveforms);
+    
+    histogram(z,x);
+    xlim([0 200]);
+    xlabel('Z-score'); 
+    ylabel('Count');
+
+    hndl = findobj(gca,'Type','patch');
+    set(hndl,'FaceColor',[0 0 1])
+
+    l = line(x,y);
+    set(l,'Color',[0 1 0],'LineWidth',1.5)
+
+end
 
 end

@@ -1,6 +1,6 @@
 function plot_spikes(spikes,clusters,type)
 
-if (strcmp(type,'single'))
+if strcmp(type,'single')
     tf = ~strcmp({clusters.vars(:).unit},{'single'});
     clusters.vars(tf) = [];
 end

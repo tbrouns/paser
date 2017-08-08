@@ -1,15 +1,33 @@
-function clusters = ums_clusterfilter(spikes)
+function clusters = ss_clusterfeatures(spikes)
+
+spikes = ss_default_params(spikes);
+
+% Remove small clusters
 
 clusterIDs = unique(spikes.assigns);
 nclusters  = length(clusterIDs);
 
-clusters.bhattacharyya = zeros(nclusters,nclusters); % bhattacharyya distances
+for icluster = 1:nclusters
+    clusterID = clusterIDs(icluster);
+    id        = find(spikes.assigns == clusterID);
+    if (length(id) <= spikes.params.cluster_min)
+        spikes = ss_spike_removal(spikes,id);
+    end
+end
+
+% Calculate features of remaining clusters
+
+clusterIDs = unique(spikes.assigns);
+nclusters  = length(clusterIDs);
+
+clusters.bhattacharyya = zeros(nclusters,nclusters);
+clusters.mahal         = zeros(nclusters,nclusters);
 
 for icluster = 1:nclusters
-    
+        
     clusterID = clusterIDs(icluster);
-    nspikes = sum(spikes.assigns == clusterID);
-    
+    nspikes = sum(spikes.assigns == clusterID);    
+        
     % A real neuron has a brief period after each spike when it cannot fire
     % again, called the refractory period. This function uses the number of
     % inter-spike intervals (ISIs) that are less than the refractory period to
@@ -75,9 +93,7 @@ for icluster = 1:nclusters
     
     % Cross-correlation of residuals
     
-    xcorr = cross_correlation(spikes, clusterID);   
-    xcorr = xcorr(:);
-    xcorr = mean(xcorr);
+    [xc,IDc] = cross_correlation(spikes, clusterID);
     
 %     for jcluster = icluster:nclusters
 %         
@@ -117,29 +133,37 @@ for icluster = 1:nclusters
     clusters.vars(icluster).missing  = p; 
     clusters.vars(icluster).censored = c;
     clusters.vars(icluster).nspikes  = nspikes;
-    clusters.vars(icluster).xcorr    = xcorr;
+    clusters.vars(icluster).xcorr    = xc;
+    clusters.vars(icluster).flag     = abs_threshold(spikes,clusterID);
+    clusters.vars(icluster).chanIDs  = IDc;
     
     if     (clusters.vars(icluster).rpv < spikes.params.lower_rpv); clusters.vars(icluster).unit = 'single';
     elseif (clusters.vars(icluster).rpv > spikes.params.upper_rpv); clusters.vars(icluster).unit = 'multi';
     else                                                            clusters.vars(icluster).unit = 'mixed';
     end
-    
+        
     for jcluster = (icluster+1):nclusters
+        M1 = PCA_M(spikes,find(spikes.assigns == clusterID));
+        M2 = PCA_M(spikes,find(spikes.assigns == clusterIDs(jcluster)));
+        D  = mahal(M1,M2);
+        clusters.mahal(icluster,jcluster) = mean(D(:));
+        
         [x1,x2,~] = plot_fld(spikes, clusterID, clusterIDs(jcluster), 0);
         clusters.bhattacharyya(icluster,jcluster) = bhattacharyya(x1',x2');
+%         clusters.mahal(icluster,jcluster)         = mean(mahal(x1',x2'));
     end
 end
 
 end
 
-function xc = cross_correlation(spikes, show)
+function [xc,IDc] = cross_correlation(spikes, show)
 
 % calculate standard deviation
-clus         = get_spike_indices(spikes, show );
+clus         = get_spike_indices(spikes, show);
 memberwaves  = spikes.waveforms(clus,:);
 num_channels = size(spikes.waveforms,3);
 num_samples  = size(spikes.waveforms,2);
-s            =  std(memberwaves);
+s            = std(memberwaves);
 
 % calculate cross-correlation
 
@@ -148,13 +172,43 @@ sd = reshape(s,num_samples,num_channels); % residuals for each channel separatel
 
 for ichan = 1:num_channels
     for jchan = ichan:num_channels
-        xc(ichan,jchan) = xcorr(sd(:,ichan),sd(:,jchan),0); % xcorr with zero lag
+        xc(ichan,jchan) = xcorr(sd(:,ichan),sd(:,jchan),0,'coeff'); % xcorr with zero lag
     end
 end
 
-waves = reshape(mean(memberwaves),num_samples,num_channels);  
-id = double(max(abs(waves)) > abs(spikes.info.detect.thresh)); % check which channels are active
-id = id' * id; 
-xc = xc .* id; % ignore channels that do not display spike
+waves = reshape(mean(memberwaves),num_samples,num_channels);
+
+id = zeros(num_channels,1);
+for ichan = 1:num_channels
+    id(ichan) = double(max(sign(spikes.info.detect.thresh(ichan)) .* waves(:,ichan)) >= sign(spikes.info.detect.thresh(ichan)) .* spikes.info.detect.thresh(ichan)); % check which channels are active
+end
+
+IDc = find(id);
+id  = id' * id; 
+id  = id(:);
+xc  = xc(:);
+xc(id == 0) = []; % ignore channels that do not display spike 
+if (~isempty(xc)); xc = mean(xc);
+else               xc = 0; 
+end
+
+end
+
+function k = abs_threshold(spikes, show)
+
+clus         = get_spike_indices(spikes, show);
+memberwaves  = spikes.waveforms(clus,:);
+waves_mean   = mean(memberwaves);
+k            = max(sign(spikes.params.outlier_abs) * waves_mean > sign(spikes.params.outlier_abs) * spikes.params.outlier_abs);
+
+end
+
+function M = PCA_M(spikes,which)
+
+    x = spikes.waveforms(which,:) * spikes.info.pca.v(:,1);
+    y = spikes.waveforms(which,:) * spikes.info.pca.v(:,2);
+    z = spikes.waveforms(which,:) * spikes.info.pca.v(:,3);
+
+    M  = [x,y,z];
 
 end

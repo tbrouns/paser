@@ -1,4 +1,4 @@
-function spikes = ss_default_params(Fs)
+function spikes = ss_default_params(spikes)
 % UltraMegaSort2000 by Hill DN, Mehta SB, & Kleinfeld D  - 07/12/2010
 %
 % ss_default_params - initializes a spikes object with the default
@@ -22,13 +22,15 @@ function spikes = ss_default_params(Fs)
 %% ALGORITHMIC PARAMETERS
 
 spikes.params.artifact_removal = 1;   % remove artifacts?
-spikes.params.artifact_length  = 2.5; % ms
-spikes.params.artifact_thresh  = 25;  % stds above noise
-spikes.params.artifact_p2ptime = 0.3; % time between min and max peaks (ms)
+spikes.params.artifact_length  = 2.0; % ms
+spikes.params.artifact_thresh  = 3.0; % stds above noise
+spikes.params.artifact_p2ptime = 0.5; % time between min and max peaks (ms)
+spikes.params.artifact_fract   = 0.5; 
+spikes.params.artifact_offset  = 0.2; % ms
+spikes.params.artifact_corr    = 0.5; % correlation threshold
 
 % spike detection parameters
-spikes.params.Fs            = Fs;  % Hz, sampling rate of spike data
-spikes.params.detect_method = 'mad'; % 'auto' = threshold calculated from background noise, 'manual' = user defined threshold
+spikes.params.detect_method = 'mad';  % 'auto' = threshold calculated from background noise, 'manual' = user defined threshold
 spikes.params.thresh        = 3.0;    % for 'auto', set number of standard deviations above background noise
 spikes.params.window_size   = 1.5;    % ms, width of a spike
 spikes.params.shadow        = 0.75;   % ms, enforced dead region after each spike
@@ -37,13 +39,12 @@ spikes.params.cross_time    = 0.6;    % ms, alignment point for peak of waveform
 % sorting parameters
 spikes.params.refractory_period  = 1.5;     % ms, refractory period (for calculation refractory period violations)
 spikes.params.max_jitter         = 0.6;     % ms, width of window used to detect peak after threshold crossing
-spikes.params.agg_cutoff         = 0.00001; % higher = less aggregation, lower = more aggregation
+spikes.params.agg_cutoff         = 0.0001; % higher = less aggregation, lower = more aggregation
 spikes.params.kmeans_clustersize = 0.01;    % target size for miniclusters as fraction of total number of spikes
 
 %% CLUSTER METHOD
 spikes.params.fmm_p = 0.001; % Changes how aggresively to cluster, range 0-1 (0: less clustering, 1: more clustering)
 spikes.params.fmm_k = 5; 
-spikes.params.cluster_method = 'fmm'; % ums or fmm
 
 %% K-MEANS SPLITTING
 
@@ -52,8 +53,21 @@ spikes.params.divisions_min = 4;
 
 %% QUALITY CONTROL PARAMETERS
 
+spikes.params.cluster_min = 10; % minimum amount of spikes in cluster
+
 spikes.params.lower_rpv = 0.05; % maximum fraction of RPVs for single unit
 spikes.params.upper_rpv = 0.10; % minimum fraction of RPVs for multi unit
+
+%% CLUSTER MERGING
+
+spikes.params.thresh_mahal         = 2.0;
+spikes.params.thresh_bhattacharyya = 0.5;
+
+%% OUTLIER REMOVAL
+
+spikes.params.outlier_abs = -25;    % microvolts
+spikes.params.outlier_chi = 0.001; 
+spikes.params.outlier_std = 3;      % max num. of SDs from centre of PCA cluster
 
 %% DISPLAY PARAMETERS
 
