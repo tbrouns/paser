@@ -1,6 +1,5 @@
 function [spikes,clusters] = ss_clustermerge(spikes)
 
-spikes.params.thresh_mahal = 2.0;
 clusters = ss_clusterfeatures(spikes);
 
 % only merge significant amplitude clusters

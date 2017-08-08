@@ -3,9 +3,6 @@ function batch_visualization(loadPath_root,savePath_root)
 if (nargin < 1); loadPath_root = []; end
 if (nargin < 2); savePath_root = []; end
 
-% loadPath_root = 'D:\Data\electrophysiology\YZ05 (Mouse 34)\';
-% savePath_root = 'D:\Data\electrophysiology\YZ05 (Mouse 34) - Figures';
-
 ptrn = 'passive';
 
 folder_names = dir('R*');
