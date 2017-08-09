@@ -156,6 +156,7 @@ for iTrial = 1:numtrials
             data_section = data(:,iStart:iStart + nsamples_section - 1);
             data_section = {data_section'};
             spikes.params.Fs = Fs;  % Hz, sampling rate of spike data
+            spikes = ss_artifact_detection(data_section{1},spikes,iStart);
             spikes = ss_detect(data_section,spikes);
             iStart = iStart + nsamples_section;
         end

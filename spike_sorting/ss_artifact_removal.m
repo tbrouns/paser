@@ -7,25 +7,25 @@ ntets      = length(files);
 
 for iTetrode = 1:ntets
     load(files{iTetrode});
-    nspikes = spikes.nspikes;
-    nmax = max(nspikes);
-    for i = 1:nmax
-        spikeTimes = [spikeTimes, spikes.spiketimes(find(nspikes))]; %#ok
-        nspikes = nspikes - 1;
-    end
+%     nspikes = spikes.nspikes;
+%     nmax = max(nspikes);
+%     for i = 1:nmax
+%         spikeTimes = [spikeTimes, spikes.spiketimes(find(nspikes))]; %#ok
+%         nspikes = nspikes - 1;
+%     end
+    spikeTimes = [spikeTimes, spikes.artifacts]; %#ok
 end
 
 Fs = spikes.params.Fs;
-
-artifact_length = floor(0.5 * (spikes.params.artifact_length / 1000) * spikes.params.Fs); % in samples
+artifact_length = floor(0.5 * (spikes.params.artifact_length / 1000) * Fs); % in samples
 
 % Find tentative artifacts
 
-spikeTimes    = sort(spikeTimes);
+spikeTimes    =   sort(spikeTimes);
 nspikes       = length(spikeTimes);
 criterion     = round(4 * ntets * spikes.params.artifact_fract);
 if (criterion < 2); criterion = 2; end % to avoid any errors
-artifactDur   = round(Fs * (spikes.params.artifact_offset / 1000));
+artifactDur   = spikes.params.artifact_offset / 1000;
 artifactSamples = -1 * ones(nspikes,1);
 iSpike        = 1;
 kSpike        = 1;
@@ -46,7 +46,7 @@ while iSpike < nspikes
 end
 
 artifactSamples(artifactSamples < 0) = [];
-artifactSamples = round(artifactSamples);
+artifactSamples = round(Fs * artifactSamples);
 artifactSamples(artifactSamples <= artifact_length) = artifact_length + 1;
 artifactSamples(artifactSamples > size(data,2) - artifact_length) = size(data,2) - artifact_length;
 nspikes         = length(artifactSamples);

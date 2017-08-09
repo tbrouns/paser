@@ -18,10 +18,10 @@ numclusts = length(clusterIDs);
 stimulusTimes = spikes.artifacts;
 nstimuli = length(stimulusTimes);
 
-time_window = 1000; % ms
-
 Tmax = max(spikes.spiketimes);
 Fs   = spikes.params.Fs;
+
+time_window = Fs*100; % ms
 
 signalStim = zeros(Fs*Tmax,1);
 signalStim(round(Fs*stimulusTimes)) = 1;
@@ -32,11 +32,8 @@ for iClus = 1:numclusts
     spiketimes = spikes.spiketimes(id);
     signalClus(round(Fs*spiketimes)) = 1;
     xc = xcorr(signalStim,signalClus,time_window,'coeff');
-    plot(-time_window:time_window,xc);
+    plot((-time_window:time_window) / Fs,xc);
 end
-
-
-
 
 % for iStim = 1:nstimuli
 %     id = find(spikes.spiketimes > stimulusTimes(iStim) && spikes.spiketimes <= stimulusTimes(iStim) + time_window / 1000);

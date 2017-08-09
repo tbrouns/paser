@@ -162,7 +162,7 @@ for j = 1:num_trials
     crossings(crossings <= samples_before) = [];
     crossings(crossings > size(data{j},1) - samples_after) = [];
         
-    spikes.nspikes = cross_num(crossings);
+    spikes.nspikes = single(cross_num(crossings));
     
     % update spiketimes, trials, and waveforms
     spikes.spiketimes = [spikes.spiketimes crossings / params.Fs];
