@@ -1,92 +1,79 @@
 function nspikes = ss_artifact_removal(files,data)
 
+% TO DO: Change parameters to default spike parameters
+
 % Artifact removal
 
+MFAtimes   = [];
+MFAs       = [];
 spikeTimes = [];
 ntets      = length(files);
+nchan      = 4;
 
 for iTetrode = 1:ntets
     load(files{iTetrode});
-%     nspikes = spikes.nspikes;
-%     nmax = max(nspikes);
-%     for i = 1:nmax
-%         spikeTimes = [spikeTimes, spikes.spiketimes(find(nspikes))]; %#ok
-%         nspikes = nspikes - 1;
-%     end
-    spikeTimes = [spikeTimes, spikes.artifacts]; %#ok
+    nspikes = spikes.nspikes;
+    nmax = max(nspikes);
+    for i = 1:nmax
+        spikeTimes = [spikeTimes, spikes.spiketimes(find(nspikes))]; %#ok
+        nspikes = nspikes - 1;
+    end
+    
+    if isfield(spikes,'artifacts')
+       MFAtimes = [MFAtimes, spikes.artifacts]; %#ok 
+    end
 end
 
 Fs = spikes.params.Fs;
-artifact_length = floor(0.5 * (spikes.params.artifact_length / 1000) * Fs); % in samples
 
-% Find tentative artifacts
+% Filter artifacts based on correlation across all channels
 
-spikeTimes    =   sort(spikeTimes);
-nspikes       = length(spikeTimes);
 criterion     = round(4 * ntets * spikes.params.artifact_fract);
 if (criterion < 2); criterion = 2; end % to avoid any errors
-artifactDur   = spikes.params.artifact_offset / 1000;
-artifactSamples = -1 * ones(nspikes,1);
-iSpike        = 1;
-kSpike        = 1;
 
-while iSpike < nspikes
-    jSpike = iSpike + 1;
-    t      = spikeTimes(iSpike);
-    dt     = 0;
-    while(dt <= artifactDur && jSpike <= nspikes)
-        dt = spikeTimes(jSpike) - t;
-        jSpike = jSpike + 1;
-    end
-    if (jSpike - iSpike - 1 > criterion)
-        artifactSamples(kSpike) = 0.5 * (spikeTimes(jSpike - 2) + t);
-        kSpike = kSpike + 1;
-    end
-    iSpike = jSpike - 1;
+[artifacts,~,correlations,nsamples] = ss_artifact_correlation(spikes,data,spikeTimes,criterion);
+
+% Add magnetic field artifacts
+
+if (~isempty(MFAtimes))
+    artifact_length = 0.5 * (nsamples - 1);
+    MFAtimes = ss_artifact_filter(spikes,MFAtimes,0);
+    MFAs     = MFAtimes;
+    MFAtimes = round(Fs * MFAtimes);
+    MFAtimes(MFAtimes <= artifact_length) = artifact_length + 1;
+    MFAtimes(MFAtimes > size(data,2) - artifact_length) = size(data,2) - artifact_length;
+    MFAtimes = bsxfun(@plus,MFAtimes,-artifact_length:artifact_length)';
+    MFAtimes = MFAtimes(:);
+    artifacts = [artifacts; MFAtimes];
 end
 
-artifactSamples(artifactSamples < 0) = [];
-artifactSamples = round(Fs * artifactSamples);
-artifactSamples(artifactSamples <= artifact_length) = artifact_length + 1;
-artifactSamples(artifactSamples > size(data,2) - artifact_length) = size(data,2) - artifact_length;
-nspikes         = length(artifactSamples);
-artifactSamples = bsxfun(@plus,artifactSamples,-artifact_length:artifact_length)';
-artifactSamples = artifactSamples(:);
-waveforms       = data(:,artifactSamples)';
-nsamples        = length(-artifact_length:artifact_length);
-n               = 1;
-correlations    = zeros(nspikes,1);
-
-for iSpike = 1:nspikes
-    R = triu(corr(waveforms(n:n+nsamples-1,:)),1); % where the columns of A represent random variables and the rows represent observations.
-    R = R(triu(true(size(R)),1));
-    correlations(iSpike) = mean(R);
-    n = n + nsamples;
-end
-
-artifactSamples = reshape(artifactSamples,nsamples,nspikes);
-id              = correlations > spikes.params.artifact_corr;
-artifacts       = artifactSamples(:,id);
-correlations    = correlations(id);
-artifactTimes   = artifacts(artifact_length + 1,:) / Fs;
-artifacts       = artifacts(:);
+% Process
 
 nspikes = zeros(ntets,1);
 for iTetrode = 1:ntets
+    
     samples = zeros(1,size(data,2));
     load(files{iTetrode});
-    spikes.artifacts    = single(artifactTimes);
-    spikes.correlations = single(correlations');
+    
+    % Save correlations, artifact times and waveforms
+    if (~isempty(MFAs)); spikes.artifacts = single(MFAs); end
+    waveforms = data(nchan*(iTetrode-1)+1:nchan*iTetrode,artifacts);
+    waveforms = permute(waveforms,[2 3 1]);
+    waveforms = reshape(waveforms,nsamples,[],nchan);
+    spikes.artifact_waveforms = single(permute(waveforms,[2 1 3]));
+    spikes.artifact_correlations = single(correlations');
+    
+    % Remove artifact spikes from spike vector
+        
     spiketimes = spikes.spiketimes; % in seconds
     spiketimes = round(spiketimes * Fs);   % in sample number
     samples(spiketimes)  = 2;
     samples(artifacts)   = samples(artifacts) - 1;
     samples(samples < 1) = []; 
     id = find(samples == 2);
-    spikes.spiketimes      = spikes.spiketimes(id);
-    spikes.trials          = spikes.trials(id);
-    spikes.waveforms       = spikes.waveforms(id,:,:);
-    spikes.unwrapped_times = spikes.unwrapped_times(id);
+    spikes = ss_spike_removal(spikes,id,0);
+    
+    % Save
     save(files{iTetrode},'spikes');
     nspikes(iTetrode) = length(id);
 end

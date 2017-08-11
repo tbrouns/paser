@@ -156,7 +156,9 @@ for iTrial = 1:numtrials
             data_section = data(:,iStart:iStart + nsamples_section - 1);
             data_section = {data_section'};
             spikes.params.Fs = Fs;  % Hz, sampling rate of spike data
-            spikes = ss_artifact_detection(data_section{1},spikes,iStart);
+            if (stimuliConditions(iTrial) > 0) % magnetic field artifact detection
+                spikes = ss_artifact_detection(data_section{1},spikes,iStart);
+            end
             spikes = ss_detect(data_section,spikes);
             iStart = iStart + nsamples_section;
         end
@@ -224,13 +226,7 @@ elseif (strcmp(method,'fmm'))
             itr = itr + nspikes_trial;
         end
         
-        Sorter          = FMM(waveforms',spikes.params.fmm_k);
-        Sorter.align    = false;
-        Sorter.FMMparam = spikes.params.fmm_p; %% Changes how aggresively to cluster, range 0-1
-        Sorter.initialize;
-        Sorter.runVBfit;
-        
-        assigns_all = getMAPassignment(Sorter);
+        assigns_all = ss_dictionary_learning(spikes,waveforms);
         
         % Unmerge data back into trials
         

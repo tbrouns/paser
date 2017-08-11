@@ -20,19 +20,31 @@ nstimuli = length(stimulusTimes);
 
 Tmax = max(spikes.spiketimes);
 Fs   = spikes.params.Fs;
+Fr   = 25; % Hz
 
-time_window = Fs*100; % ms
+twin = 250; 
+time_window = Fs*twin; % ms
 
 signalStim = zeros(Fs*Tmax,1);
 signalStim(round(Fs*stimulusTimes)) = 1;
 
-for iClus = 1:numclusts    
+figure
+for iClus = 1:numclusts   
+    clf
     signalClus = zeros(Fs*Tmax,1);
     id = spikes.assigns == clusterIDs(iClus);
     spiketimes = spikes.spiketimes(id);
     signalClus(round(Fs*spiketimes)) = 1;
     xc = xcorr(signalStim,signalClus,time_window,'coeff');
-    plot((-time_window:time_window) / Fs,xc);
+    
+    N = mod(length(xc),(Fs / Fr));
+    xc = xc(1:end-N);
+    xc = reshape(xc,[],(Fs / Fr));
+    xc = mean(xc,2);
+    
+    t = linspace(-twin,twin,length(xc));
+    
+    bar(t,xc,1.0);
 end
 
 % for iStim = 1:nstimuli

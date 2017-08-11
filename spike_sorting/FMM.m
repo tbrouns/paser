@@ -678,7 +678,6 @@ for iter = 1:300
             prob(k1,:) = prob(k1,:) + prob(k2,:);
             prob       = [prob(1:k2-1,:);prob(k2+1:end,:)];
             K = K - 1;
-            fprintf('merged,K=%d\n',K);
         end
     end
     %     pause

@@ -66,8 +66,8 @@ cla reset;
 if ~isfield(spikes,'waveforms'), error('No waveforms found in spikes object.'); end
 if nargin < 4; issubtree = 0; end
 valid_modes = [1 isfield(spikes.info,'kmeans') isfield(spikes,'assigns')];
-if nargin < 3; colormode = 1 + find(valid_modes,1,'last' ); end
-if nargin < 2; show      = 1:size(spikes.waveforms,1);      end
+if nargin < 3; colormode = 1 + find(valid_modes,1,'last'); end
+if nargin < 2; show      = 1:size(spikes.waveforms,1);     end
 
 % which spikes are we showing?
 
@@ -119,13 +119,13 @@ elseif issubtree
     data.title      = ['Minicluster # ' num2str(subclus)];
     data.barcolor   = data.colors(subclus,:);
 elseif data.colormode == 3 && length(unique(spikes.info.kmeans.assigns(show))) == 1 % 1 minicluster and coloring by minicluster
-    data.title      = ['Minicluster # ' num2str( spikes.info.kmeans.assigns(show(1)) ) ];
+    data.title      = ['Minicluster # ' num2str(spikes.info.kmeans.assigns(show(1)))];
     data.barcolor   = data.colors( spikes.info.kmeans.assigns(show(1)),: );
 elseif data.valid_modes(3) % multiple clusters
-    data.title      = [num2str( length(unique(spikes.assigns(show))) ) ' clusters'];
+    data.title      = [num2str(length(unique(spikes.assigns(show)))) ' clusters'];
     data.barcolor   = [1 0 0];
 elseif  data.valid_modes(2) % multiple miniclusters
-    data.title      = [num2str( length(unique(spikes.info.kmeans.assigns(show))) ) ' miniclusters'];
+    data.title      = [num2str(length(unique(spikes.info.kmeans.assigns(show)))) ' miniclusters'];
     data.barcolor   = [1 0 0];
 else % unclustered data
     data.title      = 'Unclustered data';
@@ -155,7 +155,7 @@ set(gcf,'CurrentAxes',ax)
 % call plot function
 make_waveforms(ax, data);
 
-set(ax,'UIContextMenu', get_menu(colormode,displaymode,data.valid_modes, ax) )
+set(ax,'UIContextMenu', get_menu(colormode,displaymode,data.valid_modes, ax))
 
 % callback to switch color and display mode for all axes
 function impose_all(~, ~, colormode, displaymode, ax)
@@ -178,24 +178,24 @@ if ~valid_modes(2), colormodes(3) = []; end
 
 c = zeros(length(colormodes),1);
 for j = 1:length(colormodes)
-    c(j) = uimenu(cmenu, 'Label', colormodes{j}, 'Callback', {@update_waveforms, j, displaymode,ax} );
+    c(j) = uimenu(cmenu, 'Label', colormodes{j}, 'Callback', {@update_waveforms, j, displaymode,ax});
 end
 set(c(colormode),'Checked','on');
 if displaymode == 2, set(c(1), 'Enable','off'); end
 if displaymode == 3, set(c,    'Enable','off'); end
 
-%DISPLAYMODES
+% DISPLAYMODES
 d(1) = uimenu(cmenu, 'Label', 'Raw',          'Callback',{@update_waveforms, colormode, 1,ax},'Separator','on');
 d(2) = uimenu(cmenu, 'Label', 'Bands',        'Callback',{@update_waveforms, colormode, 2,ax});
 d(3) = uimenu(cmenu, 'Label', '2D histogram', 'Callback',{@update_waveforms, colormode, 3,ax});
 set(d(displaymode),'Checked','on');
 
-%IMPOSE ON ALL
+% IMPOSE ON ALL
 uimenu(cmenu, 'Label', 'Use this style on all waveforms in figure', 'Callback', {@impose_all, colormode, displaymode,ax},'Separator','on');
 
-%LEGEND
+% LEGEND
 if colormode >= 3 && displaymode < 3
-    uimenu(cmenu, 'Label', 'Show legend', 'Callback',@toggle_legend,'Separator','on','Checked',get(legend,'Visible'),'Tag','legend_option');
+    uimenu(cmenu,'Label','Show legend','Callback',@toggle_legend,'Separator','on','Checked',get(legend,'Visible'),'Tag','legend_option');
 end
 
 % callback to hide/show legend
@@ -234,9 +234,8 @@ legend off
 set(gca,'Color',[1 1 1])
 hold on
 
-%
 % DISPLAY WAVEFORMS
-%
+
 num_samples = size(waveforms(:,:),2);
 
 if displaymode == 1 && colormode == 1 % plot all waveforms
@@ -261,8 +260,8 @@ else % plot waveforms in groups
         elseif displaymode == 2 % plot standard deviation bands
             % group traces and show +/- 2 standard deviations
             [lh(j),ph(j)] = error_area(mean(waveforms(mine,:),1),2*std(waveforms(mine,:),1,1));
-            set(lh(j),'Color',     brighten(color, -0.6), 'ZData', clusts(j)*ones( size(get(lh(j),'XData'))));
-            set(ph(j),'FaceColor', color,                 'ZData', clusts(j)*ones( size(get(ph(j),'XData'))), 'FaceAlpha', 0.8);
+            set(lh(j),'Color',     brighten(color, -0.6), 'ZData', clusts(j)*ones(size(get(lh(j),'XData'))));
+            set(ph(j),'FaceColor', color,                 'ZData', clusts(j)*ones(size(get(ph(j),'XData'))), 'FaceAlpha', 0.8);
             set([lh(j) ph(j)], 'ButtonDownFcn', {@raise_band, [lh(j) ph(j)]});
         else
             error(['Invalid plot_waveforms display mode (' num2str(displaymode) ') or color mode (' num2str(colormode) ').' ] );

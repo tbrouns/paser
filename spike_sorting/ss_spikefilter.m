@@ -78,6 +78,8 @@ z = spikes.waveforms(show,:) * spikes.info.pca.v(:,3);
 
 PC_M    = [x,y,z];
 
+% Find refractory period violations (RPVs)
+
 spiketimes   = spikes.unwrapped_times(show);
 rpvs         = diff(spiketimes) <= 0.001 * spikes.params.refractory_period;
 rpvs         = [0,rpvs]; %#ok
@@ -86,6 +88,10 @@ id           = zeros(size(spiketimes));
 id(rpvs)     = 1;
 id(rpvs - 1) = 1;
 id           = find(id);
+
+% Each RPV involves two or more spike. We remove enough spikes to resolve
+% the RPV, where we keep the spikes that have the smallest Mahalanobis
+% distance to cluster
 
 num_rpvs = length(id);
 itr = 1;

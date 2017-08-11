@@ -24,25 +24,25 @@ function [counts,t_inds,x_inds] = histxt(x, varargin)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%% Parse Inputs %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 D = 100;  logflag = 0;                        % defaults
 
-[M,T] = size(x);
-if (~isnumeric(x) || ndims(x)~=2)
+[~,T] = size(x);
+if (~isnumeric(x) || ~ismatrix(x))
 	error('First input argument must be a numeric matrix.');
 end
 
-if (length(varargin) > 0)
+if (~isempty(varargin))
 	tail = varargin{end};
 	if (ischar(tail) && strcmpi(tail,'log'))  % If the last arg was 'log' ...
 		varargin = varargin(1:(end-1));       % ... chomp it and set a flag.
 		logflag = 1;
 	end
-	if (length(varargin) > 0)
+	if (~isempty(varargin))
 		tail = varargin{end};
 		if (isnumeric(tail) && length(tail)==1)   % If next to last arg was a scalar, ...
 			varargin = varargin(1:end-1);         % ... chomp it and set the bin count.
 			D = tail;
 		end
 	end
-	if (length(varargin) > 0),  error('Unknown syntax.');  end;
+	if (~isempty(varargin)),  error('Unknown syntax.');  end;
 end
 
 
@@ -56,7 +56,6 @@ t_inds = 1:T;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Histogram %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 counts = hist(x,1:D);
-
 
 if (logflag)
     old = warning('off');   counts = log(counts);   warning(old);

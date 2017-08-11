@@ -22,12 +22,18 @@ function spikes = ss_default_params(spikes)
 %% ALGORITHMIC PARAMETERS
 
 spikes.params.artifact_removal = 1;   % remove artifacts?
-spikes.params.artifact_length  = 2.0; % ms
-spikes.params.artifact_thresh  = 3.0; % stds above noise
-spikes.params.artifact_p2ptime = 0.5; % time between min and max peaks (ms)
+spikes.params.artifact_length  = 1.5; % ms
+spikes.params.artifact_thresh  = 4.0; % stds above noise
+spikes.params.artifact_p2ptime = 0.25; % time between min and max peaks (ms)
 spikes.params.artifact_fract   = 0.5; 
 spikes.params.artifact_offset  = 0.2; % ms
 spikes.params.artifact_corr    = 0.5; % correlation threshold
+% spikes.params.artifact_shadow  =    ; % minimum time between artifacts (ms)
+
+spikes.params.artifact_freq    = 1.4; % Hz
+spikes.params.artifact_freqoff = 0.3; % Hz
+spikes.params.artifact_ratio   = 0.25; % Fraction of spikes that should be within expected ISI/freq
+spikes.params.artifact_fmm_p   = 0.01; 
 
 % spike detection parameters
 spikes.params.detect_method = 'mad';  % 'auto' = threshold calculated from background noise, 'manual' = user defined threshold
