@@ -1,4 +1,4 @@
-function spikes = ss_align( spikes )
+function spikes = ss_align(spikes)
 % UltraMegaSort2000 by Hill DN, Mehta SB, & Kleinfeld D  - 07/12/2010
 %
 % ss_align - Multi-channel alignment of waveforms on negative peaks

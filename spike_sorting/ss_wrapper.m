@@ -1,5 +1,8 @@
 function ss_wrapper(subject,session,loadPath,savePath,method)
 
+pattern = 'CH';
+ext     = '.continuous';
+
 % ums_wrapper ('YZ02','R170')
 
 % metadata to include: channels
@@ -18,9 +21,7 @@ for iTrial = 1:numtrials
     if (loadPath{iTrial}(end) ~= '\' && ~isempty(loadPath{iTrial})); loadPath{iTrial} = [loadPath{iTrial}, '\']; end
 end
 
-if nargin < 4;
-    savePath = []; % save in current working directory
-end
+if nargin < 4; savePath = []; end % save in current working directory
 
 if (savePath(end) ~= '\' && ~isempty(savePath)); savePath = [savePath, '\']; end
 
@@ -51,18 +52,6 @@ for iTrial = 1:numtrials
     end
 end
 
-%% user defined variables:
-
-% Band-pass filter parameters
-bp_high  = 6000; % Hz
-bp_low   = 600;  % Hz
-bp_order = 10;
-
-pattern = 'CH';
-ext     = '.continuous';
-
-tdata = 60; % cut data in sections of X minutes
-
 %% Find files
 
 files_unsorted = cell(numtrials,1);
@@ -77,7 +66,7 @@ end
 
 %% sort files
 
-files = cell(numtrials,1);
+files_trials = cell(numtrials,1);
 
 for iTrial = 1:numtrials
     numfiles = length(files_unsorted{iTrial}(:,1));
@@ -91,8 +80,77 @@ for iTrial = 1:numtrials
         files_trial{id} = filename;
     end
     files_trial = files_trial(~cellfun('isempty',files_trial)); % remove empty cells
-    files{iTrial} = files_trial;
+    files_trials{iTrial} = files_trial;
 end
+
+%% MAGNETIC FIELD ARTIFACT / STIMULUS ONSET DETECTION
+
+% Band-pass filter parameters
+bp_high    = 6000; % Hz
+bp_low     = 1000;  % Hz
+bp_order   = 10;
+std_thresh = 8;
+MFAtimes   = cell(numtrials,2);
+
+pattern     = 'ADC';
+fileIndices = [5 7];
+nfiles      = length(fileIndices);
+
+for iTrial = 1:numtrials
+    
+    if (stimuliConditions(iTrial) > 0)
+    
+        files = dir([loadPath{iTrial} '\*' pattern '*' ext]);
+        files = char(files.name);
+        files = files(fileIndices,:);
+        files = strtrim(files);
+        
+        data_channels =  cell(nfiles,1);
+        thresholds    = zeros(nfiles,1);
+        
+        for iFile = 1:nfiles % Filter
+            
+            file = [loadPath{iTrial} files(iFile,:)];
+            [data, ~, info] = load_open_ephys_data(file); % data in microvolts
+
+            Fs = info.header.sampleRate;
+
+            % Band-pass filter
+
+            [B,A] = butter(bp_order,[bp_low bp_high]/(Fs/2),'bandpass');
+            data  = filtfilt(B,A,data);
+            
+            % Normalize
+            
+            data = data / max(data);
+            
+            stdev = median(abs(data)) / 0.6745; % median absolute deviation
+            thresholds(iFile) = std_thresh * stdev;
+            
+            data_channels{iFile} = single(data); % convert to single type
+            
+        end
+        
+        threshold = max(thresholds);
+        
+        spikes = [];
+        spikes = ss_default_params(spikes);
+        spikes.params.Fs = Fs;
+        [MFAtimes{iTrial,1},MFAtimes{iTrial,2}] = ss_artifact_detection_2(data_channels,threshold,spikes);
+    end
+    
+end
+
+%% SPIKE DETECTION / SORTING
+
+%% user defined variables:
+
+% Band-pass filter parameters
+bp_high  = 6000; % Hz
+bp_low   = 600;  % Hz
+bp_order = 10;
+
+tdata = 60; % cut data in sections of X minutes
 
 %% per tetrode
 
@@ -100,17 +158,17 @@ tic
 
 files_all = cell(1,numtrials);
 ntets     = zeros(numtrials,1);
-nspikes  = zeros(1,numtrials);
+nspikes   = zeros(1,numtrials);
 
 for iTrial = 1:numtrials
-        
+    
     data_trial  = [];
-    files_trial = files{iTrial};
+    files_trial = files_trials{iTrial};
     numfiles    = length(files_trial);
     ntets(iTrial) = numfiles / 4;
     
     for iTetrode = 1:ntets(iTrial);
-        
+                
         spikes = [];
         spikes = ss_default_params(spikes);
         
@@ -171,8 +229,16 @@ for iTrial = 1:numtrials
         
     end
     
+    % Magnetic field artifact combination
+    
+    MFAtimes_1 = [];
+    MFAtimes_2 = [];
+    if (stimuliConditions(iTrial) > 0)
+        [MFAtimes_1,MFAtimes_2] = ss_artifact_combine(files_all(:,iTrial),MFAtimes{iTrial,1},MFAtimes{iTrial,2});
+    end
+    
     % Artifact removal
-    n = ss_artifact_removal(files_all(:,iTrial), data_trial);
+    n = ss_artifact_removal(files_all(:,iTrial), data_trial, MFAtimes_1, MFAtimes_2);
     nspikes(1:length(n),iTrial) = n;
     
 end
@@ -181,111 +247,132 @@ clear data data_section spikes
 
 %% Clustering
 
-if (strcmp(method,'ums'))
+%     saveFile(spikes,clusters,metadata,savePath)
+
+ntets   = size(files_all,1);
+ntrials = size(files_all,2);
+
+for iTetrode = 1:ntets
     
-%     spikes   = ums_clustering(spikes);
-%     spikes   = ss_aggregate(spikes);
-%     clusters = ums_clusterfilter(spikes); %#ok
-%     
-%     save([...
-%         'Spikes_'   metadata.subject ...
-%         '_'         metadata.session ...
-%         '_T'        num2str(metadata.tetrode,             '%02d') ...
-%         '_'         spikes.params.cluster_method                  ...
-%         '_ST'       num2str(spikes.params.thresh,       '%04.1f') ...
-%         '_N'        num2str(size(spikes.waveforms,1),     '%06d') ...
-%         '_AG'       num2str(spikes.params.agg_cutoff,   '%10.2e') ...
-%         '.mat'],'spikes','clusters','metadata');
+    N   = sum(nspikes,2);
+    itr = 1;
+    spikesAll = []; % structure to contain all 'spikes' structures from all trials
     
-elseif (strcmp(method,'fmm'))
+    % Merge data across trials
     
-    ntets   = size(files_all,1);
-    ntrials = size(files_all,2);
-    
-    for iTetrode = 1:ntets
-        
-        N   = sum(nspikes,2);
-        itr = 1;
-        
-        % Merge data across trials
-                
-        for iTrial = 1:ntrials
+    for iTrial = 1:ntrials
+        if (strcmp(method,'kls')) % kilosort
+            
+        else
             load(files_all{iTetrode,iTrial});
             spikes = ss_align(spikes);
-            nchan  = size(spikes.waveforms,3);
-            waves  = zeros(size(spikes.waveforms,1),nchan*size(spikes.waveforms,2),'single');
-            n      = size(spikes.waveforms,2);
-            for ichan = 1:nchan
-                waves(:,n*(ichan-1)+1:n*ichan) = spikes.waveforms(:,:,ichan);
+            if (strcmp(method,'fmm')) % dictionary learning
+                % Convert waveforms for dictionary learning
+                nchan  = size(spikes.waveforms,3);
+                waves  = zeros(size(spikes.waveforms,1),nchan*size(spikes.waveforms,2),'single');
+                n      = size(spikes.waveforms,2);
+                for ichan = 1:nchan
+                    waves(:,n*(ichan-1)+1:n*ichan) = spikes.waveforms(:,:,ichan);
+                end
+                if (iTrial == 1); waveforms = zeros(N(iTetrode),size(waves,2)); end
+                nspikes_trial = size(waves,1);
+                waveforms(itr:itr+nspikes_trial-1,:) = waves;
+                itr = itr + nspikes_trial;
+            elseif (strcmp(method,'ums')) % UltraMegaSort
+                spikesAll = appendSpikes(spikesAll,spikes);
             end
-            if (iTrial == 1)
-                waveforms = zeros(N(iTetrode),size(waves,2));
-            end
-            nspikes_trial = size(waves,1);
-            waveforms(itr:itr+nspikes_trial-1,:) = waves;
-            itr = itr + nspikes_trial;
-        end
-        
-        assigns_all = ss_dictionary_learning(spikes,waveforms);
-        
-        % Unmerge data back into trials
-        
-        N = cumsum(nspikes,2);
-        N = [0,N(iTetrode,:)];
-        
-        for iTrial = 1:size(files_all,2)
-            
-            load(files_all{iTetrode,iTrial});
-            assigns = assigns_all(N(iTrial)+1:N(iTrial+1));
-            
-            spikes.assigns             = assigns;
-            spikes.info.kmeans.assigns = assigns;
-            numclusts                  = max(spikes.info.kmeans.assigns);
-            cmap                       = jetm(numclusts);
-            spikes.info.kmeans.colors  = cmap(randperm(numclusts),:);
-               
-            metadata.stimulus = stimuliConditions(iTrial);
-            
-            % Pre-merge save
-            
-            clusters = ss_clusterfeatures(spikes); %#ok
-            
-            save([savePath ...
-                'Spikes_'   metadata.subject ...
-                '_'         metadata.session ...
-                '_T'        num2str(iTetrode,                     '%02d') ...
-                '_V'        num2str(metadata.stimulus,            '%03d') ...
-                '_1'                                                      ...
-                '_'         method                                        ...
-                '_ST'       num2str(spikes.params.thresh,       '%04.1f') ...
-                '_N'        num2str(size(spikes.waveforms,1),     '%06d') ...
-                '_AG'       num2str(spikes.params.fmm_p,        '%10.2e') ...
-                '.mat'],'spikes','clusters','metadata');
-            
-            % Merge
-            
-            [spikes,clusters] = ss_clustermerge(spikes);
-            [spikes,clusters] = ss_spikefilter(spikes,clusters); %#ok
-            
-            % Post-merge save
-            
-            save([savePath ...
-                'Spikes_'   metadata.subject ...
-                '_'         metadata.session ...
-                '_T'        num2str(iTetrode,                     '%02d') ...
-                '_V'        num2str(metadata.stimulus,            '%03d') ...
-                '_2'                                                      ...
-                '_'         method                                        ...
-                '_ST'       num2str(spikes.params.thresh,       '%04.1f') ...
-                '_N'        num2str(size(spikes.waveforms,1),     '%06d') ...
-                '_AG'       num2str(spikes.params.fmm_p,        '%10.2e') ...
-                '.mat'],'spikes','clusters','metadata');
-            
-            delete(files_all{iTetrode,iTrial}); % delete temporary spikes file
         end
     end
+    
+    if (strcmp(method,'ums')) % UltraMegaSort
+        spikesAll = meanSpikes  (spikesAll);
+        spikesAll = ss_kmeans   (spikesAll);
+        spikesAll = ss_energy   (spikesAll);
+        spikesAll = ss_aggregate(spikesAll);
+        assigns_all = spikesAll.assigns;
+        clear spikesAll;
+    elseif (strcmp(method,'fmm')) % dictionary learning
+        assigns_all = ss_dictionary_learning(spikes,waveforms);
+    end
+    
+    % Unmerge data back into trials
+    
+    N = cumsum(nspikes,2);
+    N = [0,N(iTetrode,:)];
+    
+    for iTrial = 1:size(files_all,2)
+        
+        load(files_all{iTetrode,iTrial});
+        assigns = assigns_all(N(iTrial)+1:N(iTrial+1));
+        
+        spikes.assigns             = assigns;
+        spikes.info.kmeans.assigns = assigns;
+        numclusts                  = max(spikes.info.kmeans.assigns);
+        cmap                       = jetm(numclusts);
+        spikes.info.kmeans.colors  = cmap(randperm(numclusts),:);
+        
+        metadata.stimulus = stimuliConditions(iTrial);
+        metadata.tetrode  = iTetrode;
+        metadata.method   = method;
+        
+        % Pre-merge save
+        
+        clusters = ss_clusterfeatures(spikes); 
+        
+        saveFile(spikes,clusters,metadata,savePath,'_1');
+        
+%         % Merge
+%         
+%         [spikes,clusters] = ss_clustermerge(spikes);
+%         [spikes,clusters] = ss_spikefilter(spikes,clusters); 
+%         
+%         % Post-merge save
+%         
+%         saveFile(spikes,clusters,metadata,savePath,'_2');
+        
+        delete(files_all{iTetrode,iTrial}); % delete temporary spikes file
+    end
+    
 end
 
 toc
+
+end
+
+function saveFile(spikes,clusters,metadata,savePath,label) %#ok
+
+if (nargin < 5); label = []; end
+
+save([savePath ...
+    'Spikes_'   metadata.subject ...
+    '_'         metadata.session ...
+    '_T'        num2str(metadata.tetrode,             '%02d') ...
+    '_V'        num2str(metadata.stimulus,            '%03d') ...
+    label                                                     ...
+    '_'         metadata.method                               ...
+    '_ST'       num2str(spikes.params.thresh,       '%04.1f') ...
+    '_N'        num2str(size(spikes.waveforms,1),     '%06d') ...
+    '_AG'       num2str(spikes.params.fmm_p,        '%10.2e') ...
+    '.mat'],'spikes','clusters','metadata');
+
+end
+
+function spikesMain = appendSpikes(spikesMain,spikes)
+
+spikesMain.waveforms       = [spikesMain.waveforms       ; spikes.waveforms];
+spikesMain.spiketimes      = [spikesMain.spiketimes      ; spikes.spiketimes];
+spikesMain.trials          = [spikesMain.trials          ; spikes.trials];
+spikesMain.nspikes         = [spikesMain.nspikes         ; spikes.nspikes];
+spikesMain.unwrapped_times = [spikesMain.unwrapped_times ; spikes.unwrapped_times];
+spikesMain.assigns         = [spikesMain.assigns         ; spikes.assigns];
+
+spikesMain.info.detect.stds   = [spikesMain.info.detect.stds   ; spikes.info.detect.stds];
+spikesMain.info.detect.thresh = [spikesMain.info.detect.thresh ; spikes.info.detect.thresh];
+end
+
+function spikes = meanSpikes(spikes)
+
+spikes.info.detect.stds   = mean(spikes.info.detect.stds);
+spikes.info.detect.thresh = mean(spikes.info.detect.thresh);
 
 end

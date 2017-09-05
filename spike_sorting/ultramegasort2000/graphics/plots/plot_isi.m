@@ -151,8 +151,8 @@ else
     
     % place patches to represent shadow and refractory period
     ymax = max(cross) + 1;
-    patch(shadow*[-1 1 1 -1], [0 0 ymax ymax], [.5 .5 .5],'EdgeColor', 'none');
-    patch([shadow [rp rp] shadow ], [0 0 ymax ymax], [1 0 0],'EdgeColor','none');
+    patch(  shadow*[-1 1 1 -1], [0 0 ymax ymax], [.5 .5 .5],'EdgeColor', 'none');
+    patch( [shadow [rp rp] shadow ], [0 0 ymax ymax], [1 0 0],'EdgeColor','none');
     patch(-[shadow [rp rp] shadow ], [0 0 ymax ymax], [1 0 0],'EdgeColor','none');
     
     % plot autocorrelation histogram

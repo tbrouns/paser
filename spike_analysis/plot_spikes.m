@@ -17,8 +17,12 @@ for iclust = 1:numclusts
     figure(fig1);
     hold on
     spike_times = spikes.spiketimes(spikes.assigns == clustIds(iclust));
-    scatter(spike_times,clustIds(iclust)*ones(size(spike_times)),'.');
+%     scatter(spike_times,clustIds(iclust)*ones(size(spike_times)),'.');
     
+    % Draw spikes (T is 1xN matrix with N spikes at times t)
+    height = 0.1;
+    plot([spike_times;spike_times],[ones(size(spike_times))*(clustIds(iclust)-height).';ones(size(spike_times))*(clustIds(iclust)+height).'],'k');
+
     figure(fig2);
     subplot(numclusts,1,iclust);
     isi = diff(spike_times);

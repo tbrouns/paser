@@ -1,8 +1,10 @@
 function artifactSamples = ss_artifact_filter(spikes,spikeTimes,criterion)
 
+% Filter artifacts that do not occur on enough channels
+
 spikeTimes    =   sort(spikeTimes);
 nspikes       = length(spikeTimes);
-artifactDur   = spikes.params.artifact_offset / 1000;
+artifactDur   = spikes.params.artifact_offset * spikes.params.artifact_length / 1000; % sec
 artifactSamples = -1 * ones(nspikes,1);
 iSpike        = 1;
 kSpike        = 1;

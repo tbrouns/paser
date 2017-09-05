@@ -4,9 +4,7 @@ close all
 
 if (nargin < 3 || isempty(type)); type = 'single'; end
 if (nargin < 4); savePath = []; end % save in current working directory
-if (nargin < 5); filename = []; 
-else             filename = [filename(1:end-34) '_'];
-end
+if (nargin < 5); filename = []; end
 
 if (~isempty(savePath)); 
     if (savePath(end) ~= '\'); 

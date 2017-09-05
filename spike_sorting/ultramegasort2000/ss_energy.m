@@ -148,16 +148,16 @@ interface_energy = interface_energy - diag(0.5*diag(interface_energy));
 spikes.info.interface_energy = interface_energy;
 
 % Now re-number all clusters based on connection strength similarities
-assignments         = double(spikes.info.kmeans.assigns);
-interface_energy    = spikes.info.interface_energy;
-numclusts           = max(assignments);
-numpts              = full(sparse(assignments, 1, 1, numclusts, 1));
-normalize           = ((numpts * numpts') - diag(numpts));              % Off diag: Na*Nb, On diag: Na^2-Na ...
-normalize           = normalize - diag(0.5 * diag(normalize));          % ... and divide diagonal by 2
-norm_energy         = interface_energy ./ normalize;
-self                = repmat(diag(norm_energy), [1,numclusts]);
-connect_strength    = 2 .* norm_energy ./ (self + self');
-connect_strength    = connect_strength .* (1-eye(numclusts));           % diag entries <- 0, so we won't agg clusters with themselves
+assignments      = double(spikes.info.kmeans.assigns);
+interface_energy = spikes.info.interface_energy;
+numclusts        = max(assignments);
+numpts           = full(sparse(assignments, 1, 1, numclusts, 1));
+normalize        = ((numpts * numpts') - diag(numpts));           % Off diag: Na*Nb, On diag: Na^2-Na ...
+normalize        = normalize - diag(0.5 * diag(normalize));       % ... and divide diagonal by 2
+norm_energy      = interface_energy ./ normalize;
+self             = repmat(diag(norm_energy), [1,numclusts]);
+connect_strength = 2 .* norm_energy ./ (self + self');
+connect_strength = connect_strength .* (1-eye(numclusts));        % diag entries <- 0, so we won't agg clusters with themselves
 
 % initialize
 [~,pos(1)] = max(max(connect_strength));
@@ -180,17 +180,15 @@ for j = 1:numclusts
     assigns(spikes.info.kmeans.assigns == pos(j)) = j;
     for k = 1:numclusts
         if k > j
-            if pos(k) > pos(j)
-                ie(j,k) = spikes.info.interface_energy(pos(j),pos(k));
-            else
-                ie(j,k) = spikes.info.interface_energy(pos(k),pos(j));
+            if pos(k) > pos(j); ie(j,k) = spikes.info.interface_energy(pos(j),pos(k));
+            else                ie(j,k) = spikes.info.interface_energy(pos(k),pos(j));
             end
         end
     end
     c(j,:) = spikes.info.kmeans.centroids(pos(j),:);
 end
 
-spikes.info.kmeans.assigns = assigns;
+spikes.info.kmeans.assigns   = assigns;
 spikes.info.interface_energy = ie;
 spikes.info.kmeans.centroids = c;
 

@@ -8,6 +8,7 @@ if (method) % delete all input indices
     spikes.trials         (id)     = [];
     spikes.waveforms      (id,:,:) = [];
     spikes.unwrapped_times(id)     = [];
+    spikes.nspikes        (id)     = [];
     
     if (isfield(spikes,'assigns'))
         spikes.assigns(id) = [];
@@ -23,6 +24,7 @@ else % delete everything except the input indices
     spikes.trials          = spikes.trials         (id);
     spikes.waveforms       = spikes.waveforms      (id,:,:);
     spikes.unwrapped_times = spikes.unwrapped_times(id);
+    spikes.nspikes         = spikes.nspikes        (id);
     
     if (isfield(spikes,'assigns'))
         spikes.assigns = spikes.assigns(id);

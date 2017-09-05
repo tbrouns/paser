@@ -5,21 +5,21 @@ clusters = ss_clusterfeatures(spikes);
 % only merge significant amplitude clusters
 
 tf = ~cell2mat({clusters.vars.flag});
-clusters.vars(tf) = [];
-clusters.mahal(tf,:) = [];
-clusters.mahal(:,tf) = [];
+clusters.vars(tf)            = [];
+clusters.mahal(tf,:)         = [];
+clusters.mahal(:,tf)         = [];
 clusters.bhattacharyya(tf,:) = [];
 clusters.bhattacharyya(:,tf) = [];
 
 % merge
 
-clustID  = cell2mat({clusters.vars.id});
-nclusts  = length(clustID);
-
 spikes.assigns_prior = spikes.assigns;
-I_row = 1;
 
-while (nclusts > 1 && ~isempty(I_row))
+% clustID  = cell2mat({clusters.vars.id});
+% nclusts  = length(clustID);
+% I_row = 1;
+% 
+% while (nclusts > 1 && ~isempty(I_row))
     
     M = clusters.mahal;
     
@@ -28,9 +28,9 @@ while (nclusts > 1 && ~isempty(I_row))
     M(~triu(true(size(M)),1)) = realmax;
     
 %     B(~triu(true(size(B)),1)) = realmax;
-    
-    %     [mahal_min,I_M] = min(M(:));
-    %     [bhatt_min,I_B] = min(B(:));
+
+%     [mahal_min,I_M] = min(M(:));
+%     [bhatt_min,I_B] = min(B(:));
     
     IDs = find(M(:) < spikes.params.thresh_mahal);
     [I_row, I_col] = ind2sub(size(M),IDs);
@@ -47,16 +47,18 @@ while (nclusts > 1 && ~isempty(I_row))
     spikes = merge_clusters(spikes,id(I_row),id(I_col));
         
     clusters = ss_clusterfeatures(spikes);
-    clustID  = cell2mat({clusters.vars.id});
-    nclusts  = length(clustID);
-    
-end
+%     clustID  = cell2mat({clusters.vars.id});
+%     nclusts  = length(clustID);
+%     
+% end
 
 end
 
 function spikes = merge_clusters(spikes,I1,I2)
 
 N = length(I1);
+I1_old = I1;
+I2_old = I2;
 
 for i = 1:N
     
@@ -69,12 +71,27 @@ for i = 1:N
     n1 = sum(id1);
     n2 = sum(id2);
     
-    if (n1 >= n2); id = id2; I = i1;
-    else           id = id1; I = i2;
-    end
-    
-    spikes.assigns(id) = I;
+    if (n1 >= n2);
+        I1(I1 == i2) = i1;
+        I2(I2 == i2) = i1;
+    else
+        I1(I1 == i1) = i2;
+        I2(I2 == i1) = i2;
+    end   
     
 end
+
+% id = (I1 == I2);
+% I1(id) = [];
+% I2(id) = [];
+% N = length(I1);
+
+for i = 1:N
+        
+    spikes.assigns(spikes.assigns == I1_old(i)) = I1(i);
+    spikes.assigns(spikes.assigns == I2_old(i)) = I2(i);   
+    
+end
+
 
 end

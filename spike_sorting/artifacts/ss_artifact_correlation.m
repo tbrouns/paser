@@ -16,6 +16,8 @@ nsamples        = length(-artifact_length:artifact_length);
 n               = 1;
 correlations    = ones(nspikes,1);
 
+% Calculate correlation
+
 if (size(waveforms,2) > 1)
     for iSpike = 1:nspikes
         R = triu(corr(waveforms(n:n+nsamples-1,:)),1); % where the columns of A represent random variables and the rows represent observations.

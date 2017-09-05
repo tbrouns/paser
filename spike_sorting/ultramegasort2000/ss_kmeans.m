@@ -78,12 +78,12 @@ target_clustersize = M * spikes.params.kmeans_clustersize;
 jitter             = meandist_estim(waves) / 100 / N;        % heuristic
 
 %% DEFAULTS
-opts.divisions         = round(log2(M / target_clustersize));  % power of 2 that gives closest to target_clustersize, but in [4..7]
-opts.divisions         = max(min(opts.divisions, 7), 4);       % restrict to 16-128 clusters; heuristic.
-opts.reps              = 1;                                    % just one repetition
-opts.reassign_converge = 0;                                    % stop only when no points are reassigned ...
-opts.reassign_rough    = round(0.005 * M);                     % (no need to get full convergence for intermediate runs)
-opts.mse_converge      = 0;                                    % ... and by default, we don't use the mse convergence criterion
+opts.divisions         = round(log2(M / target_clustersize)); % power of 2 that gives closest to target_clustersize, but in [4..7]
+opts.divisions         = max(min(opts.divisions, 7), 4);      % restrict to 16-128 clusters; heuristic.
+opts.reps              = 1;                                   % just one repetition
+opts.reassign_converge = 0;                                   % stop only when no points are reassigned ...
+opts.reassign_rough    = round(0.005 * M);                    % (no need to get full convergence for intermediate runs)
+opts.mse_converge      = 0;                                   % ... and by default, we don't use the mse convergence criterion
 opts.progress          = 1;
 opts.split_big         = 0;
 if (nargin > 1)

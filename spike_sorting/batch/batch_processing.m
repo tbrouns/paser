@@ -31,7 +31,7 @@ folders_passive = folders_passive(~cellfun('isempty',folders_passive)); % remove
 numfolders_active  = length(folders_active);
 numfolders_passive = length(folders_passive);
 
-for iFolder = 1:numfolders_passive
+for iFolder = 2:numfolders_passive
     foldername1   = folders_passive{iFolder};
     loadPath_sub1 = [loadPath_root, foldername1];
     savePath_sub1 = [savePath_root, foldername1];
