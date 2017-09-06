@@ -35,6 +35,14 @@ for iTetrode = 1:ntets
         % stimulus condition, so we must include every cluster each time.
         % Initialize with NaNs to avoid conflation. 
         
+        if (I > 1) % Ignore 0V condition
+            % Stimulus onset times in seconds. We have two data vectors here,
+            % since we are currently unsure about which of the two intertwined
+            % signals indicate the onset times
+            stimulusOnset_1 = spikes.artifacts_1;
+            stimulusOnset_2 = spikes.artifacts_2;
+        end
+        
         for iClus = 1:numclusts
             id = (spikes.assigns == clusterIDs(iClus));
             spiketimes = spikes.spiketimes(id); % Only take spike times that are assigned to cluster (given in sec)
