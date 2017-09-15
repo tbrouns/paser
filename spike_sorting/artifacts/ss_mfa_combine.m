@@ -1,4 +1,4 @@
-function [artifactTimes_1,artifactTimes_2] = ss_artifact_combine(files,artifactTimesControl_1,artifactTimesControl_2)
+function [artifactTimes_1,artifactTimes_2] = ss_mfa_combine(files,artifactTimesControl_1,artifactTimesControl_2)
 
 % Grab artifacts across tetrodes
 
@@ -30,7 +30,6 @@ dur = mode(dur);
 off = mode(off);
 
 artifactTimes = [];
-period_main   =  0;
 
 if (iTetrodeMax ~= 0)
     

@@ -1,4 +1,4 @@
-function [x1,x2,w] = plot_fld( spikes, show1, show2, display  )
+function [x1,x2,w] = plot_fld(spikes, show1, show2, display)
 % UltraMegaSort2000 by Hill DN, Mehta SB, & Kleinfeld D  - 07/12/2010
 %
 % plot_fld - Fisher Linear Discriminant projection of 2 clusters
@@ -75,8 +75,8 @@ if display
     % use cluster colors if events represent real clusters
     is_clusters = length(show1) == 1 & length(show2) == 1;
     if is_clusters
-        color1 =  adjust_saturation( spikes.info.kmeans.colors(show1,:), .7);
-        color2 =  adjust_saturation( spikes.info.kmeans.colors(show2,:), .7 );
+        color1 =  adjust_saturation(spikes.info.kmeans.colors(show1,:), .7);
+        color2 =  adjust_saturation(spikes.info.kmeans.colors(show2,:), .7);
     else
         color1 = [.1 .1 .9];
         color2 = [.9 .1 .1];

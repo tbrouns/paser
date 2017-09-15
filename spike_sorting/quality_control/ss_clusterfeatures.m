@@ -10,7 +10,7 @@ nclusters  = length(clusterIDs);
 for icluster = 1:nclusters
     clusterID = clusterIDs(icluster);
     id        = find(spikes.assigns == clusterID);
-    if (length(id) <= spikes.params.cluster_min)
+    if (length(id) <= spikes.params.qc.cluster_min)
         spikes = ss_spike_removal(spikes,id);
     end
 end
@@ -137,9 +137,9 @@ for icluster = 1:nclusters
     clusters.vars(icluster).flag     = abs_threshold(spikes,clusterID);
     clusters.vars(icluster).chanIDs  = IDc;
     
-    if     (clusters.vars(icluster).rpv < spikes.params.lower_rpv); clusters.vars(icluster).unit = 'single';
-    elseif (clusters.vars(icluster).rpv > spikes.params.upper_rpv); clusters.vars(icluster).unit = 'multi';
-    else                                                            clusters.vars(icluster).unit = 'mixed';
+    if     (clusters.vars(icluster).rpv < spikes.params.qc.lower_rpv); clusters.vars(icluster).unit = 'single';
+    elseif (clusters.vars(icluster).rpv > spikes.params.qc.upper_rpv); clusters.vars(icluster).unit = 'multi';
+    else                                                               clusters.vars(icluster).unit = 'mixed';
     end
         
     for jcluster = (icluster+1):nclusters
@@ -199,7 +199,7 @@ function k = abs_threshold(spikes, show)
 clus         = get_spike_indices(spikes, show);
 memberwaves  = spikes.waveforms(clus,:);
 waves_mean   = mean(memberwaves);
-k            = max(sign(spikes.params.outlier_abs) * waves_mean > sign(spikes.params.outlier_abs) * spikes.params.outlier_abs);
+k            = max(sign(spikes.params.outlier.abs) * waves_mean > sign(spikes.params.outlier.abs) * spikes.params.outlier.abs);
 
 end
 

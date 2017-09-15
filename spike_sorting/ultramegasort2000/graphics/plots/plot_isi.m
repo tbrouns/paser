@@ -54,8 +54,8 @@ data.spiketimes        = spiketimes;
 data.show_isi          = show_isi;
 data.isi_maxlag        = spikes.params.display.max_isi_to_display;
 data.autocorr_maxlag   = spikes.params.display.max_autocorr_to_display;
-data.shadow            = spikes.params.shadow;
-data.refractory_period = spikes.params.refractory_period;
+data.shadow            = spikes.params.detect.shadow;
+data.refractory_period = spikes.params.detect.ref_period;
 data.corr_bin_size     = spikes.params.display.correlations_bin_size;
 data.isi_bin_size      = spikes.params.display.isi_bin_size;
 

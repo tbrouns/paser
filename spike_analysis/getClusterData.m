@@ -1,4 +1,4 @@
-function [fRateStimTime,fRateStimAmps] = createPSTH(spikes,clusters,clusterMax,tPre,tPost,tbin)
+function [fRateTime,fRateAmps,nSpikesTime] = getClusterData(spikes,clusters,clusterMax,tPre,tPost,tbin)
 
 twin  = tPre + tPost;
 Tmax  = spikes.info.detect.dur;
@@ -7,15 +7,15 @@ sPre  = Fs*(tPre /1000);
 sPost = Fs*(tPost/1000);
 sbin  = Fs*(tbin /1000);
 
-if (~isfield(spikes,'artifacts')); control = 1;
-else                               control = 0;
+if (isempty(spikes.artifacts_1)); control = 1;
+else                              control = 0;
 end
 
 clusterIDs = cell2mat({clusters.vars.id});
 numclusts  = length(clusterIDs);
 
 if (~control);
-    stimulusTimes = spikes.artifacts;
+    stimulusTimes = spikes.artifacts_1; % perhaps check with 'artifacts_2' as well
     stimIDs = round(Fs*stimulusTimes);
     if (size(stimIDs,1) > size(stimIDs,2)); stimIDs = stimIDs'; end
     ids = bsxfun(@plus,stimIDs,(-sPre+1:sPost)');
@@ -23,8 +23,10 @@ if (~control);
     ids(ids > floor(Fs*Tmax)) = floor(Fs*Tmax);
 end
     
-fRateStimTime = zeros(twin/tbin,clusterMax);
-fRateStimAmps = NaN(1,clusterMax);
+nbins = twin/tbin;
+fRateTime   = zeros(nbins,clusterMax);
+nSpikesTime = cell(clusterMax,1);
+fRateAmps   = NaN(1,clusterMax);
 
 for iClus = 1:numclusts
 
@@ -37,16 +39,24 @@ for iClus = 1:numclusts
 
     if (control)
         fRateAvg = sum(signalClus) / Tmax;
-        fRateStimTime(:,clusterIDs(iClus)) = fRateAvg;
-        fRateStimAmps(  clusterIDs(iClus)) = fRateAvg;
+        fRateTime(:,clusterIDs(iClus)) = fRateAvg;
+        fRateAmps(  clusterIDs(iClus)) = fRateAvg;
     else
-        fRate = mean(signalClus(ids),2);
-        fRate = reshape(fRate,sbin,[]);
-        fRate = sum(fRate);
-        fRateStimTime(:,clusterIDs(iClus)) = fRate ./ (tbin / 1000);
-
+        
+        N = signalClus(ids);
+        N = reshape(N,sbin,[]);
+        N = sum(N);
+        N = reshape(N,nbins,[]);
+        
+        nSpikesTime{clusterIDs(iClus)} = N;
+        
+        N = mean(signalClus(ids),2);
+        N = reshape(N,sbin,[]);
+        N = sum(N);
+        fRateTime  (:,clusterIDs(iClus)) = N ./ (tbin / 1000);
+                
         fRate = sum(signalClus(ids));
         fRate = fRate / (twin / 1000);
-        fRateStimAmps(clusterIDs(iClus)) = mean(fRate);
+        fRateAmps(clusterIDs(iClus)) = mean(fRate);
     end        
 end

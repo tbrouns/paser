@@ -4,7 +4,7 @@ function artifactSamples = ss_artifact_filter(spikes,spikeTimes,criterion)
 
 spikeTimes    =   sort(spikeTimes);
 nspikes       = length(spikeTimes);
-artifactDur   = spikes.params.artifact_offset * spikes.params.artifact_length / 1000; % sec
+artifactDur   = spikes.params.artifacts.offset * spikes.params.artifacts.length / 1000; % sec
 artifactSamples = -1 * ones(nspikes,1);
 iSpike        = 1;
 kSpike        = 1;

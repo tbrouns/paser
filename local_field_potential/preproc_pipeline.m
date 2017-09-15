@@ -9,8 +9,8 @@ ext     = '.continuous';
 
 % Find files
 
-files_unsorted    = dir([fpath '*' pattern '*' ext]);
-files_unsorted    = char(files_unsorted.name);
+files_unsorted = dir([fpath '*' pattern '*' ext]);
+files_unsorted = char(files_unsorted.name);
 
 % sort files
 

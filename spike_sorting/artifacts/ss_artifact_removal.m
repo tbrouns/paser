@@ -1,4 +1,4 @@
-function nspikes = ss_artifact_removal(files,data,MFAtimes_1,MFAtimes_2)
+function nlength = ss_artifact_removal(files,data,MFAtimes_1,MFAtimes_2)
 
 % TO DO: Change parameters to default spike parameters
 
@@ -10,11 +10,13 @@ Fs         = zeros(ntets,1);
 
 for iTetrode = 1:ntets
     load(files{iTetrode});
-    nspikes = spikes.nspikes;
-    nmax = max(nspikes);
-    for i = 1:nmax
-        spikeTimes = [spikeTimes, spikes.spiketimes(find(nspikes))]; %#ok
-        nspikes = nspikes - 1;
+    nlength = spikes.nlength; %#ok
+    nmax = max(nlength);
+    if (isfield(spikes,'spiketimes'))
+        for i = 1:nmax
+            spikeTimes = [spikeTimes, spikes.spiketimes(find(nlength))]; %#ok
+            nlength = nlength - 1;
+        end
     end
     Fs(iTetrode) = spikes.params.Fs;
 end
@@ -42,7 +44,7 @@ end
 
 % Process
 
-nspikes = zeros(ntets,1);
+nlength = zeros(ntets,1);
 for iTetrode = 1:ntets
     
     samples = zeros(1,size(data,2));
@@ -66,8 +68,8 @@ for iTetrode = 1:ntets
     spikes = ss_spike_removal(spikes,id,0);
     
     % Save
-    save(files{iTetrode},'spikes');
-    nspikes(iTetrode) = length(id);
+    save(files{iTetrode},'spikes','freq','parameters');
+    nlength(iTetrode) = length(id);
 end
 
 end

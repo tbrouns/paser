@@ -1,7 +1,7 @@
 function [artifacts,artifactTimes,correlations,nsamples] = ss_artifact_correlation(spikes,data,spikeTimes,criterion)
 
 Fs = spikes.params.Fs;
-artifact_length = floor(0.5 * (spikes.params.artifact_length / 1000) * Fs); % in samples
+artifact_length = floor(0.5 * (spikes.params.artifacts.length / 1000) * Fs); % in samples
 
 artifactSamples = ss_artifact_filter(spikes,spikeTimes,criterion);
 
@@ -28,7 +28,7 @@ if (size(waveforms,2) > 1)
 end
 
 artifactSamples = reshape(artifactSamples,nsamples,nspikes);
-id              = correlations > spikes.params.artifact_corr;
+id              = correlations > spikes.params.artifacts.corr;
 artifacts       = artifactSamples(:,id);
 correlations    = correlations(id);
 artifactTimes   = artifacts(artifact_length + 1,:) / Fs;

@@ -1,9 +1,8 @@
-function batch_processing(subject,method,loadPath_root,savePath_root) 
+function batch_processing(subject,loadPath_root,savePath_root) 
 
 if (nargin < 1); subject = []; end
-if (nargin < 2 || isempty(method)); method = 'fmm'; end
-if (nargin < 3); loadPath_root = []; end
-if (nargin < 4); savePath_root = []; end
+if (nargin < 2); loadPath_root = []; end
+if (nargin < 3); savePath_root = []; end
 
 ptrn = 'passive';
 
@@ -51,6 +50,6 @@ for iFolder = 2:numfolders_passive
     end
     
     if (~isempty(loadPath_sub2))
-        ss_wrapper(subject,foldername1,loadPath_sub2,savePath_sub1,method);
+        ss_wrapper(subject,foldername1,loadPath_sub2,savePath_sub1);
     end
 end

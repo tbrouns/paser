@@ -108,11 +108,11 @@ end
 params = spikes.params;
 num_trials     = length(data);
 num_channels   = size(data{1}, 2);
-window_samples = round(params.Fs * params.window_size / 1000);
-shadow         = round(params.Fs * params.shadow      / 1000);
-samples_before = round(params.Fs * params.cross_time  / 1000);
-samples_after  = round(params.Fs * params.max_jitter  / 1000) + window_samples - (1 + samples_before);
-jitter_range   = samples_before - 1 + (1:round(spikes.params.max_jitter * spikes.params.Fs / 1000));
+window_samples = round(params.Fs * params.detect.window_size / 1000);
+shadow         = round(params.Fs * params.detect.shadow      / 1000);
+samples_before = round(params.Fs * params.detect.cross_time  / 1000);
+samples_after  = round(params.Fs * params.detect.max_jitter  / 1000) + window_samples - (1 + samples_before);
+jitter_range   = samples_before - 1 + (1:round(spikes.params.detect.max_jitter * spikes.params.Fs / 1000));
 
 % determine threshold
 
@@ -124,12 +124,12 @@ stds    = zeros(num_trials,num_channels);
 for j = 1:num_trials
     stdev     = std(data{j});
     stds(j,:) = stdev;
-    if     isequal(spikes.params.detect_method, 'auto')
-        thresh(j,:) = -params.thresh * stdev;
-    elseif isequal(spikes.params.detect_method, 'manual')
-        thresh(j,:) =  params.thresh;
-    elseif isequal(spikes.params.detect_method, 'mad') % maximum absolute deviation
-        thresh(j,:) = -params.thresh * (median(abs(data{j})) / 0.6745);
+    if     isequal(spikes.params.detect.method, 'auto')
+        thresh(j,:) = -params.detect.thresh * stdev;
+    elseif isequal(spikes.params.detect.method, 'manual')
+        thresh(j,:) =  params.detect.thresh;
+    elseif isequal(spikes.params.detect.method, 'mad') % maximum absolute deviation
+        thresh(j,:) = -params.detect.thresh * (median(abs(data{j})) / 0.6745);
     else
         error('Unknown spike detection method.')
     end
@@ -162,7 +162,7 @@ for j = 1:num_trials
     crossings(crossings <= samples_before) = [];
     crossings(crossings > size(data{j},1) - samples_after) = [];
     
-    spikes.nspikes = single(cross_num(crossings));        
+    spikes.nlength = single(cross_num(crossings));        
     
     % update spiketimes, trials, and waveforms
     spikes.spiketimes = [spikes.spiketimes crossings / params.Fs];

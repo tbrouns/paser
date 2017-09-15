@@ -32,8 +32,8 @@ function [ev,lb,ub,RPV] = ss_rpv_contamination(spikes, use)
     % get parameters for calling rp_violations
     N   = length(select);
     T   = sum(spikes.info.detect.dur);
-    RP  = (spikes.params.refractory_period - spikes.params.shadow) * 0.001; 
-    RPV = sum(diff(spiketimes) <= (spikes.params.refractory_period * 0.001));
+    RP  = (spikes.params.detect.ref_period - spikes.params.detect.shadow) * 0.001; 
+    RPV = sum(diff(spiketimes) <= (spikes.params.detect.ref_period * 0.001));
 
     % calculate contamination
     [ev,lb,ub] = rpv_contamination(N, T, RP, RPV);

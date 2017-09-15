@@ -77,7 +77,6 @@ for iTetrode = 1:numfiles
     %% Pre-processing
     
     SUCCESS = 0;
-    
     itr_tot = length(N) * length(F_low);
     
     for i = 1:length(N);

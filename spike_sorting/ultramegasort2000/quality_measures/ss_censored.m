@@ -30,7 +30,7 @@ if isfield(spikes.info,'outliers') % if there are outliers, include them
 end
 
 % get other parameters
-tau_c = spikes.params.shadow;
+tau_c = spikes.params.detect.shadow;
 T     = sum(spikes.info.detect.dur);
 
 % finally, calculate censored period

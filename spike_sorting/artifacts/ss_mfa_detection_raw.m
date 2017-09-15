@@ -1,4 +1,4 @@
-function spikes = ss_artifact_detection(data,spikes,index_start)
+function spikes = ss_mfa_detection_raw(data,spikes,parameters,index_start)
 
 method = 1;
 visualize_0 = 0;
@@ -6,7 +6,7 @@ visualize_1 = 0;
 visualize_2 = 0;
 close all;
 
-window_size = (spikes.params.mfa_p2ptime / 1000) * spikes.params.Fs;  % in samples
+window_size = (parameters.mfa.p2ptime / 1000) * spikes.params.Fs;  % in samples
 Fs          =  spikes.params.Fs;
 tStart      = (index_start - 1) / Fs;
 nlength     = size(data,1);

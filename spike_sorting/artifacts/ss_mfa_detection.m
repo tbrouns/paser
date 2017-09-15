@@ -1,7 +1,6 @@
-function [spikeTimes_1,spikeTimes_2] = ss_artifact_detection_2(data_all,threshold,spikes)
+function [spikeTimes_1,spikeTimes_2] = ss_mfa_detection(data_all,threshold,parameters,Fs)
 
-window_size = (spikes.params.mfa_p2ptime / 1000) * spikes.params.Fs;  % in samples
-Fs          =  spikes.params.Fs;
+window_size = (parameters.mfa.p2ptime / 1000) * Fs;  % in samples
 
 nchans = length(data_all);
 spikeTimesAll = cell(nchans,1);

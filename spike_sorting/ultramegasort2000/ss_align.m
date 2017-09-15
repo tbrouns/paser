@@ -29,7 +29,7 @@ else
     num_spikes     = size(w,1);
     num_samples    = size(w,2);
     num_channels   = size(w,3);
-    max_samples    = round(spikes.params.max_jitter * spikes.params.Fs/1000);
+    max_samples    = round(spikes.params.detect.max_jitter * spikes.params.Fs/1000);
     keep_samples   = num_samples-max_samples;
     thresh_sample  = spikes.info.detect.align_sample;
     thresh_channel = spikes.info.detect.event_channel;

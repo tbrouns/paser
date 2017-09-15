@@ -38,7 +38,7 @@ for iTetrode = 1:ntets
         if (I > 1) % Ignore 0V condition
             % Stimulus onset times in seconds. We have two data vectors here,
             % since we are currently unsure about which of the two intertwined
-            % signals indicate the onset times
+            % signals indicates the onset times
             stimulusOnset_1 = spikes.artifacts_1;
             stimulusOnset_2 = spikes.artifacts_2;
         end

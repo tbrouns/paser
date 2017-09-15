@@ -78,7 +78,7 @@ show = get_spike_indices(spikes, show);
 data.valid_modes = valid_modes;
 data.colormode   = colormode;
 spiketimes       = sort(spikes.unwrapped_times(show));
-data.rpv         = sum(diff(spiketimes) <= (spikes.params.refractory_period * 0.001));
+data.rpv         = sum(diff(spiketimes) <= (spikes.params.detect.ref_period * 0.001));
 data.waveforms   = spikes.waveforms(show,:,:);
 data.cmap        = spikes.params.display.cmap;
 
