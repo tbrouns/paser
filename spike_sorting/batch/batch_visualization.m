@@ -1,7 +1,8 @@
-function batch_visualization(subject,loadPath_root,savePath_root)
+function batch_visualization(subject,loadPath_root,savePath_root,expType)
 
-if (nargin < 1); loadPath_root = []; end
-if (nargin < 2); savePath_root = []; end
+if (nargin < 2); loadPath_root = []; end
+if (nargin < 3); savePath_root = []; end
+if (nargin < 4); expType = 'all'; end
 
 ptrn = 'passive';
 
@@ -26,36 +27,50 @@ end
 folders_active  = folders_active (~cellfun('isempty',folders_active )); % remove empty cells
 folders_passive = folders_passive(~cellfun('isempty',folders_passive)); % remove empty cells
 
-numfolders_active  = length(folders_active);
-numfolders_passive = length(folders_passive);
+if     (strcmp(expType,'all'));     folders = [folders_active;folders_passive];
+elseif (strcmp(expType,'active'));  folders = folders_active;
+elseif (strcmp(expType,'passive')); folders = folders_passive;
+end
 
-for iFolder = 1:numfolders_passive
-    foldername   = folders_passive{iFolder};
-        
+numfolders = length(folders);
+
+for iFolder = 63:numfolders
+    foldername = strtrim(folders{iFolder});
+    
     loadPath = [loadPath_root, foldername];
     savePath = [savePath_root, foldername];
     
-    if (loadPath(end) ~= '\'); loadPath = [loadPath, '\']; end
-    if (savePath(end) ~= '\'); savePath = [savePath, '\']; end
+    if (loadPath(end) ~= '\'); loadPath = [loadPath, '\']; end %#ok
+    if (savePath(end) ~= '\'); savePath = [savePath, '\']; end %#ok
     
-    folder_names  = dir(loadPath);
-    folder_names  = char(folder_names.name);
-    numfolders    = length(folder_names(:,1));
-    baseline      = [];
-    
+    baseline  = [];
     MATfiles  = dir([loadPath '\Spikes_' subject '*.mat']);
     numfiles  = size(MATfiles,1);
     filenames = char(MATfiles.name);
+    if (isempty(filenames)); continue; end
+%     batch_analysis(filenames,loadPath,savePath);
     for iFile = 1:numfiles
+        close all
         filename = filenames(iFile,:);
         load([loadPath filename]);
-        spikes.params.cluster_method = 'fmm';
         [~,filename,~] = fileparts(filename);
-        ss_visualization(spikes,clusters,'all',savePath,filename)
-        if (metadata.stimulus == 0); baseline = freq;
-        else                         ept_timefrequency_plotting(freq,parameters,savePath,filename,baseline);
+        id = 1:length([clusters.vars.id]);
+        parameters = ept_parameter_config(); % TEMP
+        if (isfield(spikes,'spiketimes'))
+            ept_sst_plotting(spikes,clusters,parameters,freq,id,savePath,filename); suptitle(['Tetrode: ' num2str(metadata.tetrode)]);
+%             ept_plotting_cls(spikes,clusters,      savePath,filename);
+        end
+        if (~isempty(spikes.stimtimes{1}))
+            if (metadata.stimulus == 0); ept_plotting_lfp(freq,parameters,savePath,filename); baseline = getBaseline(freq); % must be loaded first
+            else                         ept_plotting_lfp(freq,parameters,savePath,filename,baseline);
+            end
         end
     end
-    batch_analysis(MATfiles,loadPath,savePath);
 end
+end
+
+function base = getBaseline(freq) % TEMP
+    base = freq.powspctrm;
+    base = nanmean(base,3);
+    base = repmat(base,1,1,size(freq.time,2));
 end

@@ -1,6 +1,7 @@
-function freq = ept_timefreq_analysis(data,parameters)
-    
-    tlength = parameters.lfp.trial_length - parameters.lfp.base_onset; 
+function freq = ept_timefreq_analysis(data,parameters,stim)
+
+    onset  = parameters.lfp.trial_onset  - parameters.lfp.trial_padding;
+    offset = parameters.lfp.trial_offset + parameters.lfp.trial_padding;
 
     cfg            = [];
     cfg.method     = parameters.lfp.method;
@@ -11,10 +12,9 @@ function freq = ept_timefreq_analysis(data,parameters)
         cfg.foilim     = [parameters.lfp.freq_lower parameters.lfp.freq_upper];
     else
         cfg.foi        = parameters.lfp.freq_lower:parameters.lfp.freq_step:parameters.lfp.freq_upper;
-        cfg.toi        = parameters.lfp.base_onset:parameters.lfp.time_step:parameters.lfp.trial_length;
-%         cfg.t_ftimwin  = ones(size(cfg.foi)).*0.5;
-        cfg.t_ftimwin  = 5./cfg.foi;  % 5 cycles per (sliding) time window 
-        cfg.t_ftimwin(cfg.t_ftimwin > tlength) = tlength;
+        cfg.toi        = onset:parameters.lfp.time_step:offset;
+        cfg.t_ftimwin  = parameters.lfp.ncycles ./ cfg.foi;  % 5 cycles per (sliding) time window 
+        cfg.t_ftimwin(cfg.t_ftimwin > parameters.lfp.trial_padding) = parameters.lfp.trial_padding;
     end
     cfg.channel    = 'all';
     cfg.trials     = 'all';
@@ -22,4 +22,9 @@ function freq = ept_timefreq_analysis(data,parameters)
     cfg.keeptapers = 'no';
     freq           = ft_freqanalysis(cfg, data);
 
+    if (stim == 0) % average over whole time window
+        pow = freq.powspctrm;
+        pow = nanmean(pow,3);
+        freq.powspctrm = repmat(pow,1,1,size(freq.time,2));
+    end
 end

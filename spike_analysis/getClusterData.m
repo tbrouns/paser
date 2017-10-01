@@ -1,4 +1,4 @@
-function [fRateTime,fRateAmps,nSpikesTime] = getClusterData(spikes,clusters,clusterMax,tPre,tPost,tbin)
+function [fRateTime,fRateAmps,nSpikesTime] = getClusterData(spikes,clusters,control,clusterMax,tPre,tPost,tbin)
 
 twin  = tPre + tPost;
 Tmax  = spikes.info.detect.dur;
@@ -7,26 +7,22 @@ sPre  = Fs*(tPre /1000);
 sPost = Fs*(tPost/1000);
 sbin  = Fs*(tbin /1000);
 
-if (isempty(spikes.artifacts_1)); control = 1;
-else                              control = 0;
-end
-
 clusterIDs = cell2mat({clusters.vars.id});
 numclusts  = length(clusterIDs);
 
-if (~control);
-    stimulusTimes = spikes.artifacts_1; % perhaps check with 'artifacts_2' as well
+stimulusTimes = spikes.stimtimes{1};
+if (~isempty(stimulusTimes))
     stimIDs = round(Fs*stimulusTimes);
     if (size(stimIDs,1) > size(stimIDs,2)); stimIDs = stimIDs'; end
     ids = bsxfun(@plus,stimIDs,(-sPre+1:sPost)');
     ids(ids < 1)              = 1;
     ids(ids > floor(Fs*Tmax)) = floor(Fs*Tmax);
 end
-    
-nbins = twin/tbin;
+
+nbins       = twin/tbin;
 fRateTime   = zeros(nbins,clusterMax);
 nSpikesTime = cell(clusterMax,1);
-fRateAmps   = NaN(1,clusterMax);
+fRateAmps   =  NaN(1,clusterMax);
 
 for iClus = 1:numclusts
 
@@ -34,13 +30,13 @@ for iClus = 1:numclusts
     id = (spikes.assigns == clusterIDs(iClus));
     spiketimes = spikes.spiketimes(id);
     
-%     if (~control); spiketimes = stimulusTimes + (100 * rand(size(stimulusTimes)) + 50) / 1000; end
     signalClus(round(Fs*spiketimes)) = 1;
 
     if (control)
         fRateAvg = sum(signalClus) / Tmax;
         fRateTime(:,clusterIDs(iClus)) = fRateAvg;
         fRateAmps(  clusterIDs(iClus)) = fRateAvg;
+        nSpikesTime{clusterIDs(iClus)} = (fRateAvg * tbin / 1000) * ones(nbins,1);
     else
         
         N = signalClus(ids);

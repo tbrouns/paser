@@ -1,13 +1,16 @@
-function batch_processing(subject,loadPath_root,savePath_root) 
+function batch_processing(subject,loadPath_root,savePath_root,expType) 
 
 if (nargin < 1); subject = []; end
 if (nargin < 2); loadPath_root = []; end
 if (nargin < 3); savePath_root = []; end
+if (nargin < 4); expType = 'all'; end
 
 ptrn = 'passive';
 
 folder_names = dir([loadPath_root 'R*']);
 folder_names = char(folder_names.name);
+
+if (isempty(folder_names)); disp('No folders in directory'); return; end
 
 %% sort files
 
@@ -27,11 +30,15 @@ end
 folders_active  = folders_active (~cellfun('isempty',folders_active )); % remove empty cells
 folders_passive = folders_passive(~cellfun('isempty',folders_passive)); % remove empty cells
 
-numfolders_active  = length(folders_active);
-numfolders_passive = length(folders_passive);
+if     (strcmp(expType,'all'));     folders = [folders_active;folders_passive];
+elseif (strcmp(expType,'active'));  folders = folders_active;
+elseif (strcmp(expType,'passive')); folders = folders_passive;
+end
 
-for iFolder = 2:numfolders_passive
-    foldername1   = folders_passive{iFolder};
+numfolders = length(folders);
+
+for iFolder = 7:numfolders
+    foldername1   = strtrim(folders{iFolder});
     loadPath_sub1 = [loadPath_root, foldername1];
     savePath_sub1 = [savePath_root, foldername1];
     folder_names  = dir(loadPath_sub1);
@@ -43,13 +50,16 @@ for iFolder = 2:numfolders_passive
     
     for jFolder = 1:numfolders % across all trials 
         foldername2 = strtrim(folder_names(jFolder,:));
-        if ~isempty(strfind(foldername2,'_')) % check if underscore is present
-            loadPath_sub2{itr} = [loadPath_sub1 '\' foldername2]; %#ok
-            itr = itr + 1;
+        if (~isempty(strfind(foldername2,'_')) || ~isempty(strfind(foldername2,'EPhys'))) % either different trials for passive or EPhys folder for active
+            path = [loadPath_sub1 '\' foldername2]; 
+            if (isdir(path)); % make sure we are storing folders and not files
+                loadPath_sub2{itr} = path; %#ok
+                itr = itr + 1;
+            end
         end
     end
     
     if (~isempty(loadPath_sub2))
-        ss_wrapper(subject,foldername1,loadPath_sub2,savePath_sub1);
+        ept_wrapper(subject,foldername1,loadPath_sub2,savePath_sub1);
     end
 end

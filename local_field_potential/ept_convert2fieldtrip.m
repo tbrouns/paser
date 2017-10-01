@@ -1,13 +1,16 @@
-function dataFT = ept_convert2fieldtrip(data,timestamps,stimOnset,parameters,Fs)
+function dataFT = ept_convert2fieldtrip(data,timestamps,stimOnsetRaw,parameters,Fs)
 
-N       = 2;
 nchans  = size(data,1);
-tlength = parameters.lfp.trial_length - parameters.lfp.base_onset; 
-trial_length = round(N * tlength * Fs); % read in twice as much
-labels = 1:nchans;
- 
+onset   = parameters.lfp.trial_onset  - parameters.lfp.trial_padding;
+offset  = parameters.lfp.trial_offset + parameters.lfp.trial_padding;
+onset   = round(Fs * onset);
+offset  = round(Fs * offset);
+nlength = round(Fs * timestamps(end));
+labels  = 1:nchans;
+stimOnsetRaw = round(stimOnsetRaw * Fs)';
+
 % Function that converts dataformat to field trip format
-dataFT = [];
+dataFT         = [];
 dataFT.label   = strtrim(cellstr(num2str(labels'))'); % cell-array containing strings, Nchan*1
 dataFT.fsample = Fs;           % sampling frequency in Hz, single number
 dataFT.trial   = {data};       % cell-array containing a data matrix for each 
@@ -16,20 +19,24 @@ dataFT.time    = {timestamps}; % cell-array containing a time axis for each
                                % trial (1 X Ntrial), each time axis is a 1*Nsamples vector          
 dataFT.sampleinfo = [1 size(data,2)]; % array containing [startsample endsample] of data
 
+% nlength = floor(timestamps(end) * Fs);
 
-if (~isempty(stimOnset))
+if (~isempty(stimOnsetRaw))
 
-    stimOnset  = (round(stimOnset * Fs))';
-    stimOffset = stimOnset + trial_length;
+    stimOnset  = stimOnsetRaw + onset;
+    stimOffset = stimOnsetRaw + offset;
+    
+    stimOnset (stimOnset  < 1) = 1;
+    stimOffset(stimOffset > nlength) = nlength;
+            
+    cfg = [];
+    cfg.trl = [stimOnset,stimOffset,zeros(size(stimOnset))];
+    dataFT  = ft_redefinetrial(cfg,dataFT);
     
     cfg = [];
-    cfg.trl    = [stimOnset,stimOffset,zeros(size(stimOnset))]; % MFA start times until next start time
-    dataFT = ft_redefinetrial(cfg,dataFT);
-
-    cfg = [];
-    cfg.offset = round(N * parameters.lfp.base_onset * Fs);
-    dataFT = ft_redefinetrial(cfg,dataFT);
-
+    cfg.offset = onset;
+    dataFT     = ft_redefinetrial(cfg,dataFT);
+    
     % Set NaNs to zero
     
     ntrials = size(dataFT.trial,2);
