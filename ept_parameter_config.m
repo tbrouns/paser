@@ -6,17 +6,13 @@ parameters.general.ext         = '.continuous'; % Extension of data files
 parameters.general.pattern     = 'CH'; % Pattern to look for in data files
 parameters.general.nelectrodes = 4; % Number of electrodes per polytrode
 
-% Hardware specifications
+% Pipeline parameters
 
-parameters.process.spikes = false;
-parameters.process.lfp    = false;
-parameters.process.mfa    = false;
+parameters.process.spikes = 1; % Do spike detection
+parameters.process.lfp    = 1; % Do LFP   detection
+parameters.process.mfa    = 0; % Do MFA   detection
 
 % Spike detection
-
-parameters.spikes.ref_period = 1.5; % ms, refractory period (for calculation refractory period violations)
-
-% spike detection parameters
 
 % method:
 % 'auto'    : threshold calculated from background noise
@@ -31,6 +27,7 @@ parameters.spikes.method = 'mad';
 % If 'mad'    : number of standard deviations above background noise
 
 parameters.spikes.thresh      = 3.0;
+parameters.spikes.ref_period  = 1.5; % ms, refractory period (for calculation refractory period violations)
 parameters.spikes.window_size = 1.5; % ms, width of a spike
 parameters.spikes.shadow      = 0.5; % ms, enforced dead region after each spike
 parameters.spikes.cross_time  = 0.6; % ms, alignment point for peak of waveform
@@ -75,13 +72,19 @@ parameters.sorting.mdt.timeframe_minutes = 1;  % Time frame duration (mostly a c
 parameters.sorting.ums.kmeans_size = 0.01; % target size for miniclusters as fraction of total number of spikes
 parameters.sorting.ums.agg_cutoff  = 0.0001;  % higher = less aggregation, lower = more aggregation
 
-% Super paramagnetic clustering 
+% KiloSort (KST)
+
+% Path directory should contain config file, named 'kilsort_config.m'
+parameters.sorting.kst.path = 'E:\Google Drive\Lab notebook Terry Brouns\Software\MATLAB\spike_sorting\Repos\kilosort';
+parameters.sorting.kst.cuda = 1; % use CUDA (GPU computing)
+
+% Super paramagnetic clustering (SPC)
 
 parameters.sorting.spc.dims = 3;
 
 %% CLUSTER PARAMETERS & QUALITY CONTROL
 
-parameters.cluster.method  = 'fmm';
+parameters.cluster.method  = 'kst';
 
 parameters.cluster.upper_rpv  = 0.10; % Maximum fraction of refractory period violations (RPVs) in cluster
 parameters.cluster.upper_miss = 0.10; % Maximum fraction of missing spikes in cluster due to threshold
@@ -94,6 +97,8 @@ parameters.cluster.size_min      = 10;  % minimum number of spikes in cluster (c
 
 parameters.cluster.outlier_chi   = 0.001; 
 parameters.cluster.outlier_std   = 3;     % max num. of SDs from centre of PCA cluster
+
+parameters.cluster.pca_dims = 3; % first number of principle components to consider for spike filtering and cluster similarity calculation
 
 %% LOCAL FIELD POTENTIAL
 

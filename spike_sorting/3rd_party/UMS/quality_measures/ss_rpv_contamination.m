@@ -8,13 +8,13 @@ function [ev,lb,ub,RPV] = ss_rpv_contamination(spikes, use)
 %
 % Description:
 %   Estimates contamination of a cluster based on refractory period
-% violations (RPVs).  See rp_violations.m for more information.  This 
+% violations (RPVs).  See rp_violations.m for more information.  This
 % function simply allows rp_violations to be called simply on a SPIKES
 % structure.
 %
-% Input: 
+% Input:
 %   spikes - spikes structure
-%   use    - a cluster ID or an array describing which spikes to 
+%   use    - a cluster ID or an array describing which spikes to
 %            use in analyzing refractory period violations
 %          - see get_spike_indices.m
 %
@@ -25,17 +25,17 @@ function [ev,lb,ub,RPV] = ss_rpv_contamination(spikes, use)
 %   RPV  - number of refractory period violations observed in this cluster
 %
 
-    % get spiketime data
-    select     = get_spike_indices(spikes, use);      
-    spiketimes = sort(spikes.unwrapped_times(select));
+% get spiketime data
+select     = get_spike_indices(spikes, use);
+spiketimes = sort(spikes.spiketimes(select));
 
-    % get parameters for calling rp_violations
-    N   = length(select);
-    T   = sum(spikes.info.detect.dur);
-    RP  = (spikes.params.detect.ref_period - spikes.params.detect.shadow) * 0.001; 
-    RPV = sum(diff(spiketimes) <= (spikes.params.detect.ref_period * 0.001));
+% get parameters for calling rp_violations
+N   = length(select);
+T   = sum(spikes.info.detect.dur);
+RP  = (spikes.params.detect.ref_period - spikes.params.detect.shadow) * 0.001;
+RPV = sum(diff(spiketimes) <= (spikes.params.detect.ref_period * 0.001));
 
-    % calculate contamination
-    [ev,lb,ub] = rpv_contamination(N, T, RP, RPV);
-  
+% calculate contamination
+[ev,lb,ub] = rpv_contamination(N, T, RP, RPV);
+
 end

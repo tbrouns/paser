@@ -1,16 +1,16 @@
 function [artifacts,artifactTimes,correlations,nsamples] = ept_sst_artifact_correlation(parameters,data,spikeTimes)
 
-artifact_length = floor(0.5 * (parameters.spikes.window_size / 1000) * Fs); % in samples
+Fs = parameters.Fs;
+artifact_length = floor(0.5*Fs*(parameters.spikes.window_size / 1000)); % in samples
 
-[artifactSamples,artifactIDs] = ept_sst_align(spikes,parameters,spikeTimes); % align adjacent spikes
+[artifactSamples,artifactIDs] = ept_sst_align(parameters,spikeTimes); % align adjacent spikes
 
 artifactSamples = round(Fs * artifactSamples);
 artifactSamples(artifactSamples <= artifact_length) = artifact_length + 1;
 artifactSamples(artifactSamples > size(data,2) - artifact_length) = size(data,2) - artifact_length;
-nspikes         = length(artifactSamples);
-
-nsamples        = length(-artifact_length:artifact_length);
-correlations    = ones(nspikes,1);
+nspikes      = length(artifactSamples);
+nsamples     = length(-artifact_length:artifact_length);
+correlations = ones(nspikes,1);
 
 % Calculate correlation
 

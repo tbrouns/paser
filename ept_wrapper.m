@@ -1,6 +1,6 @@
 function ept_wrapper(subject,session,loadPath,savePath)
 
-fig = figure; set(gcf,'position',get(0,'screensize')); % TEMP
+% fig = figure; set(gcf,'position',get(0,'screensize')); % TEMP
 
 parameters   = ept_parameter_config;
 nelectrodes  = parameters.general.nelectrodes;
@@ -21,7 +21,7 @@ if (~iscell(loadPath)); loadPath = {loadPath}; end
 
 numtrials = length(loadPath);
 for iTrial = 1:numtrials
-    if (loadPath{iTrial}(end) ~= '\' && ~isempty(loadPath{iTrial}));
+    if (loadPath{iTrial}(end) ~= '\' && ~isempty(loadPath{iTrial}))
         loadPath{iTrial} = [loadPath{iTrial}, '\'];
     end
 end
@@ -34,13 +34,13 @@ if (savePath(end) ~= '\' && ~isempty(savePath)); savePath = [savePath, '\']; end
 tf = strcmp(parameters.cluster.method,{'fmm','ums','ops'});
 tf = max(tf(:));
 if (tf); SPIKE_DETECTION = 1;
-else     SPIKE_DETECTION = 0;
+else;    SPIKE_DETECTION = 0;
 end
 
-tf = strcmp(parameters.cluster.method,{'cbp','kls','ops'});
+tf = strcmp(parameters.cluster.method,{'kst','cbp','ops'});
 tf = max(tf(:));
 if (tf); SAVE_RAW_DATA = 1;
-else     SAVE_RAW_DATA = 0;
+else;    SAVE_RAW_DATA = 0;
 end
 
 %% Check if TEMP files exist in save folder
@@ -123,7 +123,7 @@ if (isempty(files_all) || isempty(file_temp))
             files = dir([loadPath{iTrial} '\*' pattern '*' ext]);
             files = char(files.name);
             
-            if (size(files,1) >= max(fileIndices));
+            if (size(files,1) >= max(fileIndices))
                 files  = files(fileIndices,:);
                 files  = strtrim(files);
                 nfiles = length(fileIndices);
@@ -141,7 +141,7 @@ if (isempty(files_all) || isempty(file_temp))
             for iFile = 1:nfiles % Filter
                 
                 file = [loadPath{iTrial} files(iFile,:)];
-                [data_tetrode_sst, ~, info] = load_open_ephys_data(file); % data in microvolts
+                [data_ADC, ~, info] = load_open_ephys_data(file); % data in microvolts
                 
                 Fs = info.header.sampleRate;
                 Fs_array(iFile) = Fs;
@@ -149,16 +149,16 @@ if (isempty(files_all) || isempty(file_temp))
                 % Band-pass filter
                 
                 [B,A] = butter(parameters.mfa.bp_order,[parameters.mfa.bp_low parameters.mfa.bp_high]/(Fs/2),'bandpass');
-                data_tetrode_sst  = filtfilt(B,A,data_tetrode_sst); % Zero-phase digital filtering
+                data_ADC  = filtfilt(B,A,data_ADC); % Zero-phase digital filtering
                 
                 % Normalize
                 
-                data_tetrode_sst = data_tetrode_sst / max(data_tetrode_sst);
+                data_ADC = data_ADC / max(data_ADC);
                 
-                stdev = median(abs(data_tetrode_sst)) / 0.6745; % median absolute deviation
+                stdev = median(abs(data_ADC)) / 0.6745; % median absolute deviation
                 thresholds(iFile) = parameters.mfa.thresh * stdev;
                 
-                data_channels{iFile} = single(data_tetrode_sst); % convert to single type
+                data_channels{iFile} = single(data_ADC); % convert to single type
                 
             end
             
@@ -176,11 +176,9 @@ if (isempty(files_all) || isempty(file_temp))
         
     end
     
-    %% SPIKE DETECTION / SORTING
+    %% SPIKE + LFP DETECTION
     
     %% Per tetrode
-    
-    tic
     
     ntets     = zeros(numtrials,1);
     nspikes   = zeros(1,numtrials);
@@ -191,7 +189,7 @@ if (isempty(files_all) || isempty(file_temp))
         
         % Check for existing files
         
-        if (iTrial <= size(files_all,2));
+        if (iTrial <= size(files_all,2))
             files_trial = cell2mat(files_all(:,iTrial));
             numfiles    = size(files_trial,1);
             ntets       = size(files_trials{iTrial},1) / parameters.general.nelectrodes;
@@ -205,14 +203,14 @@ if (isempty(files_all) || isempty(file_temp))
         ntets(iTrial)  = numfiles / parameters.general.nelectrodes;
         MFAtimesTrial  = MFAtimes(iTrial,:);
         stim           = stimuliConditions(iTrial);
-                
-        for iTetrode = 1:ntets(iTrial);
+        
+        for iTetrode = 1:ntets(iTrial)
             
             for iElectrode = 1:nelectrodes
                 
                 % Load Open-Ephys data
                 
-                iFile = (iTetrode - 1) * 4 + iElectrode;
+                iFile = (iTetrode - 1) * nelectrodes + iElectrode;
                 
                 filename = [loadPath{iTrial} files_trial{iFile}];
                 filename = strtrim(filename);
@@ -224,25 +222,27 @@ if (isempty(files_all) || isempty(file_temp))
                 if (iElectrode == 1); Fs_array = zeros(nelectrodes,1); end
                 Fs_array(iElectrode) = Fs; % Sampling frequencies should be equal
                 
-                % FFT
-                Y = fft(data_channel_raw);
-                L = length(data_channel_raw);
-                P2 = abs(Y/L);
-                P1 = P2(1:L/2+1);
-                P1(2:end-1) = 2*P1(2:end-1);
-                f = Fs*(0:(L/2))/L;
-                figure(fig); plot(f,P1);
-                xlabel('Frequency [Hz]')
-                ylabel('Amplitude');
-                ylim([0 3]);
-                export_fig([savePath 'FFT_' num2str(iTrial) '_' num2str(iTetrode) '_' num2str(iElectrode)]);
+                %%%% TEMP
+                %                 % FFT
+                %                 Y = fft(data_channel_raw);
+                %                 L = length(data_channel_raw);
+                %                 P2 = abs(Y/L);
+                %                 P1 = P2(1:L/2+1);
+                %                 P1(2:end-1) = 2*P1(2:end-1);
+                %                 f = Fs*(0:(L/2))/L;
+                %                 figure(fig); plot(f,P1);
+                %                 xlabel('Frequency [Hz]')
+                %                 ylabel('Amplitude');
+                %                 ylim([0 3]);
+                %                 export_fig([savePath 'FFT_' num2str(iTrial) '_' num2str(iTetrode) '_' num2str(iElectrode)]);
+                %%%%
                 
                 if (parameters.process.spikes)
                     
                     %% Initialize arrays
-                    if (iElectrode == 1);
+                    if (iElectrode == 1)
                         data_tetrode_sst = zeros(nelectrodes,length(data_channel_raw),'single');
-                        if (iTetrode == 1 && parameters.spikes.artifacts_removal);
+                        if (iTetrode == 1 && parameters.spikes.artifacts_removal)
                             data_trial_sst = zeros(ntets(iTrial)*nelectrodes,length(data_channel_raw),'single');
                         end
                     end
@@ -264,7 +264,7 @@ if (isempty(files_all) || isempty(file_temp))
                 timestamps        = timestamps - timestamps(1);
                 [data,timestamps] = resample(data_channel_raw,timestamps,Fr); % resample
                 
-                if (iElectrode == 1);
+                if (iElectrode == 1)
                     data_tetrode_lfp = zeros(nelectrodes,length(data),'single');
                     time_tetrode_lfp = zeros(nelectrodes,length(data),'single');
                 end
@@ -273,11 +273,19 @@ if (isempty(files_all) || isempty(file_temp))
                 data_tetrode_lfp(iElectrode,:) = data;
             end
             
+            %%%% TEMP
+            %             figure(fig);
+            %             plot((1:size(data_tetrode_sst,2))/Fs,data_tetrode_sst);
+            %             xlabel('Time [s]');
+            %             ylabel('Voltage');
+            %             savefig([savePath 'Signal_' num2str(iTrial) '_' num2str(iTetrode) '.fig']);
+            %%%%
+            
             clear data_channel data_channel_raw
             
             flag = sum(Fs_array ~= Fs_array(1)) ~= 0;
             if (flag); disp('Sampling frequency mismatch'); continue;
-            else Fs = Fs_array(1);
+            else; Fs = Fs_array(1);
             end
             
             spikes = [];
@@ -300,7 +308,7 @@ if (isempty(files_all) || isempty(file_temp))
                         if (stim > 0 && parameters.spikes.artifacts_combine) % magnetic field artifact detection
                             spikes = ss_mfa_detection_raw(data_section{1},spikes,iStart);
                         end
-                        spikes = ss_detect(data_section,spikes);
+                        spikes = ept_sst_detect(data_section,spikes);
                         iStart = iStart + nsamples_section;
                     end
                     nspikes(iTetrode,iTrial) = length(spikes.spiketimes);
@@ -311,7 +319,7 @@ if (isempty(files_all) || isempty(file_temp))
                 end
                 
                 if (parameters.spikes.artifacts_removal)
-                    data_trial_sst(4*iTetrode-3:4*iTetrode,:) = data_tetrode_sst;
+                    data_trial_sst(nelectrodes*(iTetrode-1)+1:nelectrodes*iTetrode,:) = data_tetrode_sst;
                 end
             end
             
@@ -320,7 +328,7 @@ if (isempty(files_all) || isempty(file_temp))
             % LOCAL FIELD POTENTIAL
             
             freq = [];
-            if (parameters.process.lfp)
+            if (parameters.process.lfp && ~isempty(spikes.stimtimes{1})) % TEMP: also demand that stimtimes are avaiable (change for active data)
                 timestamps = mean(time_tetrode_lfp,1);
                 [data,artifacts] = ept_artifact_removal_lfp(data_tetrode_lfp,Fr,parameters);
                 data = ept_convert2fieldtrip(data,timestamps,MFAtimes{iTrial,1},parameters,Fr);
@@ -346,7 +354,7 @@ if (isempty(files_all) || isempty(file_temp))
         if (parameters.process.spikes)
             
             filesTrial = files_all(:,iTrial);
-
+            
             if (stim > 0 && parameters.spikes.artifacts_combine)
                 MFAtimesTrial = ss_mfa_combine(filesTrial,MFAtimesTrial); % Magnetic field artifact combination
                 ept_mfa_save(filesTrial,MFAtimesTrial)
@@ -360,8 +368,18 @@ if (isempty(files_all) || isempty(file_temp))
             end
         end
     end
+    
     if (parameters.process.spikes)
-        keepvars = {'parameters','files_all','nspikes','stimuliConditions','metadata','savePath','SPIKE_DETECTION','tempFileName'};
+        keepvars = {...
+            'parameters',        ...
+            'files_all',         ...
+            'files_trials',      ...
+            'nspikes',           ...
+            'stimuliConditions', ...
+            'metadata',          ...
+            'loadPath',          ...
+            'savePath',          ...
+            'tempFileName'};
         clearvars('-except', keepvars{:});
         save([savePath tempFileName]); % Temporarily save all workspace variables. Useful when continuing after early stopping
     end
@@ -371,15 +389,12 @@ end
 
 if (parameters.process.spikes)
     
-    %% CLUSTERING
-    
+    method  = parameters.cluster.method;
     ntets   = size(files_all,1);
     ntrials = size(files_all,2);
-    method  = parameters.cluster.method;
-    
     spikesTotal = sum(nspikes,2);
     
-    for iTetrode = 1:ntets % do clustering per tetrode across all stimulus conditions
+    for iTetrode = 1:ntets % Do clustering per tetrode across all stimulus conditions
         
         % Check data
         
@@ -387,24 +402,32 @@ if (parameters.process.spikes)
         for iTrial = 1:ntrials
             if (~exist(files_all{iTetrode,iTrial},'file')); MISSING_FILE = true; break; end
         end
-        if (MISSING_FILE); % If not all files are present
+        if (MISSING_FILE) % If not all files are present
             for iTrial = 1:ntrials
                 filename = files_all{iTetrode,iTrial};
-                if (exist(filename,'file')); delete(filename); end % delete temporary spikes file
+                if (exist(filename,'file')); delete(filename); end % Delete temporary spikes file
             end
-            continue; % move on to next tetrode
+            continue; % Move on to next tetrode
         end
         
         % Initialize
         
-        nspikes = zeros(1,ntrials);
-        itr = 1;
-        spikesAll = []; % structure to contain all 'spikes' structures from all trials
+        switch method
+            case 'cbp'
+                data_tetrode      = []; %
+                data_tetrode.data = [];
+            case 'fmm'
+                itr = 1;
+            case 'kst'
+                data_tetrode = [];
+            case 'ops'
+                spikesAll = []; % structure to contain all 'spikes' structures from all trials
+            case 'ums'
+                spikesAll = []; % structure to contain all 'spikes' structures from all trials
+                
+        end
         
-        data_tetrode      = []; %
-        data_tetrode.data = [];
-        
-        % Merge data across trials
+        %% MERGE DATA ACROSS TRIALS
         
         for iTrial = 1:ntrials
             
@@ -414,69 +437,116 @@ if (parameters.process.spikes)
                 case 'cbp'
                     data_tetrode.data = [data_tetrode.data,spikes.data];
                     data_tetrode.dt   = 1 / spikes.params.Fs;
-                case 'kls'
-                    
-                case 'ops'
-                    spikesAll = ept_sst_spike_append(spikesAll,spikes);
                 case 'fmm'
-                    % Convert waveforms for dictionary learning
+                    % Convert waveforms
                     nwave = size(spikes.waveforms,1);
-                    n     = size(spikes.waveforms,2);
+                    nsamp = size(spikes.waveforms,2);
                     nchan = size(spikes.waveforms,3);
-                    waves = zeros(nwave,nchan*n,'single');
-                    nspikes(iTrial) = nwave;
+                    waves = zeros(nwave,nchan*nsamp,'single');
                     for ichan = 1:nchan
-                        waves(:,n*(ichan-1)+1:n*ichan) = spikes.waveforms(:,:,ichan);
+                        waves(:,nsamp*(ichan-1)+1:nsamp*ichan) = spikes.waveforms(:,:,ichan);
                     end
                     if (iTrial == 1); waveforms = NaN(spikesTotal(iTetrode),size(waves,2)); end
-                    nspikes_trial = size(waves,1);
-                    waveforms(itr:itr+nspikes_trial-1,:) = waves;
-                    itr = itr + nspikes_trial;
+                    waveforms(itr:itr+nwave-1,:) = waves;
+                    itr = itr + nwave;
+                case 'kst'
+                    data_tetrode = [data_tetrode,spikes.data]; %#ok
+                    Fs = spikes.params.Fs;
+                case 'ops'
+                    spikesAll = ept_sst_spike_append(spikesAll,spikes);
                 case 'ums'
                     spikesAll = ept_sst_spike_append(spikesAll,spikes);
             end
         end
         
-        id = isnan(waveforms(:,1));
-        waveforms = waveforms(~id,:);
-        
-        % SPIKE SORT
+        %% SPIKE SORT
         
         switch method
-            case 'cbp'
+            case 'cbp' % WORK IN PROGRESS
                 assigns_all = ept_sst_sorting_CBP(data_tetrode,parameters);
                 clear data_tetrode;
-            case 'kls'
-                
-            case 'ops'
-                assigns_all = ept_sst_sorting_OPS(spikesAll,parameters);
             case 'fmm'
+                waveforms = waveforms(~isnan(waveforms(:,1)),:);
                 assigns_all = ept_sst_sorting_FMM(spikes,waveforms);
+            case 'kst'
+                
+                % Sort files
+                nfiles  = size(files_trials{1},1);
+                ntrials = length(loadPath);
+                files = cell(nfiles,ntrials);
+                for iTrial = 1:ntrials
+                    files(:,iTrial) = files_trials{iTrial};
+                end
+                
+                % Sort spikes
+                parameters.Fs = Fs;
+                nchans  = parameters.general.nelectrodes;
+                files_probe = files(nchans*(iTetrode-1)+1:nchans*iTetrode,:);
+                rez = ept_sst_sorting_KST(parameters,files_probe,loadPath,savePath);
+                spikesAll = ept_kst_convert2spikes(rez,data_tetrode,parameters);
+                spikesAll.params.Fs = rez.ops.fs;
+                clear data_tetrode;
+            case 'ops' % WORK IN PROGRESS
+                assigns_all = ept_sst_sorting_OPS(spikesAll,parameters);
+                clear spikesAll;
             case 'ums'
                 assigns_all = ept_sst_sorting_UMS(spikesAll,parameters);
                 clear spikesAll;
         end
         
-        % Unmerge data back into trials
-        
-        N = cumsum(nspikes);
-        N = [0,N]; %#ok
+        %% UNMERGE DATA BACK INTO TRIALS
+                
         ntrials = size(files_all,2);
+        freq = []; % Initialize in case not loaded
         
-        for iTrial = 1:ntrials
+        tf = strcmp(parameters.cluster.method,{'fmm','ums','ops'});
+        tf = max(tf(:));
+        
+        if (tf)
+            N = 0;
+            for iTrial = 1:ntrials
+                load(files_all{iTetrode,iTrial});
+                nspikes = size(spikes.spiketimes,2);
+                assigns = assigns_all(N(iTrial)+1:N(iTrial+1));
+                spikes.assigns = assigns;
+                spikes   = ept_sort_clusters(spikes);
+                spikes   = ept_sst_filter_rpv(spikes);
+                clusters = ept_sst_clusterfeatures(spikes,freq,parameters);
+                saveFile(spikes,clusters,metadata,freq,parameters,savePath); % also save LFP data
+                N = N + nspikes;
+            end
+        else
+            parameters = ept_parameter_config(); % TEMP
+            spikesAll  = ept_sort_clusters(spikesAll);
+            spikesAll  = ept_sst_filter_rpv(spikesAll,parameters);
+            stimTimesAll = cell(ntrials,2);
+            stimVoltsAll = zeros(ntrials,1);
+            T = 0;
+            for iTrial = 1:ntrials
+                load(files_all{iTetrode,iTrial});
+                for iChan = 1:size(spikes.stimtimes,2)
+                    stimTimesAll{iTrial,iChan} = [stimTimesAll{iTrial,iChan},T + spikes.stimtimes{iChan}];
+                end
+                stimVoltsAll(iTrial) = metadata.stimulus;
+                N = size(spikes.data,2);
+                T = T + (N / spikes.params.Fs);
+                if (iTrial == 1); T1 = T; end
+            end
+            spikesAll.stimtimes = stimTimesAll;
+            metadata.stimulus   = stimVoltsAll;
             
-            load(files_all{iTetrode,iTrial});
-            assigns = assigns_all(N(iTrial)+1:N(iTrial+1));
+%             N = find(spikesAll.spiketimes < T1,1,'last');
+%             
+%             spikesAll.assigns    = spikesAll.assigns   (1:N);
+%             spikesAll.spiketimes = spikesAll.spiketimes(1:N);
+%             spikesAll.waveforms  = spikesAll.waveforms (1:N,:,:);
+%             spikesAll.info.detect.dur = T1;
             
-            spikes.assigns = assigns;
-            
-            spikes   = ept_sst_filter_rpv(spikes);
-            clusters = ept_sst_clusterfeatures(spikes,freq,parameters);
-            saveFile(spikes,clusters,metadata,freq,parameters,savePath); % also save LFP data
-            
+            clusters = ept_sst_clusterfeatures(spikesAll,freq,parameters);
+            saveFile(spikesAll,clusters,metadata,freq,parameters,savePath); % also save LFP data
         end
         
-        % Delete temporary spikes files
+        %% Delete temporary spikes files
         for iTrial = 1:ntrials
             delete(files_all{iTetrode,iTrial});
         end
@@ -486,28 +556,27 @@ if (parameters.process.spikes)
     
 end
 
-toc
-
 end
 
-function saveFile(spikes,clusters,metadata,freq,parameters,savePath,label) %#ok
-
-if (nargin < 7); label = []; end
+function saveFile(spikes,clusters,metadata,freq,parameters,savePath) %#ok
 
 filename = [savePath ...
     'Spikes_'   metadata.subject ...
     '_'         metadata.session ...
-    '_T'        num2str(metadata.tetrode,             '%02d')   ...
-    '_V'        num2str(metadata.stimulus,            '%03d')   ...
-    label];
+    '_T'        num2str(metadata.tetrode,             '%02d')];
+
+if (length(metadata.stimulus) == 1)
+    filename = [filename ...
+        '_V'    num2str(metadata.stimulus,            '%03d')];
+end
 
 if (isfield(spikes,'spiketimes'))
     threshold = parameters.spikes.thresh;
     nspikes   = size(spikes.waveforms,1);
     filename  = [filename ...
-        '_'         parameters.cluster.method                       ...
-        '_ST'       num2str(threshold,                    '%04.1f') ...
-        '_N'        num2str(nspikes,                        '%06d')];
+        '_'     parameters.cluster.method                       ...
+        '_ST'   num2str(threshold,                    '%04.1f') ...
+        '_N'    num2str(nspikes,                      '%06d')];
 end
 
 save([filename '.mat'],'spikes','clusters','metadata','freq','parameters');

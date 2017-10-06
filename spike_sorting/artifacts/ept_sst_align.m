@@ -1,10 +1,10 @@
 function [spikeTimesAligned,spikeIDs] = ept_sst_align(parameters,spikeTimes)
 
-% Filter artifacts that do not occur on enough channels
+% Combine and align adjacent spikes
 
 spikeTimes        =   sort(spikeTimes);
 nspikes           = length(spikeTimes);
-spikeDur          = (parameters.spikes.artifacts_corr * parameters.spikes.window_size) / 1000; % sec
+spikeDur          = (parameters.spikes.artifacts_offset * parameters.spikes.window_size) / 1000; % sec
 spikeTimesAligned = -1 * ones(nspikes,1);
 spikeIDs          = zeros(nspikes,1);
 iSpike            = 1;

@@ -52,7 +52,7 @@ for iFolder = 7:numfolders
         foldername2 = strtrim(folder_names(jFolder,:));
         if (~isempty(strfind(foldername2,'_')) || ~isempty(strfind(foldername2,'EPhys'))) % either different trials for passive or EPhys folder for active
             path = [loadPath_sub1 '\' foldername2]; 
-            if (isdir(path)); % make sure we are storing folders and not files
+            if (isdir(path)) % make sure we are storing folders and not files
                 loadPath_sub2{itr} = path; %#ok
                 itr = itr + 1;
             end

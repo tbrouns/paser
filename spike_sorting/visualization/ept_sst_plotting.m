@@ -1,12 +1,12 @@
 function ept_sst_plotting(spikes,clusters,parameters,freq,which,savePath,filename)
 
-if (nargin < 4); freq = []; end;
+if (nargin < 4); freq = []; end
 if (nargin < 5); which = 1:size(clusters.vars,2); end
 if (nargin < 6); savePath = []; end % save in current working directory
 if (nargin < 7); filename = []; end
 
 if (~isempty(filename)); [~,filename,~] = fileparts(filename); 
-else                     filename = 'Spikes'; 
+else,                    filename = 'Spikes'; 
 end
 
 clusters.vars = clusters.vars(which);
@@ -27,6 +27,7 @@ nclus = size(clusters.vars,2);
 spikes = ept_sst_display_parameters(spikes);
 spikes.unwrapped_times          = spikes.spiketimes;
 spikes.params.detect.ref_period = parameters.spikes.ref_period; 
+spikes.params.detect.shadow     = parameters.spikes.shadow;
 spikes.info.kmeans.assigns      = spikes.assigns; 
 numclusts                       = max(spikes.info.kmeans.assigns); % redundant? see nclus
 cmap                            = jetm(numclusts);
@@ -51,6 +52,9 @@ for i = 1 : nclus
         subplot(2,3,6); plot_stability          (spikes,icluster,freq,parameters);
         export_fig([savePath filename '_C'  num2str(icluster,'%03d')]);
     end
+    
+    % [x1,x2,~] = plot_fld(spikes, clusterID, clusterIDs(jcluster), 0); %
+    % CURRENTLY NOT USED
 end
 
 end

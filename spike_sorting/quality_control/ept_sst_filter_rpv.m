@@ -1,4 +1,4 @@
-function spikes = ept_sst_filter_rpv(spikes)
+function spikes = ept_sst_filter_rpv(spikes,parameters)
 
 nclusts = length(unique(spikes.assigns));
 
@@ -6,16 +6,12 @@ for iclust = 1:nclusts
     
     show = get_spike_indices(spikes, iclust);
     
-    x = spikes.waveforms(show,:) * spikes.info.pca.v(:,1);
-    y = spikes.waveforms(show,:) * spikes.info.pca.v(:,2);
-    z = spikes.waveforms(show,:) * spikes.info.pca.v(:,3);
-    
-    PCA3 = [x,y,z];
-    
+    PC = ept_pca(spikes,parameters.cluster.pca_dims,show);
+        
     % Find refractory period violations (RPVs)
     
-    spiketimes   = spikes.unwrapped_times(show);
-    rpvs         = diff(spiketimes) <= 0.001 * spikes.params.detect.ref_period;
+    spiketimes   = spikes.spiketimes(show);
+    rpvs         = diff(spiketimes) <= 0.001 * parameters.spikes.ref_period;
     rpvs         = [0,rpvs]; %#ok
     rpvs         = find(rpvs);
     id           = zeros(size(spiketimes));
@@ -33,14 +29,14 @@ for iclust = 1:nclusts
     n   = 0;
     
     while (itr < num_rpvs)
-        if (spiketimes(id(itr+1)) - spiketimes(id(itr)) <= 0.001 * spikes.params.detect.ref_period)
+        if (spiketimes(id(itr+1)) - spiketimes(id(itr)) <= 0.001 * parameters.spikes.ref_period)
             v     = [id(itr);id(itr+1)];
             itrV  = [itr;itr+1];
-            [~,I] = max(mahal(PCA3(v,:),PCA3));
+            [~,I] = max(mahal(PC(v,:),PC));
             I1    = itrV(I);
             I2    = v(I);
             spiketimes(I2) = [];
-            PCA3(I2,:)     = [];
+            PC(I2,:)     = [];
             id(I1:end)     = id(I1:end) - 1;
             id(I1)         = [];
             del = [del;I2+n]; %#ok

@@ -1,0 +1,3 @@
+ * COMPILATION
+ *
+ *      mex spc_mex.c SPC.c MergeSort.c L.c FAIRSPLIT.c ALGRAPH.c

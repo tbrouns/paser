@@ -2,9 +2,22 @@ function clusters = ept_sst_clusterfeatures(spikes,freq,parameters)
 
 parameters  = ept_parameter_config(); % TEMP
 cluster_min = parameters.cluster.size_min;
-threshold   = parameters.cluster.thresh * (spikes.info.detect.thresh / spikes.params.detect.thresh);
-artifacts   = freq.artifacts;
-artifacts   = sparse(getArtifactVector(spikes,artifacts));
+threshold   = parameters.cluster.thresh * (spikes.info.detect.thresh / parameters.spikes.thresh);
+
+if (isfield(freq,'artifacts'))
+    artifacts   = freq.artifacts;
+    artifacts   = sparse(getArtifactVector(spikes,artifacts));
+else
+    artifacts = [];
+end
+
+if (~isfield(spikes.info,'pca')) % Needed for "plot_fld"
+    [pca.u,pca.s,pca.v] = svd(detrend(spikes.waveforms(:,:),'constant'), 0);
+    spikes.info.pca = pca;
+end
+
+spikes.params.detect.ref_period = parameters.spikes.ref_period; 
+spikes.params.detect.shadow     = parameters.spikes.shadow;
 
 % Calculate features of clusters
 
@@ -21,7 +34,7 @@ for icluster = 1:nclusters
     
     [~,~,~,rpvs] = ss_rpv_contamination (spikes, clusterID); % fraction of RPVs
     [p,~,~,~,~]  = ss_undetected        (spikes, clusterID); % missing spikes due to high threshold
-    c            = ss_censored          (spikes, clusterID); % missing spikes due to shadow period
+    c            = ss_censored          (spikes, clusterID, parameters); % missing spikes due to shadow period
     xc           = crossCorrelation     (spikes, clusterID, parameters); % cross-correlation of residuals
     [k,M,I]      = checkThreshold       (spikes, clusterID, threshold);
     f            = getFiringRate        (spikes, clusterID);
@@ -40,12 +53,13 @@ for icluster = 1:nclusters
     clusters.vars(icluster).chans     = k;
     clusters.vars(icluster).frate     = f;
     clusters.vars(icluster).artifact  = od;
-        
-    PCA_1 = pca3(spikes,find(spikes.assigns == clusterID));
+    clusters.vars(icluster).snr       = snr;
+       
+    PC_1 = ept_pca(spikes,parameters.cluster.pca_dims,find(spikes.assigns == clusterID));
     for jcluster = (icluster+1):nclusters
-        PCA_2 = pca3(spikes,find(spikes.assigns == clusterIDs(jcluster)));
-        if (length(PCA_1) > 3 * cluster_min && length(PCA_2) > 3 * cluster_min) % factor of 3 added because pca3 returns three values
-            D = mahal(PCA_1,PCA_2);
+        PC_2 = ept_pca(spikes,parameters.cluster.pca_dims,find(spikes.assigns == clusterIDs(jcluster)));
+        if (length(PC_1) > 3 * cluster_min && length(PC_2) > 3 * cluster_min) % factor of 3 added because pca3 returns three values
+            D = mahal(PC_1,PC_2);
             clusters.mahal(icluster,jcluster) = mean(D(:));
             [x1,x2,~] = plot_fld(spikes, clusterID, clusterIDs(jcluster), 0);
             clusters.bhattacharyya(icluster,jcluster) = bhattacharyya(x1',x2');
@@ -81,7 +95,7 @@ if (PLOTTING); close all; end
 clus      = get_spike_indices(spikes, show);
 nchan     = size(spikes.waveforms,3);
 nsamples  = size(spikes.waveforms,2);
-threshold = parameters.cluster.thresh_xcorr * (spikes.info.detect.thresh / spikes.params.detect.thresh);
+threshold = parameters.cluster.thresh_xcorr * (spikes.info.detect.thresh / parameters.spikes.thresh);
 
 %% Calculate cross-correlation between consecutive spike channels
 
@@ -213,9 +227,9 @@ for icombi = 1:ncombi
     [pks,loc] = findpeaks(xc);
     [~,I] = max(pks);
     loc = lags(loc(I));
-    if (loc > lagMax || loc < -lagMax); 
-        accept = 0; 
-        break; 
+    if (loc > lagMax || loc < -lagMax)
+        accept = 0;
+        break;
     end
 end
 
@@ -272,20 +286,6 @@ k            = find(M > abs(threshold)); % channels that cross threshold with me
 
 end
 
-function M = pca3(spikes,which)
-
-waves = spikes.waveforms(which,:);
-
-coeff = pca(waves);
-
-x = spikes.waveforms(which,:) * spikes.info.pca.v(:,1);
-y = spikes.waveforms(which,:) * spikes.info.pca.v(:,2);
-z = spikes.waveforms(which,:) * spikes.info.pca.v(:,3);
-
-M  = [x,y,z];
-
-end
-
 function f = getFiringRate(spikes,show)
 
 clus       = get_spike_indices(spikes, show);
@@ -296,37 +296,42 @@ f          = length(spiketimes) / dur; % in Hz
 end
 
 function artifactVector = getArtifactVector(spikes,artifacts)
-    
-    Fs        = spikes.params.Fs;
-    dur       = spikes.info.detect.dur;
-    nlength   = round(Fs * dur);
-    artifacts = round(Fs * artifacts);
-    artifacts(artifacts < 1) = 1;
-    artifacts(artifacts > nlength) = nlength;
-    artifactVector = zeros(nlength,1);
-    nartifacts = size(artifacts,1);
-    for iArtifact = 1:nartifacts
-        artifactVector(artifacts(iArtifact,1):artifacts(iArtifact,2)) = 1;
-    end
+
+Fs        = spikes.params.Fs;
+dur       = spikes.info.detect.dur;
+nlength   = round(Fs * dur);
+artifacts = round(Fs * artifacts);
+artifacts(artifacts < 1) = 1;
+artifacts(artifacts > nlength) = nlength;
+artifactVector = zeros(nlength,1);
+nartifacts = size(artifacts,1);
+for iArtifact = 1:nartifacts
+    artifactVector(artifacts(iArtifact,1):artifacts(iArtifact,2)) = 1;
+end
 end
 
 function overlap_diff = getArtifactOverlap(spikes,show,artifacts)
 
-% Finds the degree to which spikes overlap with artifacts in LFP signal
-
-Fs         = spikes.params.Fs;
-which      = get_spike_indices(spikes, show);
-spiketimes = spikes.spiketimes(which);
-spiketimes = round(Fs * spiketimes); % in sample number
-nlength    = length(artifacts);
-nspikes    = length(spiketimes);
-
-n = sum(artifacts);
-N = sum(artifacts(spiketimes)); 
-overlap_expected = n / nlength; % expected overlap in case of uniform spike distribution
-overlap_exact    = N / nspikes; % actual fraction of spikes that overlap with artifact
-
-overlap_diff = overlap_exact / overlap_expected;
+if (~isempty(artifacts))
+    
+    % Finds the degree to which spikes overlap with artifacts in LFP signal
+    
+    Fs         = spikes.params.Fs;
+    which      = get_spike_indices(spikes, show);
+    spiketimes = spikes.spiketimes(which);
+    spiketimes = round(Fs * spiketimes); % in sample number
+    nlength    = length(artifacts);
+    nspikes    = length(spiketimes);
+    
+    n = sum(artifacts);
+    N = sum(artifacts(spiketimes));
+    overlap_expected = n / nlength; % expected overlap in case of uniform spike distribution
+    overlap_exact    = N / nspikes; % actual fraction of spikes that overlap with artifact
+    
+    overlap_diff = overlap_exact / overlap_expected;
+else
+    overlap_diff = 0;
+end
 
 end
 

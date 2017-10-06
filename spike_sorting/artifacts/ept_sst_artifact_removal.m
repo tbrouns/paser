@@ -5,6 +5,7 @@ function ept_sst_artifact_removal(files,data,MFAtimesAll,nspikesAll)
 % Artifact removal
 
 spikeTimes = [];
+tetrodeID  = [];
 ntets      = length(files);
 Fs         = zeros(ntets,1);
 
@@ -18,6 +19,7 @@ for iTetrode = 1:ntets
         for i = 1:nspikesMax % run through every channel
             spikeTimesNew = spikes.spiketimes(nspikes > 0);
             spikeTimes    = [spikeTimes, spikeTimesNew]; %#ok
+            tetrodeID     = [tetrodeID, iTetrode * ones(size(spikeTimesNew))]; %#ok
             nspikes       = nspikes - 1;
         end
     end
@@ -31,7 +33,7 @@ parameters.Fs = Fs;
 
 % Calculate correlations across all channels at each spike time
 
-[artifacts,~,~,nsamples] = ept_sst_artifact_correlation(parameters,data,spikeTimes);
+[artifacts,~,correlations,nsamples] = ept_sst_artifact_correlation(parameters,data,spikeTimes);
 
 % Add magnetic field artifacts
 
@@ -66,7 +68,8 @@ for iTetrode = 1:ntets
     samples(samples < 1) = [];
     id = find(samples == 2);
     spikes = ept_sst_spike_removal(spikes,id,'keep');
-        
+    spikes.correlations = correlations(tetrodeID == iTetrode);
+    
     % Total number of spikes per tetrode
     nspikesAll(iTetrode) = length(spikes.spiketimes);
     

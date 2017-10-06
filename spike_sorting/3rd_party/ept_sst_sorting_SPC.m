@@ -1,7 +1,8 @@
-function ept_sst_sorting_SPC(spikes)
+function assigns = ept_sst_sorting_SPC(spikes,parameters)
 
 dims = parameters.sorting.spc.dims;
 mcs  = parameters.cluster.size_min;
+nspikes = length(spikes.spiketimes);
 
 % Do PCA
 
@@ -20,5 +21,15 @@ end
 %  *  P - Cluster parents.  Cluster i's parent cluster is C{P(i)}
 
 [C,P] = spc_mex(PC',mcs);
+
+% Convert to regular assigns
+
+nclusts = length(C);
+
+assigns = zeros(1,nspikes);
+for iClust = 1:nclusts
+    id = C{iClust};    
+    assigns(id) = iClust;    
+end
 
 end

@@ -37,7 +37,8 @@ function [x1,x2,w] = plot_fld(spikes, show1, show2, display)
 
 % check arguments
 if ~isfield(spikes,'waveforms'), error('No waveforms found in spikes object.'); end
-if nargin == 3, display = 1; end
+if ~isfield(spikes.info,'pca'),  error('No PCA found in spikes object.'); end
+if (nargin < 4); display = true; end
 warning off backtrace
 
 % get selected indices
@@ -128,7 +129,6 @@ if display
         data.h2 = h2;
         data.menu_item = item(3);
         set(hax,'UserData',data)
-        
     end
     set(hax,'UIContextMenu',cmenu)
 end

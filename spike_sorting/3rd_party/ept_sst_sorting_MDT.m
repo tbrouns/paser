@@ -30,10 +30,7 @@ clustIDs = clustIDs(~I); % Keep remaining clusters
 
 % Do PCA
 
-PC   = pca(spikes.waveforms(:,:)');
-if (size(PC,2) > dims)
-   PC = PC(:,1:dims); % Take first D principle components
-end
+PC = ept_pca(spikes,dims);
 
 % Data conversion
 
