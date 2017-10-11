@@ -6,6 +6,9 @@ for iclust = 1:nclusts
     
     show = get_spike_indices(spikes, iclust);
     
+    nspikes = length(show);
+    if (nspikes <= parameters.cluster.min_spikes); continue; end
+    
     PC = ept_pca(spikes,parameters.cluster.pca_dims,show);
         
     % Find refractory period violations (RPVs)

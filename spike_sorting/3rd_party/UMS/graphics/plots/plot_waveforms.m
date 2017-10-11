@@ -82,7 +82,7 @@ data.rpv         = sum(diff(spiketimes) <= (spikes.params.detect.ref_period * 0.
 data.waveforms   = spikes.waveforms(show,:,:);
 data.cmap        = spikes.params.display.cmap;
 
-waveform_avg = mean(data.waveforms,1);
+waveform_avg = median(data.waveforms,1);
 ymin         = min(waveform_avg(:));
 ymax         = max(waveform_avg(:));
 p2p          = ymax - ymin; 
@@ -146,7 +146,7 @@ function update_waveforms(~, ~, colormode, displaymode, ax)
 if displaymode == 2, colormode = max(colormode,2); end
 if displaymode == 3, colormode = 2; end
 
-data             = get( ax,'UserData');
+data             = get(ax,'UserData');
 data.colormode   = colormode;
 data.displaymode = displaymode;
 set(ax, 'UserData',   data)
@@ -292,8 +292,6 @@ if num_channels > 1
     set(l,'Color',data.barcolor,'LineWidth',1.5 ) % electrode dividers
 end
 
-ylim([data.ylims]);
-
 % scale bar
 ms    = time_scalebar * Fs / 1000;
 maxX  = num_channels * num_samples;
@@ -309,7 +307,7 @@ set(l,'Color',data.barcolor,'LineWidth', 3)
 % make legend only if multiple colors are used
 if colormode >= 3 && displaymode < 3
     leg = cell(length(clusts),1);
-    for k = 1:length(clusts); leg{k} = num2str(clusts(k)); end;
+    for k = 1:length(clusts); leg{k} = num2str(clusts(k)); end
     l = legend(lh,leg,'Location','Best');
     set(l,'FontSize',7);
 end
@@ -317,6 +315,8 @@ legend hide
 
 % label axes
 xlabel('Sample')
-ystr = {data.title, ['N = ' num2str(size(waveforms,1)) '  (' num2str(data.rpv) ' RPVs)']};
+N = size(waveforms,1);
+rpvs = round(100 * (100 * data.rpv / N)) / 100;
+ystr = {data.title, ['N = ' num2str(N) '  (' num2str(rpvs) ' % RPVs)']};
 ylabel(ystr)
 

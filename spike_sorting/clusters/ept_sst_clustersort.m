@@ -1,4 +1,4 @@
-function spikes = ept_sort_clusters(spikes)
+function [spikes,I] = ept_sst_clustersort(spikes)
 
 clustIDs = unique(spikes.assigns);
 nclusts  = length(clustIDs);
@@ -13,7 +13,7 @@ r(I) = r; % rank
 
 assignsNew = spikes.assigns;
 for iClust = 1:nclusts
-   assignsNew(spikes.assigns == clustIDs(iClust)) = r(iClust);    
+   assignsNew(spikes.assigns == clustIDs(iClust)) = r(iClust);
 end
 
 spikes.assigns = assignsNew;

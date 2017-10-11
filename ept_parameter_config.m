@@ -10,7 +10,13 @@ parameters.general.nelectrodes = 4; % Number of electrodes per polytrode
 
 parameters.process.spikes = 1; % Do spike detection
 parameters.process.lfp    = 1; % Do LFP   detection
-parameters.process.mfa    = 0; % Do MFA   detection
+parameters.process.mfa    = 1; % Do MFA   detection
+
+% Filtering
+
+parameters.filter.fft_freq   = 10;   % Hz
+parameters.filter.fft_pad    = 0.01; % Hz
+parameters.filter.fft_thresh = 5;    % Standard deviations
 
 % Spike detection
 
@@ -28,14 +34,13 @@ parameters.spikes.method = 'mad';
 
 parameters.spikes.thresh      = 3.0;
 parameters.spikes.ref_period  = 1.5; % ms, refractory period (for calculation refractory period violations)
-parameters.spikes.window_size = 1.5; % ms, width of a spike
-parameters.spikes.shadow      = 0.5; % ms, enforced dead region after each spike
-parameters.spikes.cross_time  = 0.6; % ms, alignment point for peak of waveform
-parameters.spikes.max_jitter  = 0.6; % ms, width of window used to detect peak after threshold crossing
+
+parameters.spikes.window_size = 1.5; % ms, width of a spike. Take samples symmetrically around peak
+parameters.spikes.max_desync  = 0.2; % ms, maximum temporal desynchronization between channels of probe
 
 % General artifact parameters
 parameters.spikes.artifacts_corr   = 0.5;  % correlation threshold
-parameters.spikes.artifacts_offset = 0.15; 
+parameters.spikes.artifacts_offset = parameters.spikes.max_desync; 
 
 % Filtering
 parameters.spikes.bp_high  = 6000;
@@ -44,10 +49,13 @@ parameters.spikes.bp_order = 10;
 
 parameters.spikes.tsection = 60; % time of each individual section that is processed (in minutes)
 
-parameters.spikes.artifacts_removal = 1; % remove artifacts? (default: true)
-parameters.spikes.artifacts_combine = 0; % Use both ADC and CONTINUOUS files to detect artifacts (currently NOT recommended)
+parameters.spikes.artifacts_removal  = 1; % remove artifacts? (default: true)
+parameters.spikes.artifacts_combine  = 0; % Use both ADC and CONTINUOUS files to detect artifacts (currently NOT recommended)
+parameters.spikes.artifacts_subtract = 0; % subtract global median to remove artifacts
 
 %% SPIKE SORTING
+
+parameters.sorting.method  = 'KST';
 
 % Dictionary learning: Focused Mixture Model (FMM)
 
@@ -84,21 +92,33 @@ parameters.sorting.spc.dims = 3;
 
 %% CLUSTER PARAMETERS & QUALITY CONTROL
 
-parameters.cluster.method  = 'kst';
+% Thresholds
 
-parameters.cluster.upper_rpv  = 0.10; % Maximum fraction of refractory period violations (RPVs) in cluster
-parameters.cluster.upper_miss = 0.10; % Maximum fraction of missing spikes in cluster due to threshold
+parameters.cluster.max_rpv       = 0.05; % Maximum fraction of refractory period violations (RPVs) in cluster
+parameters.cluster.max_missing   = 0.05; % Maximum fraction of missing spikes in cluster due to threshold
+parameters.cluster.max_amplitude = 300;  % Maximum absolute mean spike amplitude of cluster (microvolt)
+parameters.cluster.max_artifact  = 1.25; % Maximum ratio between actual and expected number of spikes in LFP artifact region
+parameters.cluster.max_lratio    = 1.0;  % Maximum L-ratio
+parameters.cluster.max_lag       = parameters.spikes.max_desync; % Maximum lag of maximum pairwise cross correlation (ms)
 
-parameters.cluster.amplitude_max = 300; % maximum absolute mean spike amplitude of cluster (microvolt)
+parameters.cluster.min_isodist   = 10; % Minimum isolation distance
+parameters.cluster.min_spikes    = 10;  % minimum number of spikes in cluster (change to mean firing rate threshold)
+
+% Quality calculation parameters
+
 parameters.cluster.thresh        = 4;   % number of standard deviations above background noise for mean amplitude of highest amplitude channel
-parameters.cluster.lag_max       = 5;   % how close maximum cross correlation needs to be to zero lag point
 parameters.cluster.thresh_xcorr  = 1;   % threshold for channel amplitude in order to be considered for cross-correlation
-parameters.cluster.size_min      = 10;  % minimum number of spikes in cluster (change to mean firing rate threshold)
 
-parameters.cluster.outlier_chi   = 0.001; 
-parameters.cluster.outlier_std   = 3;     % max num. of SDs from centre of PCA cluster
+
+parameters.cluster.outlier_chi   = 0.0001; % threshold given as fraction of maximum of theoretical chi-squared function
+parameters.cluster.outlier_std   = 3;      % max num. of SDs from centre of PCA cluster
 
 parameters.cluster.pca_dims = 3; % first number of principle components to consider for spike filtering and cluster similarity calculation
+
+% merge_thresh:
+% Threshold to merge two clusters. Depends on 'parameters.sorting.method'
+% - if method = KST, merge_thresh: sim score threshold (between 0 and 1)
+parameters.cluster.merge_thresh = 0.85;
 
 %% LOCAL FIELD POTENTIAL
 

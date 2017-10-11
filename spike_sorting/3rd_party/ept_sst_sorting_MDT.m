@@ -11,8 +11,11 @@ if (nargin < 3); weights = ones(size(spikes.spiketimes)); end
 dims = parameters.sorting.mdt.dims;
 
 % Remove clusters that are too small
+% Need to have consecutive cluster indices 
 
-clustIDs = unique(spikes.assigns);
+% [spikes,clustIDs_old] = ept_sst_clustersort(spikes);
+
+clustIDs = 1:max(spikes.assigns);
 nclusts  = length(clustIDs);
 nspikes  = zeros(1,nclusts);
 for iClust = 1:nclusts
@@ -22,11 +25,21 @@ end
 I        = nspikes <= 2 * dims;
 del      = clustIDs(I);
 ndel     = length(del); % clusters to remove
-for iClust = 1:ndel
-    id = find(spikes.assigns == del(iClust));
-    spikes = ept_sst_spike_removal(spikes,id,'delete');
-end
 clustIDs = clustIDs(~I); % Keep remaining clusters
+
+for iClust = 1:ndel
+    
+    I  = del(iClust);
+    
+    id = find(spikes.assigns == I);
+    spikes = ept_sst_spike_removal(spikes,id,'delete');
+    weights(id) = [];
+    
+    id = spikes.assigns > I;
+    spikes.assigns(id) = spikes.assigns(id) - 1;
+    del = del - 1;
+    
+end
 
 % Do PCA
 
@@ -107,20 +120,26 @@ for k = 1:nClust
     
     % Isolation distance
     mahalDistSq_sorted = sort(mahalDistSq_otherSpikes);
-    isolationDist = mahalDistSq_sorted(N_k);
+    
+    if (N_k < length(mahalDistSq_sorted))
+        isolationDist = mahalDistSq_sorted(N_k);
+    else
+        isolationDist = [];
+    end
     
     % L-ratio
     Lratio = sum(chi2cdf(mahalDistSq_otherSpikes, nDims, 'upper')) / N_k;
     
     % Save these values
 
-    metrics(k).id     = clustIDs(k);   % Cluster ID
-    metrics(k).Lratio = Lratio;        % L-ratio
-    metrics(k).IsoDis = isolationDist; % isolation distance
-    metrics(k).FP_t   = falsePosMODT;  % False positives (T-distribution)
-    metrics(k).FN_t   = falseNegMODT;  % False negatives (T-distribution)
-    metrics(k).FP_g   = falsePosGauss; % False positives (Gaussian)
-    metrics(k).FN_g   = falseNegGauss; % False negatives (Gaussian)
+    metrics(k).id     = clustIDs(k);     % Cluster ID
+    metrics(k).Lratio = Lratio;          % L-ratio
+    metrics(k).IsoDis = isolationDist;   % isolation distance
+    metrics(k).FP_t   = falsePosMODT;    % False positives (T-distribution)
+    metrics(k).FN_t   = falseNegMODT;    % False negatives (T-distribution)
+    metrics(k).FP_g   = falsePosGauss;   % False positives (Gaussian)
+    metrics(k).FN_g   = falseNegGauss;   % False negatives (Gaussian)
+    metrics(k).N_k    = N_k; % TEMP FOR TEST TO SEE IF IDs LINE UP
     
 end
 

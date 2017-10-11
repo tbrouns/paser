@@ -52,10 +52,7 @@ Fs             = spikes.params.Fs;
 method         = parameters.spikes.method;
 num_channels   = size(data, 2);
 window_samples = round(Fs * parameters.spikes.window_size / 1000);
-shadow         = round(Fs * parameters.spikes.shadow      / 1000);
-samples_before = round(Fs * parameters.spikes.cross_time  / 1000);
-samples_after  = round(Fs * parameters.spikes.max_jitter  / 1000) + window_samples - (1 + samples_before);
-jitter_range   = samples_before - 1 + (1:round(parameters.spikes.max_jitter * Fs / 1000));
+samples_hwidth = round(0.5 * window_samples);
 
 % determine threshold
 
@@ -64,8 +61,8 @@ spikes.info.detect.cov = get_covs(data, window_samples);
 stdev = std(data);
 if     isequal(method, 'auto');   thresh = -parameters.spikes.thresh * stdev;
 elseif isequal(method, 'manual'); thresh =  parameters.spikes.thresh;
-elseif isequal(method, 'mad');    thresh = -parameters.spikes.thresh * (median(abs(data)) / 0.6745);
-else   error('Unknown spike detection method.')
+elseif isequal(method, 'mad');    thresh = -parameters.spikes.thresh * ept_mad(data);
+else,  error('Unknown spike detection method.')
 end
 
 spikes.info.detect.stds   = stdev;
@@ -81,10 +78,12 @@ for k = 1:num_channels
     del = data_channel > thresh(k);
     I   = find(~del); % keep raw locations of thresholded data
     data_channel(del) = []; % ignore sub-threshold data
-    [pks,loc] = findpeaks(double(sign(thresh(k)) * data_channel));
-    loc = I(loc); % find locations of peaks in raw data
-    crossings(k,loc) = 1;
-    peaks(k,loc)     = pks;
+    if (length(data_channel) > 3) % required for 'findpeaks'
+        [pks,loc] = findpeaks(double(sign(thresh(k)) * data_channel));
+        loc = I(loc); % find locations of peaks in raw data
+        crossings(k,loc) = 1;
+        peaks(k,loc)     = pks;
+    end
 end
 
 divisor   = abs(repmat(spikes.info.detect.thresh', 1, size(peaks,2)));
@@ -93,10 +92,10 @@ peaksMax  = max(peaks);
 crossings = find(sum(crossings));
 peaksMax  = peaksMax(crossings);
 
-% Deal with adjacent peaks, within shadow period. 
+% Deal with adjacent peaks, within spike window. 
 % Keep largest amplitude peak
 
-indices = diff(crossings) <= shadow;
+indices = diff(crossings) <= samples_hwidth;
 indices = [indices,0];
 nspikes = length(indices);
 indices = [indices,0]; % needed for stop criterion
@@ -115,24 +114,21 @@ while iSpike <= nspikes
 end
 
 crossings = peakCrossings';
-crossings(crossings <= samples_before) = [];
-crossings(crossings > size(data,1) - samples_after) = [];
+crossings(crossings <= samples_hwidth) = [];
+crossings(crossings > size(data,1) - samples_hwidth) = [];
 
 % update spiketimes, trials, and waveforms
 spikes.spiketimes = [spikes.spiketimes crossings / Fs];
-w = zeros([length(crossings), samples_before + 1 + samples_after, num_channels], 'single');
+indices = bsxfun(@plus,crossings,-samples_hwidth:samples_hwidth); 
+w       = data(indices, :);
 
-for k = 1:length(crossings) % maybe use bsxfun here for speed-up
-    indices  = crossings(k) + (-samples_before:samples_after);
-    w(k,:,:) = data(indices, :);
-end
 spikes.waveforms = [spikes.waveforms; w];
 
 % get number of above threshold channels for each spike
 
 nspikes = zeros(1,length(crossings));
 for k = 1:num_channels
-    peaks = max(sign(thresh(k)) * w(:,jitter_range,k),[],2);
+    peaks = max(sign(thresh(k)) * w(:,:,k),[],2);
     peaks = peaks > abs(thresh(k));
     nspikes = nspikes + peaks';
 end
@@ -147,9 +143,6 @@ clear data
 % Save everything
 spikes.waveforms  = single(spikes.waveforms);
 spikes.spiketimes = single(spikes.spiketimes);
-
-% save some more data that will be useful later
-spikes.info.detect.align_sample = samples_before + 1;
 
 % report detection rate
 detect_rate = length(spikes.spiketimes) / sum(spikes.info.detect.dur);

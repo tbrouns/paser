@@ -1,4 +1,4 @@
-function c = ss_censored(spikes, use, parameters)
+function c = ss_censored(spikes, use)
 % UltraMegaSort2000 by Hill DN, Mehta SB, & Kleinfeld D  - 07/12/2010
 %
 % ss_censored - wrapper for censored.m
@@ -30,7 +30,7 @@ if isfield(spikes.info,'outliers') % if there are outliers, include them
 end
 
 % get other parameters
-tau_c = parameters.spikes.shadow;
+tau_c = spikes.params.detect.shadow;
 T     = sum(spikes.info.detect.dur);
 
 % finally, calculate censored period

@@ -1,4 +1,4 @@
-function [values, oldmin, oldmax] = rescale(values, newmin, newmax);
+function [values, oldmin, oldmax] = rescale(values, newmin, newmax)
 % UltraMegaSort2000 by Hill DN, Mehta SB, & Kleinfeld D  - 07/09/2010
 %
 % rescalde -  Linearly rescales a data set between a min and max value

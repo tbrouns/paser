@@ -1,14 +1,19 @@
-function clusters = ept_sst_clusterfeatures(spikes,freq,parameters)
+function spikes = ept_sst_clusterfeatures(spikes,freq,parameters)
 
-parameters  = ept_parameter_config(); % TEMP
-cluster_min = parameters.cluster.size_min;
+parameters = ept_parameter_config(); % TEMP
+
+cluster_min = parameters.cluster.min_spikes;
 threshold   = parameters.cluster.thresh * (spikes.info.detect.thresh / parameters.spikes.thresh);
 
+Fs = spikes.params.Fs;
+
+artifacts = [];
 if (isfield(freq,'artifacts'))
-    artifacts   = freq.artifacts;
-    artifacts   = sparse(getArtifactVector(spikes,artifacts));
-else
-    artifacts = [];
+    ntrials = size(freq,1);
+    for iTrial = 1:ntrials
+        artifacts = [artifacts;freq(iTrial).artifacts + spikes.info.trialonset(iTrial)]; %#ok
+    end
+    artifacts = sparse(getArtifactVector(spikes,artifacts));
 end
 
 if (~isfield(spikes.info,'pca')) % Needed for "plot_fld"
@@ -17,13 +22,14 @@ if (~isfield(spikes.info,'pca')) % Needed for "plot_fld"
 end
 
 spikes.params.detect.ref_period = parameters.spikes.ref_period; 
-spikes.params.detect.shadow     = parameters.spikes.shadow;
+spikes.params.detect.shadow     = round(parameters.spikes.window_size);
 
 % Calculate features of clusters
 
 clusterIDs = unique(spikes.assigns);
 nclusters  = length(clusterIDs);
 
+clusters = [];
 clusters.bhattacharyya = NaN(nclusters,nclusters);
 clusters.mahal         = NaN(nclusters,nclusters);
 
@@ -34,9 +40,9 @@ for icluster = 1:nclusters
     
     [~,~,~,rpvs] = ss_rpv_contamination (spikes, clusterID); % fraction of RPVs
     [p,~,~,~,~]  = ss_undetected        (spikes, clusterID); % missing spikes due to high threshold
-    c            = ss_censored          (spikes, clusterID, parameters); % missing spikes due to shadow period
-    xc           = crossCorrelation     (spikes, clusterID, parameters); % cross-correlation of residuals
-    [k,M,I]      = checkThreshold       (spikes, clusterID, threshold);
+    c            = ss_censored          (spikes, clusterID); % missing spikes due to shadow period
+    lagMax       = crossCorrelation     (spikes, clusterID, parameters); % pair-wise cross-correlation between channels
+    [k,M,m]      = checkThreshold       (spikes, clusterID, threshold);
     f            = getFiringRate        (spikes, clusterID);
     od           = getArtifactOverlap   (spikes, clusterID, artifacts); % likelihood of spikes being artifacts based on LFP
     snr          = getSignalToNoise     (spikes, clusterID);
@@ -48,8 +54,9 @@ for icluster = 1:nclusters
     clusters.vars(icluster).missing   = p;
     clusters.vars(icluster).censored  = c;
     clusters.vars(icluster).nspikes   = nspikes;
-    clusters.vars(icluster).xcorr     = xc;
-    clusters.vars(icluster).amplitude = M / abs(threshold(I));
+    clusters.vars(icluster).xc_lag    = 1000 * (lagMax / Fs);
+    clusters.vars(icluster).amp       = M;
+    clusters.vars(icluster).amp_rel   = m;
     clusters.vars(icluster).chans     = k;
     clusters.vars(icluster).frate     = f;
     clusters.vars(icluster).artifact  = od;
@@ -75,18 +82,22 @@ ID2      = [clusters.vars.id];
 nClusts  = length(ID1);
 
 for icluster = 1:nClusts
-    I = logical(ID2 == ID1(icluster));
-    clusters.vars(I).Lratio = metrics(icluster).Lratio;
-    clusters.vars(I).IsoDis = metrics(icluster).IsoDis;
-    clusters.vars(I).FP_t   = metrics(icluster).FP_t;
-    clusters.vars(I).FN_t   = metrics(icluster).FN_t;
-    clusters.vars(I).FP_g   = metrics(icluster).FP_g;
-    clusters.vars(I).FN_g   = metrics(icluster).FN_g;
+    I = find(ID2 == ID1(icluster));
+    if (~isempty(I))
+        clusters.vars(I).Lratio = metrics(icluster).Lratio;
+        clusters.vars(I).IsoDis = metrics(icluster).IsoDis;
+        clusters.vars(I).FP_t   = metrics(icluster).FP_t;
+        clusters.vars(I).FN_t   = metrics(icluster).FN_t;
+        clusters.vars(I).FP_g   = metrics(icluster).FP_g;
+        clusters.vars(I).FN_g   = metrics(icluster).FN_g;
+    end
 end
+
+spikes.clusters = clusters;
 
 end
 
-function accept = crossCorrelation(spikes, show, parameters)
+function lagMax = crossCorrelation(spikes, show, parameters)
 
 PLOTTING = 0;
 
@@ -219,62 +230,23 @@ end
 XC = XC(:,logical(accept));
 ncombi = size(XC,2);
 
-% Find maxima
-accept = 1;
-lagMax = parameters.cluster.lag_max;
+% Find location of xcorr peak with largest lag
+
+lagAll = zeros(ncombi,1);
+
 for icombi = 1:ncombi
     xc = XC(:,icombi);
     [pks,loc] = findpeaks(xc);
     [~,I] = max(pks);
-    loc = lags(loc(I));
-    if (loc > lagMax || loc < -lagMax)
-        accept = 0;
-        break;
-    end
+    lagAll(icombi) = lags(loc(I));
 end
 
-%
-
-% figure;
-% subplot(2,1,1); hold on;
-% bar(lags,xc,1.0);
-% line([-maxlag maxlag],[offset offset],'Color','red','LineStyle',':');
-% xlim([-maxlag maxlag]);
-
-% xc = max(xc,[],2);
-% xc = xc - min(xc);
-
-% subplot(1,2,2);
-% bar(lags,xc,1.0);
-
-% for ichan = 1:nchan
-%     k = ichan; % number of components in Gaussian mixture model
-%
-%     OPTIONS = statset('MaxIter',250,'Display','final','TolFun',1e-10);
-%     GMModel = gmdistribution.fit(xc_offset,k);
-% %     GMModel = fitgmdist(xc_offset,k,'Options',OPTIONS);
-%     x = lags(:);
-%
-% %     wts = GMModel.ComponentProportion;
-% %     mu  = GMModel.mu;
-% %     sig = sqrt(squeeze(GMModel.Sigma));
-%
-% %
-% %     Ygmfit = zeros(size(x));
-% %     for i = 1:ichan
-% %         Ygmfit = Ygmfit + wts(i)*normpdf(x, mu(i), sig(i));
-% %     end
-%
-%     % Plot
-%
-%     for i = 1:ichan
-%         plot(x, GMModel.PComponents(i) * pdf('normal', x, GMModel.mu(i), sqrt(GMModel.Sigma(i))),'r')
-%     end
-% end
+lagMax = max(lagAll);
+if (isempty(lagMax)); lagMax = 0; end
 
 end
 
-function [k,M,I] = checkThreshold(spikes, show, threshold)
+function [k,M,m] = checkThreshold(spikes, show, threshold)
 
 signThresh   = sign(mean(threshold));
 clus         = get_spike_indices(spikes, show);
@@ -282,7 +254,8 @@ memberwaves  = spikes.waveforms(clus,:,:);
 memberwaves  = signThresh * squeeze(mean(memberwaves,1));
 M            = max(memberwaves); % maximum amplitude per channel
 k            = find(M > abs(threshold)); % channels that cross threshold with mean amplitude
-[M,I]        = max(M); % maximum mean channel amplitude
+m            = max(M ./ abs(threshold));
+M            = max(M); % maximum mean channel amplitude
 
 end
 

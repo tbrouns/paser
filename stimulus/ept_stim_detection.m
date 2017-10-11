@@ -1,4 +1,4 @@
-function [spikeTimes_1,spikeTimes_2] = ss_mfa_detection(data_all,threshold,parameters,Fs)
+function [spikeTimes_1,spikeTimes_2] = ept_stim_detection(data_all,threshold,parameters,Fs)
 
 window_size = (parameters.mfa.p2ptime / 1000) * Fs;  % in samples
 
@@ -28,7 +28,7 @@ for ichan = 1:nchans
         loc_max = loc_max(1:Nmin);
     end
 
-    if (loc_min(1) < loc_max(1));
+    if (loc_min(1) < loc_max(1))
         loc_1 = loc_min;
         loc_2 = loc_max;
         pks_1 = pks_min;
@@ -58,7 +58,7 @@ for ichan = 1:nchans
         p2  = pks_2(Y(i):end+y(i));
 
         if (sum(p1) < sum(p2)); pmin = p1; pmax = p2;
-        else                    pmin = p2; pmax = p1;
+        else,                   pmin = p2; pmax = p1;
         end
 
         % Filter based on p2p time
@@ -85,9 +85,7 @@ for ichan = 1:nchans
 
     % Extract dual spikes and only take first
 
-    IDs = find(periodIDs == 1);
-    % spikeTimes = mean([spikeTimes(IDs);spikeTimes(IDs + 1)])';
-    spikeTimesAll{ichan} = spikeTimes(IDs);
+    spikeTimesAll{ichan} = spikeTimes(periodIDs == 1);
 
 end
 
@@ -108,10 +106,5 @@ N2 = floor((length(data) / Fs) * (1 / period_2));
 
 disp(['Signal 1: detected ' num2str(length(spikeTimes_1)) ' of ' num2str(N1) ' magnetic field artifacts at ' num2str(1 / period_1) ' Hz.']);
 disp(['Signal 2: detected ' num2str(length(spikeTimes_2)) ' of ' num2str(N2) ' magnetic field artifacts at ' num2str(1 / period_2) ' Hz.']);
-
-% figure;
-% hold on
-% plot((1:length(data))/30000,data);
-% scatter(spikeTimes,zeros(size(spikeTimes)));
 
 end

@@ -1,4 +1,4 @@
-function batch_processing(subject,loadPath_root,savePath_root,expType) 
+function ept_batch_processing(subject,loadPath_root,savePath_root,expType) 
 
 if (nargin < 1); subject = []; end
 if (nargin < 2); loadPath_root = []; end
@@ -37,7 +37,7 @@ end
 
 numfolders = length(folders);
 
-for iFolder = 7:numfolders
+for iFolder = 19:numfolders
     foldername1   = strtrim(folders{iFolder});
     loadPath_sub1 = [loadPath_root, foldername1];
     savePath_sub1 = [savePath_root, foldername1];

@@ -23,6 +23,7 @@ function [counts,t_inds,x_inds] = histxt(x, varargin)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%% Parse Inputs %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 D = 100;  logflag = 0;                        % defaults
+Dstep = 2;
 
 [~,T] = size(x);
 if (~isnumeric(x) || ~ismatrix(x))
@@ -42,12 +43,17 @@ if (~isempty(varargin))
 			D = tail;
 		end
 	end
-	if (~isempty(varargin)),  error('Unknown syntax.');  end;
+	if (~isempty(varargin)), error('Unknown syntax.'); end
 end
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%% Rescale Data %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Scale the data
+
+extrema = minmax(x);
+oldmin = extrema(1);  oldmax = extrema(2);
+D = round((oldmax - oldmin) / Dstep);
+
 [x,oldmin,oldmax] = rescale(x,1,D);  x = round(x);
 
 % Make bin centers/column indices 
@@ -58,11 +64,11 @@ t_inds = 1:T;
 counts = hist(x,1:D);
 
 if (logflag)
-    old = warning('off');   counts = log(counts);   warning(old);
+    old = warning('off'); counts = log(counts); warning(old);
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Graphics %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if (nargout == 0)
-     imagesc(t_inds, x_inds, counts);   axis xy;
+     imagesc(t_inds, x_inds, counts); axis xy;
      clear counts t_inds x_inds  % clear these so nothing is dumped to output
 end

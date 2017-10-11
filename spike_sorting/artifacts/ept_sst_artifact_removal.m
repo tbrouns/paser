@@ -1,6 +1,4 @@
-function ept_sst_artifact_removal(files,data,MFAtimesAll,nspikesAll)
-
-% TO DO: Change parameters to default spike parameters
+function ept_sst_artifact_removal(files,data,MFAtimesAll)
 
 % Artifact removal
 
@@ -12,8 +10,9 @@ Fs         = zeros(ntets,1);
 % Load spikes from all tetrodes
 
 for iTetrode = 1:ntets
+    spikes = [];
     load(files{iTetrode});
-    nspikes    = spikes.nspikes; %#ok - spikes per channel
+    nspikes    = spikes.nspikes; % spikes per channel
     nspikesMax = max(nspikes);
     if (isfield(spikes,'spiketimes'))
         for i = 1:nspikesMax % run through every channel
@@ -69,10 +68,7 @@ for iTetrode = 1:ntets
     id = find(samples == 2);
     spikes = ept_sst_spike_removal(spikes,id,'keep');
     spikes.correlations = correlations(tetrodeID == iTetrode);
-    
-    % Total number of spikes per tetrode
-    nspikesAll(iTetrode) = length(spikes.spiketimes);
-    
+        
     % Remove 'nspikes' field
     spikes = rmfield(spikes,'nspikes');
     

@@ -25,7 +25,7 @@ spikes.params.display.trial_spacing           = 0.5;   % s, time padding between
 
 % plot_stability parameters
 spikes.params.display.stability_bin_size = 10;   % s, bin used for estimating firing rate
-spikes.params.display.max_scatter        = 1000; % maximum number of waveforms to show in amplitude scatter plot
+spikes.params.display.max_scatter        = 5000; % maximum number of waveforms to show in amplitude scatter plot
 
 % outlier tool
 spikes.params.display.default_outlier_method = 1; % 1 = estimate covariance from cluster, 2 = estimate covariance from background noise

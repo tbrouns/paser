@@ -29,6 +29,7 @@ function p = plot_detection_criterion(spikes,clus)
 if ~isfield(spikes,'waveforms'), error('No waveforms found in spikes object.'); end
 
 % grab data
+
 [p,mu,stdev,n,x] = ss_undetected(spikes,clus);
 
 % determine global extreme if there are other detection criterion plots on the current figure
@@ -73,11 +74,18 @@ set(l,'LineStyle','--','Color',[0 0 0],'LineWidth',2)
 
 % prettify axes
 axis tight
-set(gca,'XLim',sort([global_ex 0]));
 set(gca,'Tag','detection_criterion')
 title(['Estimated missing spikes: ' num2str(p*100,'%2.1f') '%']);
 xlabel('Detection metric');
 ylabel('No. of spikes');
+
+% determine x limit
+
+N = cumsum(n);
+N = N / sum(n);
+I = find(N > 0.99,1,'first');
+global_ex = x(I);
+xlim([global_ex,0]);
 
 end
 

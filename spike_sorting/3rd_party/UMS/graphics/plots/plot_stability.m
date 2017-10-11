@@ -38,8 +38,13 @@ if nargin < 3, freq = []; end
 select = get_spike_indices(spikes, show);
 memberwaves = spikes.waveforms(select,:);
 spiketimes  = sort(spikes.unwrapped_times(select));
-if (isfield(freq,'artifacts')); noisetimes = freq.artifacts;
-else                            noisetimes = [];
+
+ntrials = length(freq);
+noisetimes = [];
+if (isfield(freq,'artifacts'))
+    for iTrial = 1:ntrials
+        noisetimes = [noisetimes;freq(iTrial).artifacts + spikes.info.trialonset(iTrial)]; %#ok
+    end
 end
 
 % Add padding to noisetimes
@@ -89,33 +94,49 @@ amp = range(memberwaves');
 if isequal( spikes.params.display.max_scatter, 'all')
     ind = 1:length(amp);
 else
-    choice = randperm( length(amp) );
-    max_pos = min( length(amp), spikes.params.display.max_scatter );
-    ind = choice(1:max_pos );
+    choice = randperm(length(amp));
+    max_pos = min(length(amp), spikes.params.display.max_scatter);
+    ind = choice(1:max_pos);
 end
 
 % prettify axes
 ax2 = axes('Parent',get(ax1,'Parent'),'Unit',get(ax1,'Unit'),'Position',get(ax1,'Position'));
 hold on
-l = scatter(spiketimes(ind),amp(ind));
+l = scatter3(spiketimes(ind),amp(ind),ones(size(spiketimes(ind)))); % set Z coordinate to ensure it's plotted on the foreground
 hold off
-l1 = line( get(ax2,'XLim'), [0 0] );
-set(l1,'Color',[ 0 0 0])
+l1 = line(tlims, [0 0],'LineWidth',2);
+set(l1,'Color',[0 0 0])
 hold off
+ylims = max(get(ax2,'YLim'));
 set(l,'Marker','.','MarkerEdgeColor',[.3 .5 .3])
-set(ax2,'Xlim',tlims,'YLim',max( get(ax2,'YLim') ) *[-1 1],'XTickLabel',{},'YAxisLocation','right');
+set(ax2,'Xlim',tlims,'YLim',ylims * [-1 1],'XTickLabel',{},'YAxisLocation','right');
 yticks = get(ax2,'YTick'); set(ax2,'YTick',yticks(yticks>=0))
 ylabel('Amplitude')
 set(ax2,'Color','none')
 
+% Draw trial boundaries
+
+if (isfield(spikes,'trials'))
+    ntrials = length(spikes.info.trialonset);
+    hold on
+    for iTrial = 2:ntrials-1
+        t = spikes.info.trialonset(iTrial);
+        line([t t],[0 1] * ylims,'Color','k','LineStyle','--','LineWidth',1.5);
+    end
+    hold off
+end
+
+% Show LFP artifacts
+
 hold on;
 for i = 1:size(noisetimes,1)
-    F = area(noisetimes(i,:),[1 1]*max(get(ax2,'YLim')),'EdgeColor','none','FaceColor','r');
+    F = area(noisetimes(i,:),[1 1] * ylims,'EdgeColor','none','FaceColor','r');
     alpha(F, 0.2)
 end
 hold off
 
-% linke properties of the 2 axes together
+% link properties of the 2 axes together
+
 linkaxes([ax1 ax2],'x');
 linkprop([ax1 ax2],'Position');
 linkprop([ax1 ax2],'Unit');
