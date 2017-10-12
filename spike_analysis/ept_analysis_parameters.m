@@ -1,8 +1,9 @@
 function params = ept_analysis_parameters()
 
-params.t_pre  =  100;
-params.t_post =  200;
-params.t_bin  =   10; % ms
+params.t_pre  = -50;
+params.t_post = 100;
+params.t_bin  = 5; % ms
+params.t_array = [-400,0,50,100,200,400];
 
 params.pad = 3; % 
 

@@ -1,62 +1,68 @@
-function [fRateTime,fRateAmps,nSpikesTime] = ept_analysis_clusterdata(spikes,clusters,control,clusterMax,params)
+function SpikeBinTrials = ept_analysis_clusterdata(spikes,T)
 
-tPre  = params.t_pre;
-tPost = params.t_post;
-tbin  = params.t_bin; 
+tPre  = T(1);
+tPost = T(2);
+tBin  = T(3); 
 
-twin  = tPre + tPost;
-Tmax  = spikes.info.detect.dur;
-Fs    = spikes.params.Fs;
-sPre  = Fs * (tPre  / 1000);
-sPost = Fs * (tPost / 1000);
-sbin  = Fs * (tbin  / 1000);
+tWin  = tPost - tPre; 
+Tmax  = spikes.info.detect.dur; 
+Fs    = spikes.params.Fs; 
+Nmax  = floor(Fs * Tmax);
+sPre  = Fs * (tPre  / 1000); % pre- stimulus window
+sPost = Fs * (tPost / 1000); % post-stimulus window
+sBin  = Fs * (tBin  / 1000); % bin size in stimulus window
+nBins = tWin / tBin;
 
-clusterIDs = [clusters.vars.id];
+clusterIDs = [spikes.clusters.vars.id];
 numclusts  = length(clusterIDs);
+SpikeBinTrials = cell(1,numclusts);
 
+% Extract stimulus windows
+
+stimulusAmp   = spikes.info.stimulus;
 stimulusTimes = spikes.info.stimtimes{1} + spikes.info.trialonset;
+nTrials = length(stimulusTimes); % number of stimulus onsets
 if (~isempty(stimulusTimes))
     stimIDs = round(Fs * stimulusTimes);
     if (size(stimIDs,1) > size(stimIDs,2)); stimIDs = stimIDs'; end
-    ids = bsxfun(@plus,stimIDs,(-sPre+1:sPost)');
-    ids(ids < 1)              = 1;
-    ids(ids > floor(Fs*Tmax)) = floor(Fs*Tmax);
+    ids = bsxfun(@plus,stimIDs,(sPre + 1 : sPost)');
+    ids(ids < 1)    = 1;
+    ids(ids > Nmax) = Nmax;
 end
-
-nbins       = twin/tbin;
-fRateTime   = zeros(nbins,clusterMax);
-nSpikesTime = cell(clusterMax,1);
-fRateAmps   =  NaN(1,clusterMax);
 
 for iClus = 1:numclusts
 
-    signalClus = zeros(floor(Fs * Tmax), 1);
+    signalClus = zeros(Nmax, 1);
     id = (spikes.assigns == clusterIDs(iClus));
     spiketimes = spikes.spiketimes(id);
     
     signalClus(round(Fs * spiketimes)) = 1;
 
-    if (control)
-        fRateAvg = sum(signalClus) / Tmax;
-        fRateTime(:,clusterIDs(iClus)) =  fRateAvg;
-        fRateAmps(  clusterIDs(iClus)) =  fRateAvg;
-        nSpikesTime{clusterIDs(iClus)} = (fRateAvg * tbin / 1000) * ones(nbins,1);
-    else
+    if (stimulusAmp == 0)
         
-        N = signalClus(ids);
-        N = reshape(N,sbin,[]);
-        N = sum(N);
-        N = reshape(N,nbins,[]);
+        N = sum(signalClus) / Tmax; % just return average firing rate
         
-        nSpikesTime{clusterIDs(iClus)} = N;
+    else 
         
-        N = mean(signalClus(ids),2);
-        N = reshape(N,sbin,[]);
-        N = sum(N);
-        fRateTime(:,clusterIDs(iClus)) = N ./ (tbin / 1000);
+        spikeWindows = signalClus(ids); % extract windows around each stimulus onset
+        
+        N = spikeWindows; % [samples per window x ntrials] 
+        N = reshape(N, sBin, nBins, nTrials); % [samples per bin x nbins x ntrials]
                 
-        fRate = sum(signalClus(ids));
-        fRate = fRate / (twin / 1000);
-        fRateAmps(clusterIDs(iClus)) = mean(fRate);
-    end        
+%         N = sum(N); % sum all spikes in bin [1 x [nbins x ntrials]]
+%         N = reshape(N,nBins,[]); % [nbins x ntrials]
+%         SpikesBinTrials{clusterIDs(iClus)} = N;
+%         
+%         N = mean(spikeWindows,2); % sum across trials 
+%         N = reshape(N,sBin,[]); % [samples per bin x nbins]
+%         N = sum(N); % sum across samples per bin [1 x nbins]
+%         fRateTime(:,clusterIDs(iClus)) = N ./ (tBin / 1000);
+%         
+%         fRate = sum(spikeWindows);
+%         fRate = fRate / (tWin / 1000);
+%         fRateAmps(clusterIDs(iClus)) = mean(fRate);
+    end    
+    
+    SpikeBinTrials{iClus} = N;
+    
 end

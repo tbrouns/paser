@@ -37,7 +37,7 @@ end
 
 numfolders = length(folders);
 
-for iFolder = 19:numfolders
+for iFolder = 1:numfolders
     foldername1   = strtrim(folders{iFolder});
     loadPath_sub1 = [loadPath_root, foldername1];
     savePath_sub1 = [savePath_root, foldername1];
