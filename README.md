@@ -2,7 +2,7 @@
 
 MATLAB toolbox for processing and analyzing extracellular recordings. Intended for local field potential (LFP) and spike data processing, analysis and visualization.  
 
-Currently, PASER can only be used with data saved by Open Ephys GUI [Ref. 4], specifically CONTINUOUS files. 
+Currently, PASER can only be used with data saved by Open Ephys GUI [Ref. 4], specifically `continuous` files. 
 See https://github.com/open-ephys/plugin-GUI or http://www.open-ephys.org/ for more information.
 
 PASER contains the following types of processing routines:
@@ -58,12 +58,12 @@ Create a MATLAB script containing the following lines of code:
 
 ```
 parameters = [];
-parameters.subject      = 'SubjectName';
+parameters.subject      = 'SubjectName'; % Name of subject used in output MAT filename (no spaces)
 parameters.loadPath     = 'C:\PathToLoadFolder\LoadFolder\'; % Where the data folders are
 parameters.savePath     = 'D:\PathToSaveFolder\SaveFolder\'; % Where you want to save the output MAT files
 parameters.configPath   = 'E:\PathToConfigFile\ConfigFile.m; % Where the parameters are loaded from
 parameters.patterns     = [];            % Used to differentiate between experimental sessions (string cell array)
-parameters.type         = 'condition';   % Which session type to process ('all' or one of the chosen patterns)
+parameters.type         = 'all';         % Which session type to process ('all' or one of the chosen patterns)
 parameters.process      = 'new';         % Which specific sessions to process ('new', 'given' or 'all')
 parameters.folders      = [];            % Sessions that you wish to process, if 'given' is chosen (string cell array)
 parameters.extension    = 'continuous';  % File extension of raw data files
@@ -77,7 +77,7 @@ parameters.path.ft  = 'D:\PathToFieldTrip\fieldtrip'; % Path to the FieldTrip re
 psr_batch_processing(parameters); % Process raw data files
 ```
 
-This script will load and then batch process CONTINUOUS files in the directory given by `parameters.loadPath`. 
+This script will load and then batch process `continuous` files in the directory given by `parameters.loadPath`. 
 Processed data is saved to the folder specified by `parameters.savePath`, where a matching directory tree will be created. 
 
 Not all of the parameters in this script are set correctly, so what follows is an explanation of how to select the right settings.
@@ -131,14 +131,15 @@ loadPath
 
 The `loadPath` folder should include one or more folders for specific experimental sessions. Here, we have two such folders called `Session_1` and `Session_1_Condition`.
 Each session folder then contains one or more folders for specific trials that hold the raw data files. 
-In the case of `Session_1_Condition`, we have the `Trial_0M` and `Trial_1M`, which contains the CONTINUOUS files. 
+In the case of `Session_1_Condition`, we have the `Trial_0M` and `Trial_1M`, which contains the `continuous` files. 
+To be clear, the names `Session` and `Trial` are arbitrary here, you can use any other name you desire.
 
-However, we must note that we have two types of CONTINUOUS files here. We only wish to load the `100_CH*.continuous` ones. 
-We can differentiate between the two types using `parameters.filepattern`, which should be set to `CH` in this case, because that is the common pattern between them. 
+However, we must note that we have two types of `continuous` files here. We only wish to load the `100_CH*.continuous` ones. 
+We can differentiate between the two types using `parameters.filepattern`, which should be set to `parameters.filepattern = 'CH'` in this case, because that is the common pattern between them. 
 
-Between trials, depending on the experimental conditions, you may wish to vary some kind of experimental variable across different trials. 
+Depending on the experimental conditions, you may wish to vary some kind of experimental variable across different trials. 
 If you indicate the value of the variable in the trial folder name, then it will be extracted and saved by setting `parameters.trialpattern`. 
-Any value between the underscore and the specified pattern is recorded. If we set `parameters.trialpattern = M`, we would get 0 and 1 for the trials in `Session_1_Condition`. 
+Any value between the underscore and the specified pattern is recorded. If we set `parameters.trialpattern = 'M'`, we would get 0 and 1 for the trials in `Session_1_Condition`. 
 
 Furthermore, you can also differentiate between different session types and only process one particular type of session. 
 First set the different session types in `parameters.patterns` and in `parameters.type` which type you wish to process. 
@@ -156,7 +157,7 @@ Therefore, we always perform spike sorting across different trials for each prob
 #### Polytrode channels
 
 The number of channels of the polytrode should be indicated by `parameters.nelectrodes`.
-Each trial folder should then contain a number of CONTINUOUS files equal to the number of polytrodes multiplied by `parameters.nelectrodes`.
+Each trial folder should then contain a number of `continuous` files equal to the number of polytrodes multiplied by `parameters.nelectrodes`.
  
 #### Save directory
 
@@ -270,7 +271,7 @@ FieldTrip         [FT]   http://www.fieldtriptoolbox.org/                       
 FMMSpikeSorter    [FMM]  https://github.com/decarlson/FMMSpikeSorter                GNU General Public License v2.0
 ISO-SPLIT         [ISO]  https://github.com/magland/isosplit_old                    See included COPYRIGHT file
 KiloSort          [KST]  https://github.com/cortex-lab/KiloSort                     GNU General Public License v2.0
-MClust            [SPC]  http://redishlab.neuroscience.umn.edu/MClust/MClust.html   See included LICENSE file
+MClust (SPC only) [SPC]  http://redishlab.neuroscience.umn.edu/MClust/MClust.html   See included LICENSE file
 MoDT              [MDT]  https://github.com/kqshan/MoDT                             MIT License
 opass             [OPS]  https://github.com/decarlson/opass                         MIT License
 Open Ephys               https://github.com/open-ephys/analysis-tools               See included LICENSE file
