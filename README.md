@@ -1,6 +1,6 @@
 # PASER
 
-MATLAB toolbox for processing and analyzing extracellular recordings. Intended for local field potential (LFP) and spike data processing, analysis and visualization.  
+MATLAB toolbox for processing and analyzing extracellular recordings, including local field potential (LFP) and spiking data.  
 
 Currently, PASER can only be used with data saved by Open Ephys GUI [Ref. 4], specifically `.continuous` files. 
 See https://github.com/open-ephys/plugin-GUI or http://www.open-ephys.org/ for more information.
