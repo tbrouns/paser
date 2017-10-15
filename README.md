@@ -2,15 +2,16 @@
 
 MATLAB toolbox for processing and analyzing extracellular recordings. Intended for local field potential (LFP) and spike data processing, analysis and visualization.  
 
-Currently, PASER can only be used with data saved by Open Ephys GUI [Ref. 4], specifically `continuous` files. 
+Currently, PASER can only be used with data saved by Open Ephys GUI [Ref. 4], specifically `.continuous` files. 
 See https://github.com/open-ephys/plugin-GUI or http://www.open-ephys.org/ for more information.
 
 PASER contains the following types of processing routines:
 
 * Spike detection and sorting
 * Cluster quality control
-* Spike analysis and visualization 
+* Spike analysis 
 * LFP detection and analysis
+* Data visualization 
 * Artifact removal
 
 # Getting started
@@ -180,7 +181,7 @@ In order for the program to know where to look for the toolboxes, set the path p
 
 ### Output files
 
-As mentioned earlier, a MAT file will be saved for each probe to the `savePath` for the current session. These files will be have the following naming convention:
+As mentioned earlier, a MAT file will be saved for each probe to the `savePath` for the current session. These files have the following naming convention:
 
 `Spikes_%SubjectName%_%Session%_P%ProbeNumber%_%Method%.mat`
 
@@ -221,12 +222,12 @@ metadata                       struct                   General experimental dat
 				
 parameters                     struct                   Parameters for all data processing functions
                 
-				[ see "ept_parameter_default" for details ]
+                [ see "psr_parameter_default" for details ]
 			
 spikes                         struct                   Neural spiking data
                 assigns        integer  [1 x Ns]        Cluster index of each detected spike after merging
                 assigns_prior  integer  [1 x Ns]        Cluster index of each detected spike before merging
-                clusters       struct                   See "ept_sst_clusterfeatures" for details
+                clusters       struct                   See "psr_sst_clusterfeatures" for details
                 info           struct                   See further below
                 params         struct                   Needed for compatibility
                 removed        logical  [1 x Ns]        Spikes that are designated for removal
@@ -254,7 +255,7 @@ spikes.info                    struct                   Session information
                 Nt: number of trials
 ```
 
-## Visualization 
+## Visualization and Quality Control
 
 ## Analysis
 
