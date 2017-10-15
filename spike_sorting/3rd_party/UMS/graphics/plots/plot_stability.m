@@ -80,8 +80,9 @@ vals = n/mean(diff(edges));
 hold on
 bar(edges(1:end-1) + mean(edges(1:2)),vals,1.0);  shading flat;
 hold off
-set(gca, 'XLim', tlims,'YLim',[0 2*max(get(gca,'YLim'))])
-yticks = get(gca,'YTick'); set(gca,'YTick',yticks( yticks<=max(yticks)/2))
+ylim_ax1 = max(get(gca,'YLim'));
+set(gca, 'XLim', tlims,'YLim',[0 2 * ylim_ax1])
+yticks = get(gca,'YTick'); set(gca,'YTick',yticks( yticks <= max(yticks)/2))
 xlabel('Time (sec)')
 ylabel('Firing rate (Hz)')
 
@@ -107,9 +108,9 @@ hold off
 l1 = line(tlims, [0 0],'LineWidth',2);
 set(l1,'Color',[0 0 0])
 hold off
-ylims = max(get(ax2,'YLim'));
+ylim_ax2 = max(get(ax2,'YLim'));
 set(l,'Marker','.','MarkerEdgeColor',[.3 .5 .3])
-set(ax2,'Xlim',tlims,'YLim',ylims * [-1 1],'XTickLabel',{},'YAxisLocation','right');
+set(ax2,'Xlim',tlims,'YLim',ylim_ax2 * [-1 1],'XTickLabel',{},'YAxisLocation','right');
 yticks = get(ax2,'YTick'); set(ax2,'YTick',yticks(yticks>=0))
 ylabel('Amplitude')
 set(ax2,'Color','none')
@@ -119,10 +120,19 @@ set(ax2,'Color','none')
 if (isfield(spikes,'trials'))
     ntrials = length(spikes.info.trialonset);
     hold on
+    
+    axes(ax1);
     for iTrial = 2:ntrials-1
         t = spikes.info.trialonset(iTrial);
-        line([t t],[0 1] * ylims,'Color','k','LineStyle','--','LineWidth',1.5);
+        line([t t],[0 1] * ylim_ax1,'Color','k','LineStyle','--','LineWidth',1.5);
     end
+    
+    axes(ax2);
+    for iTrial = 2:ntrials-1
+        t = spikes.info.trialonset(iTrial);
+        line([t t],[0 1] * ylim_ax2,'Color','k','LineStyle','--','LineWidth',1.5);
+    end
+    
     hold off
 end
 
@@ -130,7 +140,7 @@ end
 
 hold on;
 for i = 1:size(noisetimes,1)
-    F = area(noisetimes(i,:),[1 1] * ylims,'EdgeColor','none','FaceColor','r');
+    F = area(noisetimes(i,:),[1 1] * ylim_ax2,'EdgeColor','none','FaceColor','r');
     alpha(F, 0.2)
 end
 hold off

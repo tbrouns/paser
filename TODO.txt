@@ -1,3 +1,9 @@
-ept_sst_spike_append: add more fields
+Add kilosort parameter settings to ept_parameters_default
 
-ensure that UMS is usable. 
+LFP control:
+
+    if (control) % average over whole time window
+        pow = freq.powspctrm;
+        pow = nanmean(pow,3);
+        freq.powspctrm = repmat(pow,1,1,size(freq.time,2));
+    end

@@ -1,5 +1,0 @@
-FMM: 	https://github.com/decarlson/FMMSpikeSorter
-MDT:	https://github.com/kqshan/MoDT
-OPS:	https://github.com/decarlson/opass
-SPC:	http://redishlab.neuroscience.umn.edu/MClust/MClust.html
-UMS:	https://github.com/danamics/UMS2K
