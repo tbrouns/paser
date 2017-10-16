@@ -300,6 +300,6 @@ varycolor                https://nl.mathworks.com/matlabcentral/fileexchange/210
 
 ## To-do
 
-Add kilosort parameter settings to psr_parameters_default
-Add option to use '.spikes' file as data input
-Add test data
+* Add kilosort parameter settings to psr_parameters_default
+* Add option to use '.spikes' file as data input
+* Add test data
