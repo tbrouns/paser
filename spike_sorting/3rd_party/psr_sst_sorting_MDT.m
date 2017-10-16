@@ -61,6 +61,8 @@ data.weighting   = double(weights');
 
 % Run algorithm
 
+disp('Calculating cluster quality control metrics...');
+
 % These are the parameters that we recommend in the paper
 nu = parameters.cluster.mdt.nu;                               % t-distribution nu parameter (smaller = heavier tails)
 q_perhour = parameters.cluster.mdt.q_perhour;                 % Drift regularization (smaller = more smoothing)

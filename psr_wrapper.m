@@ -512,7 +512,8 @@ if (parameters.process.spikes)
                 rez = psr_sst_sorting_KST(data_probe,parameters,savePath);
                 spikesAll = psr_kst_convert2spikes(rez,data_probe,parameters);
                 spikesAll.params.Fs = rez.ops.fs;
-                delete(rez.ops.fbinary); % remove binary file
+                fclose('all');
+                delete(rez.ops.fbinary);
                 clear data_probe;
             case 'ops' % WORK IN PROGRESS
                 assigns_all = psr_sst_sorting_OPS(spikesAll,parameters);
@@ -583,6 +584,8 @@ if (parameters.process.spikes)
     
     delete([savePath tempFileName '.mat']);
     disp(['Spike sorting completed. MAT file(s) saved to: "' savePath '"']);
+    
+    
     
 end
 

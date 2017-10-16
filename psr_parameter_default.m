@@ -178,4 +178,4 @@ parameters.mfa.bp_upper = 6000; % Upper cutoff frequency [Hz]
 parameters.mfa.bp_lower = 1000; % Lower cutoff frequency [Hz]
 parameters.mfa.bp_order = 10;   % Filter order
 parameters.mfa.thresh   = 8;    % Number of STDs above the mean using median absolute deviation
-parameters.mfa.control  = 200;  % Number of random stimulus onset times for control data
+parameters.mfa.control  = 100;  % Number of random stimulus onset times for control data

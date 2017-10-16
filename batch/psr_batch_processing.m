@@ -13,6 +13,7 @@ if (~isfield(parameters,'process'));    parameters.process    = 'all';        en
 if (~isfield(parameters,'extension'));  parameters.extension  = 'continuous'; end
 
 folder_names = dir(parameters.loadPath); % Locate all files and folders in directory
+folder_names = folder_names(~ismember({folder_names.name},{'.','..'}));
 folder_names = folder_names([folder_names.isdir]); % Only keep folders
 folder_names = char(folder_names.name); % Convert to character array
 
@@ -43,7 +44,7 @@ end
 
 % Extract folders that match given type
 
-if (strcmp(parameters.type,'all'))
+if (strcmp(parameters.type,'all') || isempty(parameters.patterns))
     folders = [];
     for iType = 1:ntypes
         folders = [folders;folder_types{iType}];
@@ -74,6 +75,8 @@ switch parameters.process
 end
 
 % Process data
+
+if (isempty(folders)); disp('No folders found.'); return; end
 
 numfolders = length(folders);
 for iFolder = 1:numfolders

@@ -20,8 +20,6 @@ dataFT.time    = {timestamps}; % cell-array containing a time axis for each
                                % trial (1 X Ntrial), each time axis is a 1*Nsamples vector          
 dataFT.sampleinfo = [1 size(data,2)]; % array containing [startsample endsample] of data
 
-% nlength = floor(timestamps(end) * Fs);
-
 if (~isempty(stimOnsetRaw))
 
     stimOnset  = stimOnsetRaw + onset;

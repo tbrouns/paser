@@ -132,7 +132,7 @@ loadPath
 
 The `loadPath` folder should include one or more folders for specific experimental sessions. Here, we have two such folders called `Session_1` and `Session_1_Condition`.
 Each session folder then contains one or more folders for specific trials that hold the raw data files. 
-In the case of `Session_1_Condition`, we have the `Trial_0M` and `Trial_1M`, which contains the `continuous` files. 
+In the case of `Session_1_Condition`, we have the `Trial_0M` and `Trial_1M`, which contain the `continuous` files. 
 To be clear, the names `Session` and `Trial` are arbitrary here, you can use any other name you desire.
 
 However, we must note that we have two types of `continuous` files here. We only wish to load the `100_CH*.continuous` ones. 
@@ -255,6 +255,14 @@ spikes.info                    struct                   Session information
                 Nt: number of trials
 ```
 
+### Temporary files
+
+While running the processing pipeline, a number of temporary MAT files will be created in `savePath`. 
+We do this to avoid having to keep the data stored in memory, allowing us to only load what we need at any one time.
+These temporary MAT files are deleted after they are no longer needed. 
+It is highly recommended to make sure that MATLAB deletes these files permanently, so no manual clean-up is needed. 
+You can select this option by going to the `Home` tab in MATLAB, selecting `Preferences` (the cogwheel), then the `General` menu and clicking on the `Delete permanently` option under `Deleting files`. 
+
 ## Visualization and Quality Control
 
 ## Analysis
@@ -289,3 +297,9 @@ varycolor                https://nl.mathworks.com/matlabcentral/fileexchange/210
 [3] Oostenveld, Robert, et al. "FieldTrip: open source software for advanced analysis of MEG, EEG, and invasive electrophysiological data." Computational intelligence and neuroscience 2011 (2011): 1.
 
 [4] Siegle, Joshua Handman, et al. "Open Ephys: An open-source, plugin-based platform for multichannel electrophysiology." Journal of Neural Engineering (2017).
+
+## To-do
+
+Add kilosort parameter settings to psr_parameters_default
+Add option to use '.spikes' file as data input
+Add test data

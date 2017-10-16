@@ -35,7 +35,4 @@ dmu = (mu1 - mu2) / chol(C);
 
 try    d = 0.125 * (dmu * dmu') + 0.5 * log(    det(C /  chol(C1 * C2)));
 catch; d = 0.125 * (dmu * dmu') + 0.5 * log(abs(det(C / sqrtm(C1 * C2))));
-    disp('MATLAB:divideByZero. Data are almost linear dependent. The results may not be accurate.');
 end
-
-% d = 0.125 * (dmu * dmu') + 0.25 * log(det((C1 + C2)/2)^2 / (det(C1) * det(C2)));
