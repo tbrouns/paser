@@ -1,4 +1,4 @@
-function [x,y,z,dof] = plot_distances(spikes, show, method, display)
+function [x,y,z,dof] = plot_distances(spikes, show, parameters, display)
 % UltraMegaSort2000 by Hill DN, Mehta SB, & Kleinfeld D  - 07/12/2010
 %
 % plot_distances - Histogram the distance of waveforms from cluster center.
@@ -34,21 +34,15 @@ function [x,y,z,dof] = plot_distances(spikes, show, method, display)
 % parameter checking
 if ~isfield(spikes,'waveforms'), error('No waveforms found in spikes object.'); end
 if nargin < 2, show    = 1:size(spikes.waveforms,1); end
-if nargin < 3, method  = spikes.params.display.default_outlier_method; end
-if nargin < 4, display = 1; end
+if nargin < 3, display = 1; end
 
 % which spikes are we showing?
 show           = get_spike_indices(spikes, show);
-data.waveforms = spikes.waveforms(show,:);
-data.noise_cov = spikes.info.detect.cov;
+data.waveforms = psr_single(spikes.waveforms(show,:),parameters);
 
 % get z-scores
-if (method == 1)
-    data.data_cov = cov(data.waveforms);
-    [z,dof] = get_zvalues(data.waveforms, data.data_cov);
-elseif (method == 2)
-    [z,dof] = get_zvalues(data.waveforms, data.noise_cov);
-end
+data.data_cov = cov(data.waveforms);
+[z,dof] = get_zvalues(data.waveforms, data.data_cov);
 
 % histogram binning
 x     = 0:max(z);
@@ -69,18 +63,17 @@ if (display)
 
     % initialize axes
     cla reset
-    set(gca,'UserData', data.waveforms);
     
-    histogram(z,x);
+    histogram(z,x,'FaceColor','k','EdgeColor','none','FaceAlpha',1.0);
     xlim([0 200]);
     xlabel('Z-score'); 
     ylabel('Count');
 
     hndl = findobj(gca,'Type','patch');
-    set(hndl,'FaceColor',[0 0 1])
+    set(hndl,'FaceColor',[0 0 0])
 
     l = line(x,y);
-    set(l,'Color',[0 1 0],'LineWidth',1.5)
+    set(l,'Color',[1 0 0],'LineWidth',1.5)
 
 end
 

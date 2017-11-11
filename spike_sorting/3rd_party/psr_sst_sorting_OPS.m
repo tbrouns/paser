@@ -1,6 +1,6 @@
 function assigns = psr_sst_sorting_OPS(spikes,parameters)
 
-Fs = spikes.params.Fs;
+Fs = spikes.Fs;
 K  = 3; % Number of PCA components to use.
 
 waves = spikes.waveforms(:,:); 

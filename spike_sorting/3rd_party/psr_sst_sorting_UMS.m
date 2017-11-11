@@ -1,11 +1,18 @@
 function assigns = psr_sst_sorting_UMS(spikes,parameters)
 
+% Data conversion
+
+spikes.params.Fs                 = spikes.Fs;
 spikes.params.detect.method      = parameters.spikes.method;
 spikes.params.detect.thresh      = parameters.spikes.thresh;
 spikes.params.detect.window_size = parameters.spikes.window_size; 
 spikes.params.detect.shadow      = parameters.spikes.shadow;      
 spikes.params.detect.cross_time  = parameters.spikes.cross_time;  
 spikes.params.detect.max_jitter  = parameters.spikes.max_jitter; 
+
+spikes.info.detect.thresh = spikes.info.thresh;
+spikes.info.detect.dur    = spikes.info.dur;
+spikes.info.detect.stds   = spikes.info.stds;
 
 samples_before = round(spikes.params.Fs * spikes.params.detect.cross_time  / 1000);
 jitter_range   = samples_before - 1 + (1:round(spikes.params.detect.max_jitter * spikes.params.Fs / 1000));

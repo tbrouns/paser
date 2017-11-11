@@ -21,9 +21,12 @@ function signalFiltered = psr_artifact_fft(signal,parameters,Fs)
 %
 % See also: PSR_WRAPPER, PSR_PARAMETER_DEFAULT
 
+% PASER: Processing and Analysis Schemes for Extracellular Recordings 
+% https://github.com/tbrouns/paser
+
 % Author: Terence Brouns
 % Radboud University, Neurophysiology Dept. 
-% email address: t.s.n.brouns@gmail.com
+% E-mail address: t.s.n.brouns@gmail.com
 % Date: 2017
 
 %------------- BEGIN CODE --------------
@@ -35,7 +38,7 @@ Y      = fft(signal); % Perform fast-fourier transform
 Y_abs  = abs(Y); % Only take real absolute part of power spectrum to do thresholding
 fstart = 1; % Frequency starting point for FFT window
 peaks  = []; % Location of peaks in power spectrum
-flag   = true; % condition to determine 
+flag   = true; 
 
 while flag
    

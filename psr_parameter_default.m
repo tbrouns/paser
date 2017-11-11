@@ -1,6 +1,5 @@
-% PSR_PARAMETER_DEFAULT - Script to set default parameters for data
-% processing functions in toolbox. See comments before and after each
-% parameter for its purpose.
+% PSR_PARAMETER_DEFAULT - Script to set default parameters in PASER.
+% See comments before and after each parameter for its purpose.
 %
 % Syntax:  psr_parameter_default
 %
@@ -8,9 +7,12 @@
 %    parameters - Structure that contains parameters for data processing
 %
 
+% PASER: Processing and Analysis Schemes for Extracellular Recordings 
+% https://github.com/tbrouns/paser
+
 % Author: Terence Brouns
 % Radboud University, Neurophysiology Dept. 
-% email address: t.s.n.brouns@gmail.com
+% E-mail address: t.s.n.brouns@gmail.com
 % Date: 2017
 
 %------------- BEGIN CODE --------------
@@ -19,8 +21,13 @@
 % Used to skip certain sections of data processing pipeline
 
 parameters.process.spikes = true; % Perform spike detection
-parameters.process.lfp    = true; % Perform LFP   detection
-parameters.process.mfa    = true; % Perform MFA   detection
+parameters.process.lfp    = true; % Perform LFP detection
+parameters.process.active_passive = true; % Active vs. passive conditions
+
+% General
+
+parameters.general.savelist = {'spikes','metadata','freq','parameters'}; % What variables to save in output MAT file
+parameters.general.precision = 1; % decimal place to round raw int16 data to (should be integer)
 
 %% PSR_ARTIFACT_FFT
 % Parameters used in raw signal filtering in power spectrum
@@ -56,11 +63,9 @@ parameters.spikes.bp_upper = 6000; % Upper cutoff frequency [Hz]
 parameters.spikes.bp_lower = 600;  % Lower cutoff frequency [Hz]
 parameters.spikes.bp_order = 10;   % Order of filter 
 
-parameters.spikes.twin = 60; % Time of each individual section for spike detection (minutes)
+parameters.spikes.twin = 10; % Time of each individual section for spike detection (minutes)
 
-parameters.spikes.artifacts_removal  = true;  % Remove artifacts based on correlation across tetrodes
-parameters.spikes.artifacts_combine  = false; % Use both ADC and CONTINUOUS files to detect artifacts (unreliable)
-parameters.spikes.artifacts_subtract = false; % Subtract global median across tetrodes to remove artifacts (poor performance)
+parameters.spikes.artifacts_removal = true;  % Remove artifacts based on correlation across tetrodes
 
 %% SPIKE SORTING
 
@@ -111,11 +116,11 @@ parameters.cluster.min_spikes    = 10; % Minimum number of spikes in cluster (ch
 
 % Quality calculation parameters
 
-parameters.cluster.thresh        = 4; % Number of standard deviations above mean for average amplitude of highest amplitude channel
-parameters.cluster.thresh_xcorr  = 1; % Threshold for channel amplitude in order to be considered for cross-correlation, given by number of STDs.
+parameters.cluster.thresh       = 4; % Number of standard deviations above mean for average amplitude of highest amplitude channel
+parameters.cluster.thresh_xcorr = 1; % Threshold for channel amplitude in order to be considered for cross-correlation, given by number of STDs.
 
-parameters.cluster.outlier_chi   = 0.0001; % Threshold given as fraction of maximum of theoretical chi-squared function
-parameters.cluster.outlier_std   = 3;      % Maximum number of STDs from centre of PCA cluster
+parameters.cluster.outlier_chi = 0.0001; % Threshold given as fraction of maximum of theoretical chi-squared function
+parameters.cluster.outlier_std = 3;      % Maximum number of STDs from centre of PCA cluster
 
 parameters.cluster.pca_dims = 3; % first number of principle components to consider for spike filtering and cluster similarity calculation
 
@@ -123,6 +128,10 @@ parameters.cluster.pca_dims = 3; % first number of principle components to consi
 % Threshold to merge two clusters. Depends on 'parameters.sorting.method'
 % If parameters.sorting.method = KST, then merge_thresh: sim score threshold (between 0 and 1)
 parameters.cluster.merge_thresh = 0.85;
+
+% Stability 
+
+parameters.cluster.stability_win = 10; % [sec]
 
 % Mixture of drifting t-distribution model [MDT]
 parameters.cluster.mdt.dims              = 12; % Number of PC dimensions                               (default: 12)
@@ -170,6 +179,8 @@ parameters.lfp.artifact_thresh   =  7; % Number of standard deviations above bac
 parameters.lfp.artifact_frac     = .1; % Fraction of STD for determining artifact on- and offset based on derivative 
 parameters.lfp.artifact_padding  =  1; % Padding added on either side of detected artifact [sec]
 
+%% Stimulus onset
+
 %% PSR_MFA_DETECTION
 % Magnetic field artifact (MFA) parameters
 
@@ -179,3 +190,8 @@ parameters.mfa.bp_lower = 1000; % Lower cutoff frequency [Hz]
 parameters.mfa.bp_order = 10;   % Filter order
 parameters.mfa.thresh   = 8;    % Number of STDs above the mean using median absolute deviation
 parameters.mfa.control  = 100;  % Number of random stimulus onset times for control data
+parameters.mfa_combine = false; % Use both ADC and CONTINUOUS files to detect artifacts (unreliable)
+
+%% PSR_CAM_DETECTION
+
+parameters.cam.thresh = 10;

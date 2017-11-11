@@ -1,17 +1,12 @@
-function psr_batch_visualization(subject,loadPath_root,savePath_root,expType,plot_analysis,plot_spiking)
+function psr_batch_visualization(subject,loadPath_root,savePath_root,expType,CLUSTERS,ANALYSIS,PLOTTING)
 
-%%% TEMP
-
-GPSTH_all = [];
-PSTH_all  = [];
-
-%%%
-
+if (nargin < 1); subject       = [];    end
 if (nargin < 2); loadPath_root = [];    end
 if (nargin < 3); savePath_root = [];    end
-if (nargin < 4); expType = 'all';       end
-if (nargin < 5); plot_analysis = false; end
-if (nargin < 6); plot_spiking  = false; end
+if (nargin < 4); expType       = 'all'; end
+if (nargin < 5); CLUSTERS      = true;  end
+if (nargin < 6); ANALYSIS      = true;  end
+if (nargin < 7); PLOTTING      = true;  end % Plot figures during analysis
 
 ptrn = 'passive';
 
@@ -43,7 +38,7 @@ end
 
 numfolders = length(folders);
 
-for iFolder = 14:numfolders
+for iFolder = 1:numfolders
     foldername = strtrim(folders{iFolder});
     
     loadPath = [loadPath_root, foldername];
@@ -51,59 +46,43 @@ for iFolder = 14:numfolders
     
     if (loadPath(end) ~= '\'); loadPath = [loadPath, '\']; end %#ok
     if (savePath(end) ~= '\'); savePath = [savePath, '\']; end %#ok
-    
-%     %%%% TEMP
-%     
-%     MATfiles  = dir([loadPath '\data.mat']);
-%     filename  = char(MATfiles.name);
-%     
-%     if (isempty(filename)); continue; end
-%     
-%     load([loadPath filename]);
-%     
-%     GPSTH_all = [GPSTH_all,GPSTH];
-%     PSTH_all  = [ PSTH_all, PSTH];
-%     
-%     continue;
-%     
-%     %%%%
-        
+            
     baseline  = [];
     MATfiles  = dir([loadPath '\Spikes_' subject '*.mat']);
     numfiles  = size(MATfiles,1);
     filenames = char(MATfiles.name);
     if (isempty(filenames)); continue; end
     
-    if (plot_analysis)
-        [GPSTH,PSTH] = psr_batch_analysis(filenames,loadPath,savePath,plot_analysis); %#ok
-        save([loadPath 'data.mat'],'GPSTH','PSTH');
+    if (ANALYSIS)
+        savePathFigures = [savePath 'analysis\'];
+        [~,~,~] = mkdir(savePathFigures);
+        psr_batch_analysis(filenames,loadPath,loadPath,savePathFigures,PLOTTING);
     end
     
-    if (plot_spiking)
+    if (CLUSTERS)
         for iFile = 1:numfiles
             close all
             filename = filenames(iFile,:);
             load([loadPath filename]);
             [~,filename,~] = fileparts(filename);
-            parameters = psr_parameter_config(); % TEMP
+            savePathClusters = [savePath 'clusters\'];
             if (isfield(spikes,'spiketimes'))
                 
-                psr_sst_plotting(spikes,parameters,freq,[],savePath,filename); 
-                suptitle(['Tetrode: ' num2str(metadata.tetrode)]);
-    
-                % PRE-MERGE 
-                spikes.assigns = spikes.assigns_prior;
-                spikes = psr_sst_clusterfeatures(spikes,freq,parameters);
-                psr_sst_plotting(spikes,parameters,freq,[],savePath,filename,'_preMerge'); 
-                suptitle(['Tetrode: ' num2str(metadata.tetrode)]);
+                savePathQuality = [savePathClusters 'quality\'];
+                [~,~,~] = mkdir(savePathQuality);
+                psr_sst_plot_multiple(spikes,metadata,parameters,freq,savePathQuality,filename); 
                 
-                %             psr_plotting_cls(spikes,clusters,      savePath,filename);
+                savePathMerges = [savePathClusters 'merges\'];
+                [~,~,~] = mkdir(savePathMerges);
+                psr_sst_plot_merges(spikes,parameters,savePathMerges,filename); 
+                
+                %             psr_sst_plot_clusters(spikes,clusters,savePath,filename);
             end
             
             %%% FIX LFP PLOTTING
 %             if (~isempty(spikes.stimtimes{1}))
-%                 if (metadata.stimulus == 0); psr_plotting_lfp(freq,parameters,savePath,filename); baseline = getBaseline(freq); % must be loaded first
-%                 else,                        psr_plotting_lfp(freq,parameters,savePath,filename,baseline);
+%                 if (metadata.stimulus == 0); psr_lfp_plotting(freq,parameters,savePath,filename); baseline = getBaseline(freq); % must be loaded first
+%                 else,                        psr_lfp_plotting(freq,parameters,savePath,filename,baseline);
 %                 end
 %             end
 
@@ -113,7 +92,7 @@ end
 
 end
 
-function base = getBaseline(freq) % TEMP
+function base = getBaseline(freq)
     base = freq.powspctrm;
     base = nanmean(base,3);
     base = repmat(base,1,1,size(freq.time,2));

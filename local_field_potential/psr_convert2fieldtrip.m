@@ -1,15 +1,31 @@
-function dataFT = psr_convert2fieldtrip(data,timestamps,stimOnsetRaw,parameters)
+function dataFT = psr_convert2fieldtrip(data,timestamps,stimTimes,parameters)
 
 Fr      = parameters.Fr;
 nchans  = size(data,1);
-onset   = parameters.lfp.trial_onset  - parameters.lfp.trial_padding;
-offset  = parameters.lfp.trial_offset + parameters.lfp.trial_padding;
-onset   = round(Fr * onset);
-offset  = round(Fr * offset);
-nlength = round(Fr * timestamps(end));
 labels  = 1:nchans;
-stimOnsetRaw = round(stimOnsetRaw * Fr)';
 
+% Set onset and offset for every trial
+
+if (size(stimTimes,2) == 1) % Only onset specified
+    onset  = parameters.lfp.trial_onset  - parameters.lfp.trial_padding;
+    offset = parameters.lfp.trial_offset + parameters.lfp.trial_padding;
+    stimOnset  = stimTimes + onset;
+    stimOffset = stimTimes + offset;
+else % Both onset and offset specified
+    onset = 0;
+    stimOnset  = stimTimes(:,1);
+    stimOffset = stimTimes(:,2);
+end
+
+offset = round(onset  * Fr); % offset for trial timescale
+
+% Convert to sample number
+stimOnset  = round(stimOnset  * Fr);
+stimOffset = round(stimOffset * Fr);
+nlength = round(Fr * timestamps(end));
+stimOnset (stimOnset  < 1) = 1;
+stimOffset(stimOffset > nlength) = nlength;
+    
 % Function that converts dataformat to field trip format
 dataFT         = [];
 dataFT.label   = strtrim(cellstr(num2str(labels'))'); % cell-array containing strings, Nchan*1
@@ -20,20 +36,14 @@ dataFT.time    = {timestamps}; % cell-array containing a time axis for each
                                % trial (1 X Ntrial), each time axis is a 1*Nsamples vector          
 dataFT.sampleinfo = [1 size(data,2)]; % array containing [startsample endsample] of data
 
-if (~isempty(stimOnsetRaw))
-
-    stimOnset  = stimOnsetRaw + onset;
-    stimOffset = stimOnsetRaw + offset;
+if (~isempty(stimOnset))
     
-    stimOnset (stimOnset  < 1) = 1;
-    stimOffset(stimOffset > nlength) = nlength;
-            
     cfg = [];
     cfg.trl = [stimOnset,stimOffset,zeros(size(stimOnset))];
     dataFT  = ft_redefinetrial(cfg,dataFT);
     
     cfg = [];
-    cfg.offset = onset;
+    cfg.offset = offset;
     dataFT     = ft_redefinetrial(cfg,dataFT);
     
     % Set NaNs to zero

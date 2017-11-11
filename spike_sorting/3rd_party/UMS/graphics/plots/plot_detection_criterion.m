@@ -25,61 +25,45 @@ function p = plot_detection_criterion(spikes,clus)
 %  p            - estimate of probability that a spike is missing because it didn't reach threshhold
 %
 
-% check arguments
+% Check arguments
 if ~isfield(spikes,'waveforms'), error('No waveforms found in spikes object.'); end
 
-% grab data
-
+% Grab data
 [p,mu,stdev,n,x] = ss_undetected(spikes,clus);
 
-% determine global extreme if there are other detection criterion plots on the current figure
-my_sign = sign(mu);
-ax = findobj(gcf, 'Tag', 'detection_criterion');
-my_ex = max(abs(x));
-if ~isempty(ax)
-    xlims = get(ax(1),'XLim');
-    if max(abs(xlims)) > my_ex
-        global_ex = max(abs(xlims)) * my_sign;
-    else
-        global_ex = my_ex * my_sign;
-        set(ax, 'XLim', sort([global_ex 0]))
-    end
-else
-    global_ex = my_ex * my_sign;
-end
+% Determine global extreme
+my_sign   = sign(mu);
+my_ex     = max(abs(x));
+global_ex = my_ex * my_sign;
 
 % Now make an estimate of how many spikes are missing, given the Gaussian and the cutoff
 N = sum(n) / (1-p);
 if (my_sign == -1); a = linspace(global_ex,0,200);
-else                a = linspace(0,global_ex,200);
+else,               a = linspace(0,global_ex,200);
 end
 b = normpdf(a,mu,stdev);
-b = (b/sum(b))*N*abs((x(2)-x(1))/(a(2)-a(1)));
+b = (b / sum(b)) * N * abs((x(2)-x(1)) / (a(2) - a(1)));
 
-% plot everything
-cla reset
-
-% histogram
-hh = bar(x,n,1.0);
-set(hh,'EdgeColor',[0 0 0 ])
+% Histogram
+bar(x,n,1.0,'FaceColor','k','EdgeColor','none','FaceAlpha',1.0);
 set(gca,'XLim',sort([global_ex 0]));
 
-% gaussian fit
+% Gaussian fit
 l = line(a,b);
 set(l,'Color',[1 0 0],'LineWidth',1.5)
 
-% threshold line
-l = line([1 1]*my_sign, get(gca,'YLim' ) );
+% Threshold line
+l = line([1 1]*my_sign, get(gca,'YLim'));
 set(l,'LineStyle','--','Color',[0 0 0],'LineWidth',2)
 
-% prettify axes
+% Prettify axes
 axis tight
-set(gca,'Tag','detection_criterion')
-title(['Estimated missing spikes: ' num2str(p*100,'%2.1f') '%']);
-xlabel('Detection metric');
-ylabel('No. of spikes');
+title(['\bf{Estimated \ missing \ spikes: \ ' num2str(p*100,'%2.1f') '\% }'], 'Interpreter','Latex');
+xlabel('\bf{Normalized \ amplitude}',                                         'Interpreter','Latex');
+ylabel('\bf{No. \ of \ spikes}',                                              'Interpreter','Latex');
+set(gca,'TickLabelInterpreter','Latex');
 
-% determine x limit
+% Determine x limit
 
 N = cumsum(n);
 N = N / sum(n);

@@ -31,9 +31,11 @@ ops.Nchan = nchans;
 ops = kilosort_config(ops,parameters,savePath);
 
 % Convert OpenEphys data to DAT filetype with int16 data
-ops.data      = data; clear data; 
-ops.precision = 1; % decimal place to round raw data to (should be integer)
-ops = psr_kst_convert2binary(ops);
+ops.data = data; clear data; 
+fidout = fopen(ops.fbinary, 'w');
+fwrite(fidout, ops.data, 'int16');
+fclose(fidout);
+ops = rmfield(ops,'data');
 
 % NOTE: we do not use Kilosort's "convertOpenEphysToRawBInary" to load from
 % CONTINUOUS files, because it is incompatible with our data processing

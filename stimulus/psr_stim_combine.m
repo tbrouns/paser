@@ -1,4 +1,4 @@
-function [artifactTimes_1,artifactTimes_2] = ss_mfa_combine(files,artifactTimesControl_1,artifactTimesControl_2)
+function [artifactTimes_1,artifactTimes_2] = psr_stim_combine(files,artifactTimesControl_1,artifactTimesControl_2)
 
 % Grab artifacts across tetrodes
 
@@ -15,14 +15,14 @@ for iTetrode = 1:ntets
     if isfield(spikes,'artifacts')
         periods(iTetrode) = spikes.artifacts_period;
         MFAtimesAll{iTetrode} = sort(spikes.artifacts);
-        nmax = (spikes.info.detect.dur / spikes.artifacts_period);
+        nmax = (spikes.info.dur / spikes.artifacts_period);
         frac = length(spikes.artifacts) / nmax;
         if (frac > frac_max)
             iTetrodeMax = iTetrode;
             frac_max = frac;
         end
     end
-    dur(iTetrode) = spikes.info.detect.dur;
+    dur(iTetrode) = spikes.info.dur;
     off(iTetrode) = spikes.params.mfa_freq_off;
 end
 

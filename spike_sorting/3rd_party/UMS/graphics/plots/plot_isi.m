@@ -4,7 +4,7 @@ function plot_isi(spikes, show, show_isi)
 % plot_isi - plot histogram of ISI distribution for a cluster
 %
 % Usage:
-%       plot_isi( spikes, show, show_isi )
+%       plot_isi(spikes, show, show_isi)
 %
 % Description:
 %   Plots a histogram either representing the inter-spike interval (ISI)
@@ -40,132 +40,73 @@ function plot_isi(spikes, show, show_isi)
 %                 - default is set by spikes.params.display.show_isi
 %
 
-% check arguments
+% Check arguments
 if ~isfield(spikes,'waveforms'), error('No waveforms found in spikes object.'); end
-if nargin < 3, show_isi = spikes.params.display.show_isi;  end
 if nargin < 2, show = 'all'; end
+if nargin < 3, show_isi = spikes.params.display.show_isi;  end
 
-% get the spiketimes
+% Get the spiketimes
 select     = get_spike_indices(spikes, show);
 spiketimes = sort(spikes.unwrapped_times(select));
 
-% save data in these axes
-data.spiketimes        = spiketimes;
-data.show_isi          = show_isi;
-data.isi_maxlag        = spikes.params.display.max_isi_to_display;
-data.autocorr_maxlag   = spikes.params.display.max_autocorr_to_display;
-data.shadow            = spikes.params.detect.shadow;
-data.refractory_period = spikes.params.detect.ref_period;
-data.corr_bin_size     = spikes.params.display.correlations_bin_size;
-data.isi_bin_size      = spikes.params.display.isi_bin_size;
-
-% estimate poisson contamination for y-axis
-[expected,lb,ub,RPV] = ss_rpv_contamination(spikes, show);
-if isempty(lb)
-    data.ystr = [num2str(RPV) ' RPVs (' num2str(round(expected*100)) '%)' ];
-else
-    data.ystr = [num2str(RPV) ' RPVs (' num2str(round(lb*100)) '-' num2str(round(expected*100)) '-' num2str(round(ub*100)) '%)' ];
-end
-
-set(gca,'UserData', data,'Tag','isi' )
-
-% write updating method
-update_isi( [], [], show_isi, gca);
-end
-
-
-% callback that updates display on axes
-function update_isi(~, ~, displaymode, ax)
-
-% get display mode
-data = get( ax,'UserData');
-data.show_isi = displaymode;
-set(ax,'UserData',data)
-set(gcf,'CurrentAxes',ax )
-
-% update display
-make_isi
-
-% set context menu - allow switch between ISI and autocorrelation
-% as well as a global switch for all plot_isi instances on the current figure
-cmenu = uicontextmenu;
-item(1) = uimenu(cmenu, 'Label', 'Show ISI', 'Callback', {@update_isi, 1,ax} );
-item(2) = uimenu(cmenu, 'Label', 'Show autocorr', 'Callback',{@update_isi, 0,ax}  );
-item(3) = uimenu(cmenu, 'Label', 'Use this style on all ISIs in figure', 'Callback',{@impose_all,displaymode,ax},'Separator','on'  );
-set(item(2-displaymode), 'Checked', 'on');
-set(ax,'UIContextMenu', cmenu )
-
-end
-
-% callback to impose display mode on all plot_isi axes in this figure
-function impose_all(~,~,displaymode,ax)
-[~,h]   = gcbo;
-my_axes = findobj(h,'Tag','isi');
-my_axes = setdiff(my_axes,ax);
-for j = 1:length(my_axes), update_isi([],[],displaymode,my_axes(j)); end
-end
-
-% plots the ISI or autocorrelation
-function make_isi
-
-data       = get( gca,'UserData');
-spiketimes = data.spiketimes;
-shadow     = data.shadow;
-rp         = data.refractory_period;
-cla reset
+% Save data in these axes
+isi_maxlag      = spikes.params.display.max_isi_to_display;
+autocorr_maxlag = spikes.params.display.max_autocorr_to_display;
+shadow          = spikes.params.detect.shadow;
+rp              = spikes.params.detect.ref_period;
+corr_bin_size   = spikes.params.display.correlations_bin_size;
+isi_bin_size    = spikes.params.display.isi_bin_size;
 
 % ISI case
-if data.show_isi
-    maxlag = data.isi_maxlag;
-    bins   = round(1000* maxlag/data.isi_bin_size );
+if show_isi
+    maxlag = isi_maxlag;
+    bins   = round(1000 * maxlag / isi_bin_size);
     
-    % make plot
+    % Make plot
     isis  = diff(spiketimes);
     isis  = isis(isis <= maxlag);
-    [n,x] = hist(isis*1000,linspace(0,1000*maxlag,bins));
-    ymax  = max(n)+1;
+    [n,x] = hist(isis * 1000,linspace(0,1000 * maxlag,bins));
+    ymax  = max(n) + 1;
     
-    % make patches to represent shadow and refractory period
-    
-    patch([    0 shadow shadow 0 ], [0 0 ymax ymax], [0.5 0.5 0.5], 'EdgeColor', 'none');
-    patch([shadow [rp rp] shadow ], [0 0 ymax ymax], [1.0 0.0 0.0], 'EdgeColor', 'none');
+    % Make patches to represent shadow and refractory period
+    patch(  [0 shadow shadow 0], [0 0 ymax ymax], [0.5 0.5 0.5], 'EdgeColor', 'none');
+    patch([shadow rp rp shadow], [0 0 ymax ymax], [1.0 0.0 0.0], 'EdgeColor', 'none');
     hold on; b2 = bar(x,n,1.0); hold off
-    set(b2,'FaceColor',[0 0 0 ],'EdgeColor',[0 0 0 ])
+    set(b2,'FaceColor',[0 0 0],'EdgeColor',[0 0 0])
     
-    % update axes
-    set(gca,'YLim',[0 ymax],'XLim',[0 1000*maxlag])
-    xlabel('Interspike interval (msec)')
-    ylabel({'No. of spikes',data.ystr})
-    
+    % Update axes
+    set(gca,'YLim',[0 ymax],'XLim',[0 1000 * maxlag])
+    xlabel('\bf{Interspike \ interval \ [ms]}', 'Interpreter','Latex');
+    ylabel('\bf{No. \ of \ spikes}',            'Interpreter','Latex');
+    set(gca,'TickLabelInterpreter','Latex');
 else
-    maxlag = data.autocorr_maxlag;
+    maxlag = autocorr_maxlag;
     
-    % calculate autocorrelation
+    % Calculate autocorrelation
     if length(spiketimes) > 1
-        [cross,lags] = pxcorr(spiketimes,spiketimes, round(1000/data.corr_bin_size), maxlag);
+        [cross,lags] = pxcorr(spiketimes, spiketimes, round(1000 / corr_bin_size), maxlag);
     else
-        cross = 0;  
+        cross = 0;
         lags  = 0;
     end
     cross(lags == 0) = 0;
     
-    % place patches to represent shadow and refractory period
+    % Place patches to represent shadow and refractory period
     ymax = max(cross) + 1;
-    patch(  shadow*[-1 1 1 -1], [0 0 ymax ymax], [.5 .5 .5],'EdgeColor', 'none');
-    patch( [shadow [rp rp] shadow ], [0 0 ymax ymax], [1 0 0],'EdgeColor','none');
-    patch(-[shadow [rp rp] shadow ], [0 0 ymax ymax], [1 0 0],'EdgeColor','none');
+    patch(  shadow * [-1 1 1 -1], [0 0 ymax ymax], [0.5 0.5 0.5], 'EdgeColor', 'none');
+    patch( [shadow rp rp shadow], [0 0 ymax ymax], [1.0 0.0 0.0], 'EdgeColor', 'none');
+    patch(-[shadow rp rp shadow], [0 0 ymax ymax], [1.0 0.0 0.0], 'EdgeColor', 'none');
     
-    % plot autocorrelation histogram
-    hold on, bb = bar(lags*1000,cross,1.0); hold off;
-    set(bb,'FaceColor',[0 0 0 ],'EdgeColor',[0 0 0 ])
+    % Plot autocorrelation histogram
+    hold on; bb = bar(1000 * lags,cross,1.0); hold off;
+    set(bb,'FaceColor',[0 0 0],'EdgeColor',[0 0 0])
     
-    % set axes
-    set(gca, 'XLim', maxlag*1000*[-1 1]);
-    set(gca,'YLim',[0 ymax])
-    xlabel( 'Time lag (msec)')
-    ylabel({'Autocorrelation (Hz)',data.ystr})
+    % Set axes
+    set(gca,'XLim', 1000 * maxlag * [-1 1]);
+    set(gca,'YLim', [0 ymax]);
+    xlabel('\bf{Time \ lag \ [ms]}', 'Interpreter','Latex');
+    ylabel('\bf{Autocorrelation}',   'Interpreter','Latex');
+    set(gca,'TickLabelInterpreter','Latex');
 end
-
-set(gca,'Tag','isi','UserData',data)
 
 end

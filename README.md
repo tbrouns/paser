@@ -138,6 +138,9 @@ To be clear, the names `Session` and `Trial` are arbitrary here, you can use any
 However, we must note that we have two types of `continuous` files here. We only wish to load the `100_CH*.continuous` ones. 
 We can differentiate between the two types using `parameters.filepattern`, which should be set to `parameters.filepattern = 'CH'` in this case, because that is the common pattern between them. 
 
+The pattern specified by `parameters.filepattern` must immediately be followed by an integer in the filename. In turn, the integer should immediately be followed by the file extension or by an underscore. 
+This integer is used to determine which channels belong to which probe. For example, if we are using a tetrode, then the channels `{*CH1,*CH2,*CH3,*CH4}.continuous` are the channels for the first tetrode.
+
 Depending on the experimental conditions, you may wish to vary some kind of experimental variable across different trials. 
 If you indicate the value of the variable in the trial folder name, then it will be extracted and saved by setting `parameters.trialpattern`. 
 Any value between the underscore and the specified pattern is recorded. If we set `parameters.trialpattern = 'M'`, we would get 0 and 1 for the trials in `Session_1_Condition`. 
@@ -191,17 +194,17 @@ Where `%SubjectName%` is specified by `parameters.subject`, `%Session%` by the n
 The data in every MAT file is organized in the following way:
 
 ```
-Structures:     Fields:	       Type:   Size:            Description:
+Structures:     Fields:	       Type:    Size:            Description:
 
-freq                           struct                   Local field potential (LFP) data                         
-                artifacts      double  [Na x 2]         Start and end point of LFP artifacts [sec]
-                cfg            struct                   Configuration parameters
-                dimord         string                   Defines how the numeric data should be interpreted
-                freq           double  [1 x Nf]         Frequency bins [Hz]
-                label          cell    [1 x Nc]         Cell array of label for each channel (see next line)
-                               string                   Channel label
-                powspctrm      double  [Nc x Nf x Nt]   Power per channel, frequency bin and time bin
-                time           double  [1 x Nt]         Time bins [sec]
+freq                           struct                    Local field potential (LFP) data                         
+                artifacts      double   [Na x 2]         Start and end point of LFP artifacts [sec]
+                cfg            struct                    Configuration parameters
+                dimord         string                    Defines how the numeric data should be interpreted
+                freq           double   [1 x Nf]         Frequency bins [Hz]
+                label          cell     [1 x Nc]         Cell array of label for each channel (see next line)
+                               string                    Channel label
+                powspctrm      double   [Nc x Nf x Nt]   Power per channel, frequency bin and time bin
+                time           double   [1 x Nt]         Time bins [sec]
 				
                 [ see FieldTrip docs for details: http://www.fieldtriptoolbox.org/ ]
 
@@ -210,50 +213,81 @@ freq                           struct                   Local field potential (L
                 Nf: number of frequency bins
                 Nt: number of time bins
 				
-metadata                       struct                   General experimental data
-                subject        string                   Name of subject
-                session        string                   Name of session
-                dir            string                   Location of raw data files
-                stimulus       double  [1 x Nt]         Vector of trial conditions
-                probe          integer [1 x Np]         Probe number
+metadata                       struct                    General experimental data
+                length         double   scalar           Length of session [sec]
+                subject        string                    Name of subject
+                session        string                    Name of session
+                dir            string                    Location of raw data files
+                stimulus       double   [1 x Nt]         Vector of trial conditions
+                probe          integer  [1 x Np]         Probe number
 				
                 Np: number of probes
                 Nt: number of trials
 				
-parameters                     struct                   Parameters for all data processing functions
+parameters                     struct                    Parameters for all data processing functions
                 
                 [ see "psr_parameter_default" for details ]
 			
-spikes                         struct                   Neural spiking data
-                assigns        integer  [1 x Ns]        Cluster index of each detected spike after merging
-                assigns_prior  integer  [1 x Ns]        Cluster index of each detected spike before merging
-                clusters       struct                   See "psr_sst_clusterfeatures" for details
-                info           struct                   See further below
-                params         struct                   Needed for compatibility
-                removed        logical  [1 x Ns]        Spikes that are designated for removal
-                spiketimes     double   [1 x Ns]        Spike time of each detected spike [sec]
-                trials         integer  [1 x Ns]        Trial index of each detected spike
-                waveforms      double   [Ns x Np x Nc]  Waveform of each detected spike for each channel 
+spikes                         struct                    Neural spiking data
+                assigns        int16    [1 x Ns]         Cluster index of each detected spike after merging
+                assigns_prior  int16    [1 x Ns]         Cluster index of each detected spike before merging
+                clusters       struct                    See further below
+                info           struct                    See further below
+                removed        logical  [1 x Ns]         Spikes that are designated for removal
+                spiketimes     single   [1 x Ns]         Spike time of each detected spike [sec]
+                trials         int16    [1 x Ns]         Trial index of each detected spike
+                waveforms      int16    [Ns x Np x Nc]   Waveform of each detected spike for each channel 
+				Fs             double   scalar           Sampling frequency of raw extracellular recording
 				
                 Ns: number of spikes
                 Np: number of data points
                 Nc: number of channels
 				
-spikes.info                    struct                   Session information                                         
-                detect.dur     double   scalar          Length of session [sec]
-                detect.thresh  double   [1 x Nc]        Spike detection thresholds for each channel
-                stimtimes      cell     [1 x Nt]        Contains arrays of stimulus onset times for each trial (see next line)
-                               double   [1 x Ns]        Stimulus onset times [sec]
-                trialonset     double   [1 x Nt]        Trial onset times [sec]
+spikes.info                    struct                    Session information                                         
+                dur            double   scalar           Length of session [sec]
+                thresh         double   [1 x Nc]         Spike detection thresholds for each channel
+                stimtimes      cell     [1 x Nt]         Contains arrays of stimulus onset times for each trial (see next line)
+                               double   [1 x Ns]         Stimulus onset times [sec]
+                trialonset     double   [1 x Nt]         Trial onset times [sec]
 				
                 Optional:
-                kst                                     KiloSort output variables 
-                                                        [ see KiloSort docs for details: https://github.com/cortex-lab/KiloSort ]
+                kst                                      KiloSort output variables 
+                                                         [ see KiloSort docs for details: https://github.com/cortex-lab/KiloSort ]
 				
                 Nc: number of channels
                 Ns: number of stimuli
                 Nt: number of trials
-```
+				
+spikes.clusters                struct                   Metrics for spike clusters                  	
+                mahal          double   [Nc x Nc]       Mahalanobis   distance between clusters in feature space
+                bhattacharyya  double   [Nc x Nc]       Bhattacharyya distance between clusters in feature space
+                vars           struct                   
+             
+                Nc: number of clusters
+
+spikes.clusters.vars                                    Metrics for each spike cluster
+                id             integer  scalar          Cluster identifier
+                rpv            double   scalar          Fraction of refractory period violations 
+                missing        double   scalar          Fraction of missing spikes based on spike amplitude and Gaussian fit
+                co             double   scalar          Fraction of spikes that are expected to coincide with spikes from other clusters
+                nspikes        integer  scalar          Number of spikes in cluster
+                xc             double   vector          Cross-correlations of channel pair with greatest lag for cross-correlation peak
+                xc_lag         double   scalar          Greatest lag of pairwise cross-correlation peaks between channels    
+                pcorr          double   scalar          Correlation between empirical and theoretically Poisson distributions 
+                pdist          double   vector          Empirical Poisson distribution
+                amp            double   scalar          Mean absolute amplitude of waveform
+                amp_rel        double   scalar          Mean relative amplitude of waveform, normalized by threshold
+                chans          integer  vector          Channels IDs that have above-threshold mean amplitude
+                frate          double   scalar          Mean firing rate (Hz)
+                artifact       double   scalar          Ratio between actual and expected number of spikes in LFP artifact region
+                snr            double   scalar          Signal-to-noise ratio
+                Lratio         double   scalar          L-ratio [Ref. 5]
+                IsoDis         double   scalar          Isolation distance [Ref. 5]
+                FP_t           double   scalar          False positive rate, based on fitting mixture of drifting t-distributions [Ref. 6]
+                FN_t           double   scalar          False negative rate, based on fitting mixture of drifting t-distributions [Ref. 6]
+                FP_g           double   scalar          False positive rate, based on fitting mixture of drifting Gaussians 
+                FN_g           double   scalar          False negative rate, based on fitting mixture of drifting Gaussians
+```       
 
 ### Temporary files
 
@@ -297,6 +331,10 @@ varycolor                https://nl.mathworks.com/matlabcentral/fileexchange/210
 [3] Oostenveld, Robert, et al. "FieldTrip: open source software for advanced analysis of MEG, EEG, and invasive electrophysiological data." Computational intelligence and neuroscience 2011 (2011): 1.
 
 [4] Siegle, Joshua Handman, et al. "Open Ephys: An open-source, plugin-based platform for multichannel electrophysiology." Journal of Neural Engineering (2017).
+
+[5] Schmitzer-Torbert, N., et al. "Quantitative measures of cluster quality for use in extracellular recordings." Neuroscience 131.1 (2005): 1-11.
+
+[6] Shan, K. Q., Lubenov, E. V., & Siapas, A. G. (2017). Model-based spike sorting with a mixture of drifting t-distributions. bioRxiv, 109850.
 
 ## To-do
 

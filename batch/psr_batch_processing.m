@@ -1,5 +1,27 @@
 function psr_batch_processing(parameters)
 
+% PSR_BATCH_PROCESSING - Batch data processing function for PASER.
+%
+% Syntax:  psr_batch_processing(parameters)
+%
+% Inputs:
+%    parameters -  See toolbox README on how to set these parameters.
+%
+% Outputs:
+%    One or more MAT files. See toolbox README for further details.
+%
+% Subfunctions: PSR_WRAPPER
+
+% PASER: Processing and Analysis Schemes for Extracellular Recordings
+% https://github.com/tbrouns/paser
+
+% Author: Terence Brouns
+% Radboud University, Neurophysiology Dept.
+% E-mail address: t.s.n.brouns@gmail.com
+% Date: 2017
+
+%------------- BEGIN CODE --------------
+
 %% Check input
 
 if (~isfield(parameters,'subject'));    parameters.subject    = [];           end
@@ -11,65 +33,83 @@ if (~isfield(parameters,'type'));       parameters.type       = 'all';        en
 if (~isfield(parameters,'folders'));    parameters.folders    = [];           end
 if (~isfield(parameters,'process'));    parameters.process    = 'all';        end
 if (~isfield(parameters,'extension'));  parameters.extension  = 'continuous'; end
+if (~isfield(parameters,'txtfile'));    parameters.txtfile    = [];           end
 
-folder_names = dir(parameters.loadPath); % Locate all files and folders in directory
-folder_names = folder_names(~ismember({folder_names.name},{'.','..'}));
-folder_names = folder_names([folder_names.isdir]); % Only keep folders
-folder_names = char(folder_names.name); % Convert to character array
+folderNames = dir(parameters.loadPath); % Locate all files and folders in directory
+folderNames = folderNames(~ismember({folderNames.name},{'.','..'}));
+folderNames = folderNames([folderNames.isdir]); % Only keep folders
+folderNames = char(folderNames.name); % Convert to character array
 
-if (isempty(folder_names)); disp('No folders in directory'); return; end
+if (isempty(folderNames)); disp('No folders in directory'); return; end
 
-%% Sort files
+OVERWRITE  = true;
 
-numfolders = length(folder_names(:,1));
-
-ntypes = length(parameters.patterns);
-folder_types = cell(ntypes+1,1);
-for iFolder = 1:numfolders
-    foldername = lower(folder_names(iFolder,:));
-    foldername = strtrim(foldername);
-    k = zeros(ntypes,1);
-    for iType = 1:ntypes
-        k(iType) = ~isempty(strfind(foldername,lower(parameters.patterns{iType})));
+if (~isempty(parameters.txtfile)) % Read sessions from text file
+    filename = [parameters.loadPath parameters.txtfile];
+    fileID = fopen(filename);
+    foldersTemp = textscan(fileID,'%s %s');
+    nSessions = size(foldersTemp,2);
+    for iSession = 1:nSessions
+        folders(:,iSession) = foldersTemp{iSession};
     end
-    k = find(k,1) + 1; % Find first match
-    if (isempty(k)); k = 1; end % No pattern found
-    folder_types{k}{iFolder,1} = folder_names(iFolder,:);
-end
-
-ntypes = length(folder_types);
-for iType = 1:ntypes % Remove empty cells
-    folder_types{iType} = folder_types{iType}(~cellfun('isempty',folder_types{iType}));
-end
-
-% Extract folders that match given type
-
-if (strcmp(parameters.type,'all') || isempty(parameters.patterns))
-    folders = [];
-    for iType = 1:ntypes
-        folders = [folders;folder_types{iType}];
-    end
+    fclose(fileID);
 else
-    type = parameters.type;
-    k = strfind(type,parameters.patterns) + 1;
-    folders = folder_types{k};
+    %% Sort files
+    
+    nFolders = length(folderNames(:,1));
+    
+    nTypes = length(parameters.patterns);
+    folderTypes = cell(nTypes+1,1);
+    for iFolder = 1:nFolders
+        folderName = lower(folderNames(iFolder,:));
+        folderName = strtrim(folderName);
+        k = zeros(nTypes,1);
+        for iType = 1:nTypes
+            k(iType) = ~isempty(strfind(folderName,lower(parameters.patterns{iType})));
+        end
+        k = find(k,1) + 1; % Find first match
+        if (isempty(k)); k = 1; end % No pattern found
+        folderTypes{k}{iFolder,1} = folderNames(iFolder,:);
+    end
+    
+    nTypes = length(folderTypes);
+    for iType = 1:nTypes % Remove empty cells
+        folderTypes{iType} = folderTypes{iType}(~cellfun('isempty',folderTypes{iType}));
+    end
+    
+    % Extract folders that match given type
+    
+    if (strcmp(parameters.type,'all') || isempty(parameters.patterns))
+        folders = [];
+        for iType = 1:nTypes
+            folders = [folders;folderTypes{iType}];
+        end
+    else
+        type = parameters.type;
+        k = strfind(type,parameters.patterns) + 1;
+        folders = folderTypes{k};
+    end
 end
 
 % Determine which folders to process
 
-numfolders = length(parameters.folders);
-OVERWRITE  = true;
 switch parameters.process
     case 'given'
-        foldersTemp = cell(numfolders,1);
-        for iFolder = 1:numfolders
-            k = strfind(folders,parameters.folders{iFolder});
-            k = find(~cellfun(@isempty,k),1);
-            if (~isempty(k))
-                foldersTemp{iFolder} = folders{k};
+        nFolders = length(parameters.folders);
+        if (nFolders > 0)
+            foldersTemp = cell(nFolders,1);
+            for iFolder = 1:nFolders
+                k = strfind(folders,parameters.folders{iFolder});
+                k = find(~cellfun(@isempty,k),1);
+                if (~isempty(k))
+                    foldersTemp{iFolder} = folders{k};
+                end
             end
+            folders = foldersTemp;
+        else
+           disp('The "process" field has been set to "given", but no folders were chosen in "folders" field.');
+           return;
         end
-        folders = foldersTemp;
     case 'new'
         OVERWRITE = false;
 end
@@ -78,33 +118,54 @@ end
 
 if (isempty(folders)); disp('No folders found.'); return; end
 
-numfolders = length(folders);
-for iFolder = 1:numfolders
-    foldername1   = strtrim(folders{iFolder});
-    loadPath_sub1 = [parameters.loadPath, foldername1];
-    savePath_sub1 = [parameters.savePath, foldername1];
+nFolders = size(folders,1);
+for iFolder = 1:nFolders
     
-    % Locate relevant files in subfolders
-    loadPath_sub2 = dir([loadPath_sub1 '\**\*.' parameters.extension]);
-    loadPath_sub2 = char(loadPath_sub2.folder); 
-    loadPath_sub2 = unique(loadPath_sub2,'rows');
-    loadPath_sub2 = cellstr(loadPath_sub2);
+    nSessions = size(folders,2);
     
-    parameters.session     = foldername1;
-    parameters.loadPathSub = loadPath_sub2;
-    parameters.savePathSub = savePath_sub1;
+    parameters.session      = []; % session names
+    parameters.sessionTrial = []; % note session for each trial
+    parameters.loadPathSub  = []; % where each trial is loaded from
     
-    if (~isempty(parameters.loadPathSub))
-        [~,~,~] = mkdir(parameters.savePathSub);
+    FILES_FOUND = false;
+    
+    for iSession = 1:nSessions % sessions to process together
         
-        if (~OVERWRITE) % Check if 'spikes' files exist in save directory
-            filesSpikes = dir([parameters.savePathSub '\Spikes_*.mat']);
-            filesSpikes = char(filesSpikes.name);
-            filesTemp   = dir([parameters.savePathSub   '\Temp_*.mat']);
-            filesTemp   = char(filesTemp.name);
-            if size(filesSpikes,1) > 0 && size(filesTemp,1) == 0; continue; end
+        folderName = strtrim(folders{iFolder,iSession});
+        
+        % Locate relevant files in subfolders
+        loadPathSub = dir([parameters.loadPath, folderName '\**\*.' parameters.extension]);
+        loadPathSub =    char(loadPathSub.folder);
+        loadPathSub =  unique(loadPathSub,'rows');
+        if (~isempty(loadPathSub)); FILES_FOUND = true; end
+        loadPathSub = cellstr(loadPathSub);
+        
+        parameters.session{iSession} = folderName;
+        parameters.loadPathSub  = [parameters.loadPathSub;loadPathSub];
+        parameters.sessionTrial = [parameters.sessionTrial;iSession*ones(size(loadPathSub))];
+        
+        if (iSession == 1); parameters.savePathSub = folderName;
+        else,               parameters.savePathSub = [parameters.savePathSub '-' folderName];
         end
+    end
+    
+    if (FILES_FOUND)
+        parameters.savePathSub = [parameters.savePath, parameters.savePathSub];
         
-        psr_wrapper(parameters);
+        if (~isempty(parameters.loadPathSub))
+            [~,~,~] = mkdir(parameters.savePathSub);
+            
+            if (~OVERWRITE) % Check if 'spikes' files exist in save directory
+                filesSpikes = dir([parameters.savePathSub '\Spikes_*.mat']);
+                filesTemp   = dir([parameters.savePathSub   '\Temp_*.mat']);
+                filesSpikes = char(filesSpikes.name);
+                filesTemp   = char(filesTemp.name);
+                if size(filesSpikes,1) > 0 && size(filesTemp,1) == 0; continue; end
+            end
+            
+            psr_wrapper(parameters);
+        end
     end
 end
+
+%------------- END OF CODE --------------

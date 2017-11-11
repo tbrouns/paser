@@ -1,4 +1,4 @@
-function spikes = ss_mfa_detection_raw(data,spikes,parameters,index_start)
+function spikes = psr_stim_detection_raw(data,spikes,parameters,index_start)
 
 method = 1;
 visualize_0 = 0;
@@ -6,8 +6,8 @@ visualize_1 = 0;
 visualize_2 = 0;
 close all;
 
-window_size = (parameters.mfa.p2ptime / 1000) * spikes.params.Fs;  % in samples
-Fs          =  spikes.params.Fs;
+window_size = (parameters.mfa.p2ptime / 1000) * spikes.Fs;  % in samples
+Fs          =  spikes.Fs;
 tStart      = (index_start - 1) / Fs;
 nlength     = size(data,1);
 nchan       = size(data,2);

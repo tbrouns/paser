@@ -14,7 +14,7 @@ filenamesCell = cell(0,0);
 for iFile = 1:numfiles
     filename = strtrim(filenames(iFile,:));
     load([loadPath filename],'metadata');
-    i = metadata.tetrode;
+    i = metadata.probe;
     j = [];
     for iStims = 1:length(stims)
         if (min(ismember(stims{iStims}, metadata.stimulus)))

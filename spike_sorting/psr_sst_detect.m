@@ -1,4 +1,4 @@
-function spikes = psr_sst_detect(data, spikes, parameters)
+function spikes = psr_sst_detect(signal, spikes, parameters)
 
 % psr_sst_detect - Detection of spikes in multi-channel data
 %
@@ -44,49 +44,48 @@ if ~append
     spikes.waveforms  = [];
     spikes.spiketimes = [];
     spikes.nspikes    = [];
-    spikes.info.detect.dur = 0;
+    spikes.info.dur = 0;
 end
 
 % set some constants
-Fs             = spikes.params.Fs;
-method         = parameters.spikes.method;
-num_channels   = size(data, 2);
-window_samples = round(Fs * parameters.spikes.window_size / 1000);
-samples_hwidth = round(0.5 * window_samples);
+Fs          = spikes.Fs;
+method      = parameters.spikes.method;
+sLength     = size(signal,1); % total number of samples in signal
+nChan       = size(signal,2);
+sWindow     = round(Fs * parameters.spikes.window_size / 1000);
+sWindowHalf = round(0.5 * sWindow);
 
 % determine threshold
 
-spikes.info.detect.cov = get_covs(data, window_samples);
-
-stdev = std(data);
+stdev = std(signal);
 if     isequal(method, 'auto');   thresh = -parameters.spikes.thresh * stdev;
 elseif isequal(method, 'manual'); thresh =  parameters.spikes.thresh;
-elseif isequal(method, 'mad');    thresh = -parameters.spikes.thresh * psr_mad(data);
+elseif isequal(method, 'mad');    thresh = -parameters.spikes.thresh * psr_mad(signal);
 else,  error('Unknown spike detection method.')
 end
 
-spikes.info.detect.stds   = stdev;
-spikes.info.detect.thresh = thresh;
+spikes.info.stds   = stdev;
+spikes.info.thresh = thresh;
     
 % Get crossings on all channels for this trial
 
-crossings = zeros(num_channels,size(data,1)-1);
-peaks     = zeros(num_channels,size(data,1)-1);
+crossings = zeros(nChan,sLength);
+peaks     = zeros(nChan,sLength);
 
-for k = 1:num_channels
-    data_channel = data(:,k);
-    del = data_channel > thresh(k);
+for k = 1:nChan
+    signalChan = signal(:,k);
+    del = signalChan > thresh(k);
     I   = find(~del); % keep raw locations of thresholded data
-    data_channel(del) = []; % ignore sub-threshold data
-    if (length(data_channel) > 3) % required for 'findpeaks'
-        [pks,loc] = findpeaks(double(sign(thresh(k)) * data_channel));
+    signalChan(del) = []; % ignore sub-threshold data
+    if (length(signalChan) > 3) % condition required for 'findpeaks'
+        [pks,loc] = findpeaks(double(sign(thresh(k)) * signalChan));
         loc = I(loc); % find locations of peaks in raw data
         crossings(k,loc) = 1;
         peaks(k,loc)     = pks;
     end
 end
 
-divisor   = abs(repmat(spikes.info.detect.thresh', 1, size(peaks,2)));
+divisor   = abs(repmat(spikes.info.thresh', 1, size(peaks,2)));
 peaks     = peaks ./ divisor;
 peaksMax  = max(peaks);
 crossings = find(sum(crossings));
@@ -95,7 +94,7 @@ peaksMax  = peaksMax(crossings);
 % Deal with adjacent peaks, within spike window. 
 % Keep largest amplitude peak
 
-indices = diff(crossings) <= samples_hwidth;
+indices = diff(crossings) <= sWindowHalf;
 indices = [indices,0];
 nspikes = length(indices);
 indices = [indices,0]; % needed for stop criterion
@@ -114,29 +113,17 @@ while iSpike <= nspikes
 end
 
 crossings = peakCrossings';
-crossings(crossings <= samples_hwidth) = [];
-crossings(crossings > size(data,1) - samples_hwidth) = [];
+crossings(crossings <= sWindowHalf) = [];
+crossings(crossings > sLength - sWindowHalf) = [];
 
 % update spiketimes, trials, and waveforms
-spikes.spiketimes = [spikes.spiketimes crossings / Fs];
-indices = bsxfun(@plus,crossings,-samples_hwidth:samples_hwidth); 
-w       = data(indices, :);
+spikes.spiketimes = [spikes.spiketimes, (crossings - 1) / Fs];
+indices = bsxfun(@plus,crossings,-sWindowHalf:sWindowHalf); 
+waves   = signal(indices, :);
 
-spikes.waveforms = [spikes.waveforms; w];
-
-% get number of above threshold channels for each spike
-
-nspikes = zeros(1,length(crossings));
-for k = 1:num_channels
-    peaks = max(sign(thresh(k)) * w(:,:,k),[],2);
-    peaks = peaks > abs(thresh(k));
-    nspikes = nspikes + peaks';
-end
-spikes.nspikes = [spikes.nspikes nspikes];
+spikes.waveforms = [spikes.waveforms; waves];
 
 % Duration of trial
-
-spikes.info.detect.dur = spikes.info.detect.dur + (size(data, 1) / Fs);
     
 clear data
 
@@ -145,25 +132,5 @@ spikes.waveforms  = single(spikes.waveforms);
 spikes.spiketimes = single(spikes.spiketimes);
 
 % report detection rate
-detect_rate = length(spikes.spiketimes) / sum(spikes.info.detect.dur);
+detect_rate = length(spikes.spiketimes) / sum(spikes.info.dur);
 disp(['Detected on average ' num2str(detect_rate) ' events per second of data ']);
-
-% get covariance matrix of background noise by randomly sampling 10000 timepoints
-function c = get_covs(data, samples)
-
-num_trials   = length(data);
-num_channels = size(data{1},2);
-num_samples  = zeros(1,num_trials);
-
-for j = 1:num_trials, num_samples(j) = size(data{j},1); end
-
-max_samples = 10000;
-waves       = zeros([max_samples samples num_channels]);
-tr_index    = ceil(num_trials * rand([1 max_samples]));
-data_index  = ceil((num_samples(tr_index)-samples) .* rand([1 max_samples]));
-
-for j = 1:max_samples
-    waves(j,:,:) = data{tr_index(j)}(data_index(j) + (0:samples-1),:);
-end
-
-c = cov(waves(:,:));
