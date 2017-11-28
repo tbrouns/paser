@@ -4,7 +4,7 @@ function psr_sst_plot_poisson(spikes,clustID,parameters)
 id     = find([spikes.clusters.vars.id] == clustID);
 twin   = parameters.cluster.stability_win;
 frate  = spikes.clusters.vars(id).frate;
-N      = spikes.clusters.vars(id).pdist;
+N      = spikes.clusters.vars(id).p_dist;
 lambda = frate * twin;
 x      = 0:length(N)-1;
 y      = poisspdf(x,lambda);

@@ -8,7 +8,7 @@ else,                    filename = 'Spikes';
 end
 
 plotNum = 6;
-plotIds = [1,2,3,4,5,8];
+plotIds = fliplr([1,2,3,4,5,8]);
 
 spikes = psr_sst_display_parameters(spikes);
 
@@ -16,7 +16,9 @@ assigns      = spikes.assigns;
 assignsPrior = spikes.assigns_prior;
 
 spikes.assigns = spikes.assigns_prior;
-spikes.waveforms = psr_single(spikes.waveforms,parameters);
+if (isa(spikes.waveforms,'int16'))
+    spikes.waveforms = psr_single(spikes.waveforms,parameters);
+end
 
 clustPriorId = unique(assignsPrior);
 clustMergeId = zeros(size(clustPriorId),class(clustPriorId));
@@ -37,7 +39,7 @@ for iClust = 1:nClusts
     
     if (nClustSub > 0)
         
-        nFigs = floor(nClustSub / plotNum) + 1;
+        nFigs = ceil(nClustSub / plotNum);
         for iFig = 1:nFigs
             figure; set(gcf,'position',get(0,'screensize'));
             
@@ -51,11 +53,16 @@ for iClust = 1:nClusts
             nPlots = length(clustFig);
             
             for iPlot = 1:nPlots
-                subplot(2,4,plotIds(iPlot));
+                subaxis(2,4,plotIds(iPlot),'PaddingTop',0.015);
                 psr_sst_plot_waveforms(spikes,clustFig(iPlot),parameters);
+                
+                if (nPlots == 1) % Padding
+                    h = subaxis(2,4,plotIds(iPlot + 1));
+                    set(h,'Visible','off')
+                end
             end
             
-            subplot(2,4,[6 7]);
+            subaxis(2,4,[6 7]);
             psr_sst_plot_waveforms(spikes,clustMain,parameters);
             suptitle(['Merges of Cluster #' num2str(clustMain) ' (' num2str(iFig) ' of ' num2str(nFigs) ')']);
             

@@ -1,12 +1,13 @@
 function spikes = psr_sst_spike_removal(spikes,id,method)
 
 % Check input
-if (isempty(id)); return; end
 if (~isfield(spikes,'spiketimes')); disp('Error: "spikes" structure does not contain "spiketimes" field'); return; end
 nlength = length(spikes.spiketimes);
-id = unique(id);
-id = sort(id);
-if (id(1) < 1 || id(end) > nlength); disp('Error: spike indices are out of bounds'); return; end
+if (~isempty(id))
+    id = unique(id);
+    id = sort(id);
+    if (id(1) < 1 || id(end) > nlength); disp('Error: spike indices are out of bounds'); return; end
+end
 
 if (nargin < 3); method = 'delete'; end
 
@@ -34,9 +35,9 @@ elseif (strcmp(method,'keep')) % keep only the input indices
     if (isfield(spikes,'trials'));          spikes.trials          = spikes.trials          (id); end
     if (isfield(spikes,'unwrapped_times')); spikes.unwrapped_times = spikes.unwrapped_times (id); end
         
-elseif (strcmp(method,'array')) % don't remove, but create new array
+elseif (strcmp(method,'array')) % don't remove, but record which to remove
     if (~isfield(spikes,'removed') || length(spikes.removed) ~= nlength)
-        spikes.removed = zeros(size(spikes.spiketimes),'logical'); 
+        spikes.removed = false(size(spikes.spiketimes)); 
     end
     spikes.removed(id) = 1;
 end

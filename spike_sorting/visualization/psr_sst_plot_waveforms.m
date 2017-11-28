@@ -32,7 +32,9 @@ ymax  = max(med(:));
 p2p   = ymax - ymin; 
 ymax  = ymax + 0.5 * p2p;
 ymin  = ymin - 0.5 * p2p;
-ylims = [ymin, ymax];
+if (ymin < ymax); ylims = [ymin, ymax];
+else,             ylims = [-inf,inf]; % auto
+end
 
 barcolor = [0.5 0 0];
 
@@ -60,10 +62,15 @@ end
 
 % Label axes
 
-N = size(waveforms,1);
-fRPV = round(100 * (100 * nRPV / N)) / 100;
-ystr = ['$\bf{Cluster \ \# ' num2str(clustID) ', \ N = ' num2str(N) ' \ (' num2str(fRPV) ' \% \ RPVs)}$'];
-title(ystr,                        'Interpreter','Latex');
+if (spikes.params.display.metrics)
+    N = size(waveforms,1);
+    fRPV = round(100 * (100 * nRPV / N)) / 100;
+    titleString = ['$\bf{Cluster \ \# ' num2str(clustID) ', \ N = ' num2str(N) ' \ (' num2str(fRPV) ' \% \ RPVs)}$'];
+else
+    titleString = ['$\bf{Cluster \ \# ' num2str(clustID) '}$'];
+end
+
+title(titleString,                 'Interpreter','Latex');
 ylabel('$\bf{Voltage \ [\mu V]}$', 'Interpreter','Latex');
 xlabel('$\bf{Time \ [ms]}$',       'Interpreter','Latex');
 set(gca,'TickLabelInterpreter','Latex');

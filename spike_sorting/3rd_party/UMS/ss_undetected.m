@@ -1,4 +1,4 @@
-function [p,mu,stdev,n,x] = ss_undetected(spikes,use)
+function [p,mu,stdev,n,x] = ss_undetected(spikes,use,parameters)
 % UltraMegaSort2000 by Hill DN, Mehta SB, & Kleinfeld D  - 07/12/2010
 %
 % ss_undetected - wrapper for undetected.m
@@ -25,7 +25,6 @@ function [p,mu,stdev,n,x] = ss_undetected(spikes,use)
 %  stdev        - standard deviation estimated for distribution of minimum values
 %  n            - bin counts for histogram used to fit Gaussian
 %  x            - bin centers for histogram used to fit Gaussian
-%
 
 % apply detection criteria to each waveform on each channel in cluster
 select    = get_spike_indices(spikes, use);
@@ -35,11 +34,11 @@ waveforms = spikes.waveforms(select,:,:);
 threshes = spikes.info.thresh;
 
 % call undetected
-[p,mu,stdev,n,x] = undetected(waveforms,threshes);
+[p,mu,stdev,n,x] = undetected(waveforms,threshes,parameters);
 
 end
 
-function [p,mu,stdev,n,x] = undetected(w,threshes)
+function [p,mu,stdev,n,x] = undetected(w,threshes,parameters)
 % UltraMegaSort2000 by Hill DN, Mehta SB, & Kleinfeld D  - 07/12/2010
 %
 % undetected - estimate fraction of events that did not reach threshold
@@ -95,7 +94,6 @@ function [p,mu,stdev,n,x] = undetected(w,threshes)
 %  stdev        - standard deviation estimated for gaussian fit
 %  n            - bin counts for histogram used to fit Gaussian
 %  x            - bin centers for histogram used to fit Gaussian
-%
 
 % constant bin count
 bins = 75;
@@ -109,7 +107,8 @@ w         = w ./ repmat(th, [size(w,1) size(w,2) 1]);
 criteria = max(w(:,:), [], 2);
 
 % create the histogram values
-global_max = max(criteria);
+upper_lim  = max(abs(parameters.cluster.max_amplitude / th(:)));
+global_max = max(criteria); if (global_max > upper_lim); global_max = upper_lim; end
 mylims     = linspace(1,global_max,bins+1);
 x = mylims + (mylims(2) - mylims(1))/2;
 n = histc(criteria,mylims);
@@ -143,15 +142,15 @@ m_guesses  = linspace(m-init,max(m+init,1),num);
 for j = 1:length(m_guesses)
     for k = 1:length(st_guesses)
         b = normpdf(x,m_guesses(j),st_guesses(k));
-        b = b *sum(n) / sum(b);
+        b = b * sum(n) / sum(b);
         error(j,k) = sum(abs(b(:)-n(:)));
     end
 end
 
 % which one has the least error?
 [~,pos] = min(error(:));
-jpos    = mod( pos, num ); if jpos == 0, jpos = num; end
-kpos    = ceil(pos/num);
+jpos    = mod(pos, num); if jpos == 0, jpos = num; end
+kpos    = ceil(pos / num);
 stdev   = st_guesses(kpos);
 
 % refine mode estimate

@@ -137,4 +137,6 @@ while curndx < (N - P - rang)
     
     kappa(Cnew) = kappa(Cnew)+1;
     sz = sz+1;
+    
+    if (C + 1 > Cmax); break; end 
 end

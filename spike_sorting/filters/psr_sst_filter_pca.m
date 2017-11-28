@@ -1,22 +1,24 @@
-function spikes = psr_sst_filter_pca(spikes)
+function spikes = psr_sst_filter_pca(spikes,parameters,method)
+
+clustID = [spikes.clusters.vars.id];
+nClusts = length(clustID);
+
+PC = psr_pca(spikes,parameters.cluster.pca_dims);
 
 % Remove outliers based on PC distance
 
-for iclust = 1:nclusts
+for iClust = 1:nClusts
     
-    which = find(spikes.assigns == clustID(iclust));
-    x = spikes.waveforms(which,:) * spikes.info.pca.v(:,1);
-    y = spikes.waveforms(which,:) * spikes.info.pca.v(:,2);
-    z = spikes.waveforms(which,:) * spikes.info.pca.v(:,3);
-
-    M  = [x,y,z];
-    D  = mahal(M,M);
-    sd = std(D);
-    id = D > spikes.params.outlier.std * sd;
-    id = which(id);
-    
-    spikes = ss_spike_removal(spikes,id);
-    
+    which = find(spikes.assigns == clustID(iClust));
+    nspikes = length(which);
+    if (nspikes > parameters.cluster.pca_dims * parameters.cluster.min_spikes)
+        PC_clust = PC(which,:);
+        D  = mahal(PC_clust,PC_clust);
+        sd = std(D);
+        id = D > sd * parameters.cluster.outlier_std;
+        id = which(id);
+        spikes = psr_sst_spike_removal(spikes,id,method);
+    end
 end
 
 end

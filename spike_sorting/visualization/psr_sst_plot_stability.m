@@ -37,9 +37,6 @@ if nargin < 3, freq   = [];    end
 if nargin < 4; trialonset = [];
 else,          trialonset = metadata.trialonset;
 end
-if nargin < 5; padding = 1;
-else,          padding = parameters.lfp.artifact_padding;
-end
 
 if ~isfield(spikes,'waveforms'), error('No waveforms found in spikes object.'); end
 
@@ -56,22 +53,7 @@ if (~isempty(trialonset))
         for iTrial = 1:nTrials
             noisetimes = [noisetimes;freq(iTrial).artifacts + trialonset(iTrial)]; %#ok
         end
-    end
-    
-    % Add padding to noise times
-    
-    if (~isempty(noisetimes))
-        noisetimes = [noisetimes(:,1)-padding,noisetimes(:,2)+padding];
-        noisetimes = noisetimes';
-        noisetimes = noisetimes(:);
-        d = diff(noisetimes);
-        del = find(d < padding); % difference needs to be at least as large as padding
-        del = sort([del;del+1]);
-        noisetimes(del) = [];
-        noisetimes = reshape(noisetimes',2,[]);
-        noisetimes = noisetimes';
-    end
-    
+    end    
 end
 
 % Initialize axes
@@ -96,7 +78,7 @@ bar(edges(1:end-1) + mean(edges(1:2)),vals,1.0,'FaceColor','k','EdgeColor','none
 hold off
 ylim_ax1 = max(get(gca,'YLim'));
 set(gca, 'XLim', tlims,'YLim',[0 2 * ylim_ax1])
-yticks = get(gca,'YTick'); set(gca,'YTick',yticks( yticks <= max(yticks)/2))
+yticks = get(gca,'YTick'); set(gca,'YTick',yticks(yticks <= max(yticks)/2))
 
 set(gca,'TickLabelInterpreter','Latex');
 xlabel('\bf{Time \ (sec)}',         'Interpreter','Latex')
@@ -104,7 +86,7 @@ ylabel('\bf{Firing \ rate \ (Hz)}', 'Interpreter','Latex')
 
 ylabh = get(gca,'ylabel');
 set(ylabh,'Units','normalized');
-set(ylabh,'position', get(ylabh,'position') - [0.01 0.25 0]);
+set(ylabh,'position', get(ylabh,'position') - [0.01 0.25 0.00]);
 
 % Second pass is scatter plot of amplitude versus time
 
@@ -128,7 +110,7 @@ hold off
 l1 = line(tlims, [0 0],'LineWidth',2);
 set(l1,'Color',[0 0 0])
 hold off
-ylim_ax2 = max(get(ax2,'YLim'));
+ylim_ax2 = mean(amp) + 4 * std(amp);
 set(l,'Marker','.','MarkerEdgeColor',[.3 .5 .3])
 set(ax2,'Xlim',tlims,'YLim',ylim_ax2 * [-1 1],'XTickLabel',{},'YAxisLocation','right');
 yticks = get(ax2,'YTick'); set(ax2,'YTick',yticks(yticks>=0))

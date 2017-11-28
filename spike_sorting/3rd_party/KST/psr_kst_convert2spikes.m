@@ -25,13 +25,14 @@ function spikes = psr_kst_convert2spikes(rez,data,parameters)
 
 %------------- BEGIN CODE --------------
 
+spikes = [];
 Fs = parameters.Fs;
 window_samples = round(Fs * parameters.spikes.window_size / 1000);
 samples_hwidth = round(0.5 * window_samples);
 win = -samples_hwidth:samples_hwidth;
-
 sLength = size(data,2);
-
+if (isempty(rez)); return; end
+    
 % extract info from rez
 spikeTimes     = rez.st3(:,1);
 spikeTemplates = rez.st3(:,2);
@@ -41,7 +42,7 @@ else
     spikeClusters = spikeTemplates;
 end
 
-% get raw data around spiketimes
+% Get raw data around spiketimes
 
 times = bsxfun(@plus,spikeTimes,win);
 times(times < 1) = 1;
@@ -55,9 +56,8 @@ waves = permute(waves,[2 1 3]);
 
 %% Save results
 
-data = psr_single(data',parameters);
+data = psr_single(data',parameters); % Convert data 
 
-spikes             = [];
 spikes.assigns     = int16(spikeClusters');
 spikes.spiketimes  = single((spikeTimes - 1)' / Fs); % in secs
 spikes.waveforms   = waves;
@@ -65,6 +65,6 @@ spikes.info.dur    = (sLength - 1) / Fs; % in secs
 spikes.info.thresh = -parameters.spikes.thresh * (median(abs(data)) / 0.6745);
 spikes.info.stds   = std(data);
 rez = rmfield(rez,'st3'); % Remove now-redundant field
-spikes.info.kst           = rez;
+spikes.info.kst = rez;
 
 %------------- END OF CODE --------------

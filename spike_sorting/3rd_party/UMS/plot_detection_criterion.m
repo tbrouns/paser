@@ -1,4 +1,4 @@
-function p = plot_detection_criterion(spikes,clus)
+function p = plot_detection_criterion(spikes,clus,parameters)
 % UltraMegaSort2000 by Hill DN, Mehta SB, & Kleinfeld D  - 07/12/2010
 %
 % plot_detection_criterion - histogram of detection criterion applied to
@@ -29,10 +29,10 @@ function p = plot_detection_criterion(spikes,clus)
 if ~isfield(spikes,'waveforms'), error('No waveforms found in spikes object.'); end
 
 % Grab data
-[p,mu,stdev,n,x] = ss_undetected(spikes,clus);
+[p,mu,stdev,n,x] = ss_undetected(spikes,clus,parameters);
 
 % Determine global extreme
-my_sign   = sign(mu);
+my_sign   = sign(mean(spikes.info.thresh));
 my_ex     = max(abs(x));
 global_ex = my_ex * my_sign;
 
@@ -49,8 +49,10 @@ bar(x,n,1.0,'FaceColor','k','EdgeColor','none','FaceAlpha',1.0);
 set(gca,'XLim',sort([global_ex 0]));
 
 % Gaussian fit
-l = line(a,b);
-set(l,'Color',[1 0 0],'LineWidth',1.5)
+if (spikes.params.display.show_gaussfit)
+    l = line(a,b);
+    set(l,'Color',[1 0 0],'LineWidth',1.5)
+end
 
 % Threshold line
 l = line([1 1]*my_sign, get(gca,'YLim'));
@@ -58,9 +60,15 @@ set(l,'LineStyle','--','Color',[0 0 0],'LineWidth',2)
 
 % Prettify axes
 axis tight
-title(['\bf{Estimated \ missing \ spikes: \ ' num2str(p*100,'%2.1f') '\% }'], 'Interpreter','Latex');
-xlabel('\bf{Normalized \ amplitude}',                                         'Interpreter','Latex');
-ylabel('\bf{No. \ of \ spikes}',                                              'Interpreter','Latex');
+
+titleString = [];
+if (spikes.params.display.metrics)
+    titleString = ['\bf{Estimated \ missing \ spikes: \ ' num2str(p*100,'%2.1f') '\% }']; 
+end
+
+title(titleString,                    'Interpreter','Latex');
+xlabel('\bf{Normalized \ amplitude}', 'Interpreter','Latex');
+ylabel('\bf{No. \ of \ spikes}',      'Interpreter','Latex');
 set(gca,'TickLabelInterpreter','Latex');
 
 % Determine x limit
@@ -69,7 +77,9 @@ N = cumsum(n);
 N = N / sum(n);
 I = find(N > 0.99,1,'first');
 global_ex = x(I);
-xlim([global_ex,0]);
+if (global_ex < 0)
+    xlim([global_ex,0]);
+end
 
 end
 

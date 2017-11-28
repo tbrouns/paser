@@ -15,11 +15,11 @@ for iTrial = 1:nTrials
     files = dir([loadPath{iTrial} '\*' pattern '*' ext]);
     files = char(files.name);
     
-    if (size(files,1) > 1)
-        continue;
-    else
+    if (size(files,1) == 1)
         file = files(1,:);
         file = strtrim(file);
+    else
+        continue;
     end
         
     % Filter raw data

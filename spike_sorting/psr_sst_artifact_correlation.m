@@ -37,6 +37,11 @@ parameters    = [];
 spikeTimesAll = [];
 probeIDAll    = [];
 
+filesSpikes = filesSpikes(:,1);
+k = find(~cellfun(@isempty,filesSpikes));
+filesSpikes = filesSpikes(k);
+filesData   = filesData(k,:);
+
 % Set parameters
 
 load(filesSpikes{1}); % Load first file to extract parameters
@@ -58,11 +63,13 @@ sWindow  = floor(0.5 * Fs * (parameters.spikes.window_size / 1000)); % in sample
 
 for iProbe = 1:nProbes
     load(filesSpikes{iProbe},'spikes','parameters');
-    if (isfield(spikes,'spiketimes'))
+    if (~isfield(spikes,'correlations') && isfield(spikes,'spiketimes'))
         spikeTimesAll = [spikeTimesAll, spikes.spiketimes]; %#ok
         probeIDAll = [probeIDAll, iProbe * ones(size(spikes.spiketimes),'int16')]; %#ok
     end
 end
+
+if (isempty(spikeTimesAll)); return; end
 
 % Sort spikes in chronological order
 
@@ -107,8 +114,8 @@ for iSection = 1:nSection
                 sLengthTrial = Fs * metadata.duration + 1;
                 itr = itr + sLengthTrial;
                 if (itr + sLengthTrial > iStart) % Check if we need to save
-                    load(filesData{iProbe,iTrial},'spikes');
-                    dataProbe = [dataProbe, spikes.data];
+                    load(filesData{iProbe,iTrial},'ts_Spikes');
+                    dataProbe = [dataProbe, ts_Spikes.data];
                 else % Move offset to first trial within range
                     iOffset = itr;
                 end

@@ -45,7 +45,7 @@ if (isempty(folderNames)); disp('No folders in directory'); return; end
 OVERWRITE  = true;
 
 if (~isempty(parameters.txtfile)) % Read sessions from text file
-    filename = [parameters.loadPath parameters.txtfile];
+    filename = parameters.txtfile;
     fileID = fopen(filename);
     foldersTemp = textscan(fileID,'%s %s');
     nSessions = size(foldersTemp,2);
@@ -74,7 +74,10 @@ else
     
     nTypes = length(folderTypes);
     for iType = 1:nTypes % Remove empty cells
-        folderTypes{iType} = folderTypes{iType}(~cellfun('isempty',folderTypes{iType}));
+        type = folderTypes{iType};
+        if (iscell(type))
+            folderTypes{iType} = type(~cellfun('isempty',type));
+        end
     end
     
     % Extract folders that match given type
@@ -124,7 +127,7 @@ for iFolder = 1:nFolders
     nSessions = size(folders,2);
     
     parameters.session      = []; % session names
-    parameters.sessionTrial = []; % note session for each trial
+    parameters.sessionIndex = []; % note session for each trial
     parameters.loadPathSub  = []; % where each trial is loaded from
     
     FILES_FOUND = false;
@@ -142,7 +145,7 @@ for iFolder = 1:nFolders
         
         parameters.session{iSession} = folderName;
         parameters.loadPathSub  = [parameters.loadPathSub;loadPathSub];
-        parameters.sessionTrial = [parameters.sessionTrial;iSession*ones(size(loadPathSub))];
+        parameters.sessionIndex = [parameters.sessionIndex;iSession*ones(size(loadPathSub))];
         
         if (iSession == 1); parameters.savePathSub = folderName;
         else,               parameters.savePathSub = [parameters.savePathSub '-' folderName];

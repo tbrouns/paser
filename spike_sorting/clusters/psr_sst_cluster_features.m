@@ -31,19 +31,34 @@ function clusters = psr_sst_cluster_features(spikes,freq,metadata,parameters)
 
 clusterMin = parameters.cluster.min_spikes;
 threshold  = parameters.cluster.thresh * (spikes.info.thresh / parameters.spikes.thresh);
-spikes.waveforms = psr_single(spikes.waveforms,parameters);
-Fs = spikes.Fs;
+Fs         = spikes.Fs;
 
 % Extract local field potential artifacts
 
 artifacts = [];
 if (isfield(freq,'artifacts'))
-    ntrials = size(freq,1);
+    ntrials = size(freq,2);
     for iTrial = 1:ntrials
         artifacts = [artifacts;freq(iTrial).artifacts + metadata.trialonset(iTrial)]; %#ok
     end
     artifacts = getArtifactVector(spikes,artifacts);
 end
+
+% Convert to single
+
+if (isa(spikes.waveforms,'int16'))
+    spikes.waveforms = psr_single(spikes.waveforms,parameters);
+end
+
+% Filter spikes
+
+if (parameters.cluster.remove_corr); spikes = psr_sst_filter_corr(spikes,parameters,'array'); end
+if (parameters.cluster.remove_amp);  spikes = psr_sst_filter_amp (spikes,parameters,'array'); end
+if (parameters.cluster.remove_rpv);  spikes = psr_sst_filter_rpv (spikes,parameters,'array');
+else,                                spikes = psr_sst_filter_rpv (spikes,parameters, 'none');
+end
+
+if (isfield(spikes,'removed'));      spikes = psr_sst_spike_removal(spikes,find(spikes.removed),'delete'); end
 
 % Calculate features of clusters
 
@@ -63,38 +78,42 @@ for iClust = 1:nClust
     
     % Calculate individual cluster metrics
     
-    [~,~,~,rpvs] = ss_rpv_contamination (spikes, clusterID, parameters); 
-    [p,~,~,~,~]  = ss_undetected        (spikes, clusterID);             
+    [p,~,~,~,~]  = ss_undetected        (spikes, clusterID, parameters);             
     co           = ss_censored          (spikes, clusterID, parameters); 
     [xc,lagMax]  = crossCorrelation     (spikes, clusterID, parameters); 
     [k,M,m]      = checkThreshold       (spikes, clusterID, threshold);
     f            = getFiringRate        (spikes, clusterID);
     od           = getArtifactOverlap   (spikes, clusterID, artifacts); 
     snr          = getSignalToNoise     (spikes, clusterID);
-    [pd,N]  	 = fitPoisson           (spikes, clusterID, parameters); 
-        
+    [auc,N]  	 = fitPoisson           (spikes, clusterID, parameters); 
+    corrGlobal   = getCorrelationGlobal (spikes, clusterID); 
+    corrProbe    = getCorrelationProbe  (spikes, clusterID);
+    
     clusters.vars(iClust).id       = clusterID;
-    clusters.vars(iClust).rpv      = rpvs / nspikes;        
-    clusters.vars(iClust).missing  = p;                     
-    clusters.vars(iClust).co       = co;                    
+    clusters.vars(iClust).rpv      = spikes.rpvs(iClust);
+    clusters.vars(iClust).missing  = p;
+    clusters.vars(iClust).co       = co;
     clusters.vars(iClust).nspikes  = nspikes;
+    clusters.vars(iClust).fspikes  = nspikes / length(spikes.spiketimes);
     clusters.vars(iClust).xc       = xc;           
-    clusters.vars(iClust).xc_lag   = 1000 * (lagMax / Fs); 
-    clusters.vars(iClust).pcorr    = pd;
-    clusters.vars(iClust).pdist    = N;
+    clusters.vars(iClust).xc_lag   = 1000 * (lagMax / Fs);
+    clusters.vars(iClust).p_auc    = auc;
+    clusters.vars(iClust).p_dist   = N;
     clusters.vars(iClust).amp      = M;
     clusters.vars(iClust).amp_rel  = m;
     clusters.vars(iClust).chans    = k;
     clusters.vars(iClust).frate    = f;
     clusters.vars(iClust).artifact = od;
+    clusters.vars(iClust).corrG    = corrGlobal;
+    clusters.vars(iClust).corrP    = corrProbe;
     clusters.vars(iClust).snr      = snr;
     
-    % Pair-wise cluster metrics
+    % Pair-wise cluster metrics (unreliable)
     
     PC_1 = psr_pca(spikes,parameters.cluster.pca_dims,find(spikes.assigns == clusterID));
     for jcluster = (iClust+1):nClust
         PC_2 = psr_pca(spikes,parameters.cluster.pca_dims,find(spikes.assigns == clusterIDs(jcluster)));
-        if (length(PC_1) > 3 * clusterMin && length(PC_2) > 3 * clusterMin) % factor of 3 added because pca3 returns three values
+        if (length(PC_1) > parameters.cluster.pca_dims * clusterMin && length(PC_2) > parameters.cluster.pca_dims * clusterMin)
             M = mahal(PC_1,PC_2);
             B = bhattacharyya(PC_1,PC_2);
             clusters.mahal(iClust,jcluster)         = mean(M(:));
@@ -124,9 +143,16 @@ end
 
 end
 
+function RPVtotal = getRPVtotal(spikes,show)
+
+which = ismember(spikes.assigns, show);
+RPVtotal = sum(spikes.rpvs(which));
+
+end
+
 function [xc,lagMax] = crossCorrelation(spikes, show, parameters)
 
-clus      = get_spike_indices(spikes, show);
+clus      = ismember(spikes.assigns, show);
 nchan     = size(spikes.waveforms,3);
 nsamples  = size(spikes.waveforms,2);
 threshold = parameters.cluster.thresh_xcorr * (spikes.info.thresh / parameters.spikes.thresh);
@@ -172,8 +198,10 @@ lagAll = zeros(ncombi,1);
 for icombi = 1:ncombi
     xc = XC(:,icombi);
     [pks,loc] = findpeaks(xc);
-    [~,I] = max(pks);
-    lagAll(icombi) = lags(loc(I));
+    if (isempty(pks)); [~,I] = max(xc); 
+    else,              [~,I] = max(pks); I = loc(I);
+    end
+    lagAll(icombi) = lags(I);
 end
 
 [lagMax,I] = max(lagAll);
@@ -182,9 +210,9 @@ xc = XC(:,I);
 
 end
 
-function [pd,N] = fitPoisson(spikes, show, parameters)
+function [auc,N] = fitPoisson(spikes, show, parameters)
 
-show = get_spike_indices(spikes, show);
+show = ismember(spikes.assigns, show);
 
 % Parse inputs
 
@@ -219,17 +247,18 @@ xmax = max(counts);
 x = 0:xmax;
 y = poisspdf(x,lambda);
 
-% Find difference (in percentages)
+% Find difference between theoretical and empirical Poisson distributions
 
-[rho,p] = corr(N',y');
-pd = [rho, p];
+A = N;
+A(A > y) = y(A > y); 
+auc = sum(A) / sum(N); % area under Poisson curve (relative to total area)
 
 end
 
 function [k,M,m] = checkThreshold(spikes, show, threshold)
 
 signThresh   = sign(mean(threshold));
-clus         = get_spike_indices(spikes, show);
+clus         = ismember(spikes.assigns, show);
 memberwaves  = spikes.waveforms(clus,:,:);
 memberwaves  = signThresh * squeeze(mean(memberwaves,1));
 M            = max(memberwaves); % maximum amplitude per channel
@@ -241,7 +270,7 @@ end
 
 function f = getFiringRate(spikes,show)
 
-clus       = get_spike_indices(spikes, show);
+clus       = ismember(spikes.assigns, show);
 spiketimes = spikes.spiketimes(clus);
 nspikes    = length(spiketimes);
 dur        = spikes.info.dur;
@@ -258,8 +287,8 @@ artifacts = round(Fs * artifacts) + 1;
 artifacts(artifacts < 1)       = 1;
 artifacts(artifacts > nlength) = nlength;
 artifactVector = false(nlength,1);
-nartifacts = size(artifacts,1);
-for iArtifact = 1:nartifacts
+nArtifacts = size(artifacts,1);
+for iArtifact = 1:nArtifacts
     artifactVector(artifacts(iArtifact,1):artifacts(iArtifact,2)) = true;
 end
 end
@@ -272,7 +301,7 @@ if (~isempty(artifacts))
     % Finds the degree to which spikes overlap with artifacts in LFP signal
     
     Fs         = spikes.Fs;
-    which      = get_spike_indices(spikes, show);
+    which      = ismember(spikes.assigns, show);
     spiketimes = spikes.spiketimes(which);
     spiketimes = round(Fs * spiketimes) + 1; % in sample number
     nlength    = length(artifacts);
@@ -297,7 +326,7 @@ function snr = getSignalToNoise(spikes,show)
 % See: Reliability of Signals From a Chronically Implanted Silicon-Based
 % Electrode Array in Non-Human Primate Primary Motor Cortex (2005)
 
-which    = get_spike_indices(spikes, show);
+which    = ismember(spikes.assigns, show);
 waves    = spikes.waveforms(which,:);
 wavesAvg = mean(waves);
 A        = max(wavesAvg) - min(wavesAvg);
@@ -306,6 +335,22 @@ noise    = noise(:);
 noise    = 2 * std(noise);
 snr      = A / noise;
 
+end
+
+function corrGlobal = getCorrelationGlobal(spikes,show)
+    which = ismember(spikes.assigns, show);
+    corrGlobal = nanmean(spikes.correlations(which));
+end
+
+function corrProbe = getCorrelationProbe(spikes,show)
+    nChans = size(spikes.waveforms,3);
+    which = ismember(spikes.assigns, show);
+    waves = spikes.waveforms(which,:,:);
+    waves = permute(waves,[2 1 3]);
+    waves = reshape(waves,[],nChans);    
+    R = triu(corr(waves),1);
+    R = R(triu(true(size(R)),1));
+    corrProbe = min(R);
 end
 
 %------------- END OF CODE --------------

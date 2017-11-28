@@ -61,8 +61,6 @@ data.weighting   = double(weights');
 
 % Run algorithm
 
-disp('Calculating cluster quality control metrics...');
-
 % These are the parameters that we recommend in the paper
 nu = parameters.cluster.mdt.nu;                               % t-distribution nu parameter (smaller = heavier tails)
 q_perhour = parameters.cluster.mdt.q_perhour;                 % Drift regularization (smaller = more smoothing)
@@ -77,15 +75,16 @@ timeframe_ms = 60e3 * timeframe_minutes;
 model.attachData(data.spk_Y, data.spk_t,'frameDur',timeframe_ms);
 
 % Fit the model parameters based on our spike assignments
-fprintf('Fitting model based on spike assignments\n');
 clustAssigned = data.spk_clustId;
-model.initFromAssign(clustAssigned,'verbose',true);
+MSGID = 'MATLAB:nearlySingularMatrix';
+warning('off', MSGID); % Disable warning
+model.initFromAssign(clustAssigned);
+warning('on',  MSGID);
 
 % Obtain the posterior probability that spike n came from cluster k
 posterior = model.getValue('posterior');
 
 % Let's also fit a drifting Gaussian model
-fprintf('Fitting a drifting Gaussian model by setting nu=Inf\n');
 gaussModel = model.copy();
 gaussModel.setParams('nu',Inf);
 gaussModel.initFromAssign(clustAssigned);

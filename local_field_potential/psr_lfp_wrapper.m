@@ -1,7 +1,7 @@
-function [freq,parameters] = psr_lfp_wrapper(data,timestamps,stimtimes,parameters)
+function output = psr_lfp_wrapper(inputs,parameters)
 
 % Initialize LFP structure
-freq = [];
+output = [];
 
 % Check FieldTrip path 
 
@@ -16,7 +16,7 @@ if (isempty(parameters.path.ft))
         SKIP_LFP = true; % FT not found and no path set
         disp('FieldTrip path not set.');
     end
-elseif (~FT_PRESENT)
+else
     % Add FieldTrip to path
     MSGID = 'MATLAB:dispatcher:pathWarning';
     warning('off',MSGID);
@@ -35,9 +35,32 @@ end
 if (SKIP_LFP)
     disp('Skipping LFP processing...');
 else
-    data = psr_convert2fieldtrip(data,timestamps,stimtimes,parameters);
-    [data,parameters] = psr_lfp_preprocessing(data,parameters); % FT preprocessing
-    if (~isempty(data)); freq = psr_lfp_timefreq(data,parameters); end
+    
+    if (strcmp(inputs.method,'tfa')) % time-frequency analysis
+        
+        freq       = []; %#ok
+        data       = inputs.data;
+        timestamps = inputs.timestamps;
+        stimtimes  = inputs.stimtimes;
+        method     = stimtimes{2};
+        
+        data = psr_convert2fieldtrip(data,timestamps,stimtimes,parameters);
+        [data,parameters] = psr_lfp_preprocessing(data,parameters); % FT preprocessing
+        if (~isempty(data) && strcmp(method,'onset')); freq = psr_lfp_timefreq(data,parameters);
+        else,                                          freq = data;
+        end
+        
+        output.freq = freq;
+        output.parameters = parameters;
+    
+    elseif (strcmp(inputs.method,'plot'))
+    
+        freq     = inputs.freq;
+        baseline = inputs.baseline;
+        params   = inputs.params;
+        psr_lfp_plotting(freq,baseline,params);
+        
+    end
     
     if (~FT_PRESENT)
         try % Remove FT from path

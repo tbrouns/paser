@@ -22,8 +22,7 @@ SpikeTimesTrial =  cell(2,nClusts);
 
 % Extract stimulus windows
 
-stimulusAmp   = spikes.info.stimulus;
-stimulusTimes = spikes.info.stimtimes{1};
+stimulusTimes = spikes.info.stimtimes{1}(:,1) + (params.stimOffset / 1000);
 nTrials = length(stimulusTimes); % number of stimulus onsets
 
 if (~isempty(stimulusTimes))
@@ -31,7 +30,7 @@ if (~isempty(stimulusTimes))
     stimulusTimes = round(Fs * stimulusTimes) + 1;
     if (size(stimulusTimes,1) > size(stimulusTimes,2)); stimulusTimes = stimulusTimes'; end
     
-    del = bsxfun(@plus,stimulusTimes,(-sDel : sDel)');
+    del = bsxfun(@plus,stimulusTimes,(sDel(1) : sDel(2) - 1)');
     del(del < 1)    = 1;
     del(del > Nmax) = Nmax;
     del = del(:);
@@ -59,11 +58,10 @@ if (~isempty(stimulusTimes))
         spiketimes = round(Fs * spiketimes) + 1; % in sample number
         signal(spiketimes) = true;
         signal(del)        = false;
-        if (stimulusAmp ~= 0)
-            SpikeBinCount = signal(ids); % extract windows around each stimulus onset [samples per window x ntrials]
-            SpikeBinCount = reshape(SpikeBinCount, sBin, nBins, nTrials); % [samples per bin x nbins x ntrials]        
-            SpikeBinTrials{iClus} = SpikeBinCount;
-        end
+        
+        SpikeBinCount = signal(ids); % extract windows around each stimulus onset [samples per window x ntrials]
+        SpikeBinCount = reshape(SpikeBinCount, sBin, nBins, nTrials); % [samples per bin x nbins x ntrials]        
+        SpikeBinTrials{iClus} = SpikeBinCount;
 
         % Pre- and post-stimulus spiking vectors
 

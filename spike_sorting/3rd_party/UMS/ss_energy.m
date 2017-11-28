@@ -56,16 +56,17 @@ elseif (~isfield(spikes.info, 'kmeans'))
     disp('SS:overcluster_not_computed', 'The data must be overclustered before computing energy');
     return
 end
-numclusts = length(unique(spikes.info.kmeans.assigns));
-d         = diag(spikes.info.pca.s);
-r         = find(cumsum(d)/sum(d) > 0.95, 1);
-waves     = (spikes.waveforms(:,:) * spikes.info.pca.v(:,1:r))';
+
+nClusts = length(unique(spikes.info.kmeans.assigns));
+d       = diag(spikes.info.pca.s);
+r       = find(cumsum(d)/sum(d) > 0.95, 1);
+waves   = (spikes.waveforms(:,:) * spikes.info.pca.v(:,1:r))';
 
 %%%%% PREPARE SOME INFORMATION
 
-waveclust = cell(numclusts,1); % collect spikes for each cluster
-numpts    = zeros(numclusts,1);
-for clust = 1:numclusts;
+waveclust = cell(nClusts,1); % collect spikes for each cluster
+numpts    = zeros(nClusts,1);
+for clust = 1:nClusts
     waveclust{clust} = waves(:,spikes.info.kmeans.assigns == clust);
     numpts(clust)    = size(waveclust{clust},2);
 end
@@ -80,22 +81,22 @@ k       = 0;
 sumpts  = sum(tril(numpts * ones(1,length(numpts))));
 total   = sum(sumpts);
 progress_bar(0,1,'Computing Interaction Energies . . .')
-interface_energy  = zeros(numclusts);
+interface_energy  = zeros(nClusts);
 
 %%%%% PAIRWISE DISTANCES LOOP
 
-for clust1 = 1:numclusts
-    X  = waveclust{clust1};
-    for clust2 = clust1:numclusts   % clust2 starts at clust1 so we get intra- too
+for iClust = 1:nClusts
+    X  = waveclust{iClust};
+    for jClust = iClust:nClusts   % clust2 starts at clust1 so we get intra- too
         % Compute pairwise Euclidean distance matrix
         % use formula that (x-y)^2 = x^2 + y^2 - 2xy
         % Note that this formula can cause small negative values due to
         % round-off, so we take absolute value
-        Y = waveclust{clust2};
+        Y = waveclust{jClust};
         dists = abs(bsxfun(@plus,dot(X,X,1),dot(Y,Y,1)')-(2*Y'*X));
-        interface_energy(clust1,clust2) = sum(exp(-realsqrt(dists(:))/scale));
+        interface_energy(iClust,jClust) = sum(exp(-realsqrt(dists(:))/scale));
     end
-    k = k + sumpts(clust1);
+    k = k + sumpts(iClust);
     progress_bar(k/total,[]);
 end
 
@@ -116,18 +117,18 @@ spikes.info.interface_energy = interface_energy;
 % Now re-number all clusters based on connection strength similarities
 assignments      = double(spikes.info.kmeans.assigns);
 interface_energy = spikes.info.interface_energy;
-numclusts        = max(assignments);
-numpts           = full(sparse(assignments, 1, 1, numclusts, 1));
+nClusts        = max(assignments);
+numpts           = full(sparse(assignments, 1, 1, nClusts, 1));
 normalize        = ((numpts * numpts') - diag(numpts));           % Off diag: Na*Nb, On diag: Na^2-Na ...
 normalize        = normalize - diag(0.5 * diag(normalize));       % ... and divide diagonal by 2
 norm_energy      = interface_energy ./ normalize;
-self             = repmat(diag(norm_energy), [1,numclusts]);
+self             = repmat(diag(norm_energy), [1,nClusts]);
 connect_strength = 2 .* norm_energy ./ (self + self');
-connect_strength = connect_strength .* (1-eye(numclusts));        % diag entries <- 0, so we won't agg clusters with themselves
+connect_strength = connect_strength .* (1-eye(nClusts));        % diag entries <- 0, so we won't agg clusters with themselves
 
 % initialize
 [~,pos(1)] = max(max(connect_strength));
-for j = 2:numclusts
+for j = 2:nClusts
     [val1,pos1] = max(connect_strength(:,pos(j-1)));
     [val2,pos2] = max(connect_strength(pos(j-1),:));
     if val1 >= val2; pos(j) = pos1;
@@ -142,9 +143,9 @@ assigns = spikes.info.kmeans.assigns;
 ie      = spikes.info.interface_energy;
 c       = spikes.info.kmeans.centroids;
 
-for j = 1:numclusts
+for j = 1:nClusts
     assigns(spikes.info.kmeans.assigns == pos(j)) = j;
-    for k = 1:numclusts
+    for k = 1:nClusts
         if k > j
             if pos(k) > pos(j); ie(j,k) = spikes.info.interface_energy(pos(j),pos(k));
             else                ie(j,k) = spikes.info.interface_energy(pos(k),pos(j));

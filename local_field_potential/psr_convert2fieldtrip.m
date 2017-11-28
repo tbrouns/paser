@@ -4,27 +4,36 @@ Fr      = parameters.Fr;
 nchans  = size(data,1);
 labels  = 1:nchans;
 
+method    = stimTimes{2};
+stimTimes = stimTimes{1};
+
 % Set onset and offset for every trial
 
-if (size(stimTimes,2) == 1) % Only onset specified
+if (strcmp(method,'onset')) % only use onset
+    
     onset  = parameters.lfp.trial_onset  - parameters.lfp.trial_padding;
     offset = parameters.lfp.trial_offset + parameters.lfp.trial_padding;
+        
+    onset     = round(Fr * onset);
+    offset    = round(Fr * offset);
+    stimTimes = round(Fr * stimTimes(:,1));
+    
     stimOnset  = stimTimes + onset;
-    stimOffset = stimTimes + offset;
-else % Both onset and offset specified
+    stimOffset = stimTimes + offset;    
+        
+elseif (strcmp(method,'interval')) % Use both onset and offset to specify interval
+        
     onset = 0;
-    stimOnset  = stimTimes(:,1);
-    stimOffset = stimTimes(:,2);
+    stimOnset  = round(Fr * stimTimes(:,1));
+    stimOffset = round(Fr * stimTimes(:,2));
+    
 end
 
-offset = round(onset  * Fr); % offset for trial timescale
-
-% Convert to sample number
-stimOnset  = round(stimOnset  * Fr);
-stimOffset = round(stimOffset * Fr);
+% Ignore trials outside boundary
 nlength = round(Fr * timestamps(end));
-stimOnset (stimOnset  < 1) = 1;
-stimOffset(stimOffset > nlength) = nlength;
+del = stimOnset < 1 | stimOffset > nlength;
+stimOnset (del) = [];
+stimOffset(del) = [];
     
 % Function that converts dataformat to field trip format
 dataFT         = [];
@@ -43,15 +52,15 @@ if (~isempty(stimOnset))
     dataFT  = ft_redefinetrial(cfg,dataFT);
     
     cfg = [];
-    cfg.offset = offset;
+    cfg.offset = onset;
     dataFT     = ft_redefinetrial(cfg,dataFT);
     
     % Set NaNs to zero
     
-    ntrials = size(dataFT.trial,2);
-    for iTrial = 1:ntrials
+    nTrials = size(dataFT.trial,2);
+    for iTrial = 1:nTrials
         data_trial = sum(dataFT.trial{iTrial});
         dataFT.trial{iTrial}(:,isnan(data_trial)) = 0;
-    end 
+    end
     
 end

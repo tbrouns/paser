@@ -1,12 +1,9 @@
-function psr_batch_visualization(subject,loadPath_root,savePath_root,expType,CLUSTERS,ANALYSIS,PLOTTING)
+function psr_batch_visualization(subject,loadPath_root,savePath_root,expType,cfg)
 
 if (nargin < 1); subject       = [];    end
 if (nargin < 2); loadPath_root = [];    end
 if (nargin < 3); savePath_root = [];    end
 if (nargin < 4); expType       = 'all'; end
-if (nargin < 5); CLUSTERS      = true;  end
-if (nargin < 6); ANALYSIS      = true;  end
-if (nargin < 7); PLOTTING      = true;  end % Plot figures during analysis
 
 ptrn = 'passive';
 
@@ -46,54 +43,47 @@ for iFolder = 1:numfolders
     
     if (loadPath(end) ~= '\'); loadPath = [loadPath, '\']; end %#ok
     if (savePath(end) ~= '\'); savePath = [savePath, '\']; end %#ok
-            
-    baseline  = [];
+    
     MATfiles  = dir([loadPath '\Spikes_' subject '*.mat']);
     numfiles  = size(MATfiles,1);
     filenames = char(MATfiles.name);
     if (isempty(filenames)); continue; end
     
-    if (ANALYSIS)
+    if (cfg.analysis)
         savePathFigures = [savePath 'analysis\'];
         [~,~,~] = mkdir(savePathFigures);
-        psr_batch_analysis(filenames,loadPath,loadPath,savePathFigures,PLOTTING);
+        psr_batch_analysis(filenames,loadPath,loadPath,savePathFigures);
     end
     
-    if (CLUSTERS)
-        for iFile = 1:numfiles
-            close all
-            filename = filenames(iFile,:);
-            load([loadPath filename]);
-            [~,filename,~] = fileparts(filename);
+    for iFile = 1:numfiles
+        close all
+        filename = filenames(iFile,:);
+        fpath = [loadPath filename];
+        load(fpath);
+        [~,filename,~] = fileparts(filename);
+        
+        if (cfg.cluster)
             savePathClusters = [savePath 'clusters\'];
             if (isfield(spikes,'spiketimes'))
                 
                 savePathQuality = [savePathClusters 'quality\'];
                 [~,~,~] = mkdir(savePathQuality);
-                psr_sst_plot_multiple(spikes,metadata,parameters,freq,savePathQuality,filename); 
-                
+                psr_sst_plot_multiple(spikes,metadata,parameters,freq,savePathQuality,filename);
+              
                 savePathMerges = [savePathClusters 'merges\'];
                 [~,~,~] = mkdir(savePathMerges);
-                psr_sst_plot_merges(spikes,parameters,savePathMerges,filename); 
+                psr_sst_plot_merges(spikes,parameters,savePathMerges,filename);
                 
                 %             psr_sst_plot_clusters(spikes,clusters,savePath,filename);
             end
-            
-            %%% FIX LFP PLOTTING
-%             if (~isempty(spikes.stimtimes{1}))
-%                 if (metadata.stimulus == 0); psr_lfp_plotting(freq,parameters,savePath,filename); baseline = getBaseline(freq); % must be loaded first
-%                 else,                        psr_lfp_plotting(freq,parameters,savePath,filename,baseline);
-%                 end
-%             end
-
+        end
+        
+        if (cfg.manual)
+            spikes = psr_manual_labelling(spikes,metadata,parameters,freq);
+            save(fpath,'spikes','-append');
         end
     end
 end
 
 end
 
-function base = getBaseline(freq)
-    base = freq.powspctrm;
-    base = nanmean(base,3);
-    base = repmat(base,1,1,size(freq.time,2));
-end

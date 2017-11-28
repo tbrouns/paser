@@ -301,6 +301,11 @@ You can select this option by going to the `Home` tab in MATLAB, selecting `Pref
 
 ## Analysis
 
+## Troubleshooting
+
+Problem: `'Undefined function 'ft_senstype' for input arguments of type 'cell'.'`
+Solution: Restart MATLAB or execute `restoredefaultpath` followed by `startup`.
+
 ## Third-party dependencies
 
 The toolbox uses a number of third-party software packages, which are listed below. Some of these are included with the toolbox. 

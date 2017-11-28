@@ -1,4 +1,4 @@
-function spikes = psr_sst_cluster_merge(spikes,freq,metadata,parameters)
+function spikes = psr_sst_cluster_merge(spikes,parameters)
 
 % PSR_SST_CLUSTER_MERGE - Merge spike clusters based on waveform similarity.
 % This function merges spike clusters obtained by spike sorting if their
@@ -40,8 +40,8 @@ end
 
 if (strcmpi(parameters.sorting.method,'kst')) % If KiloSort was used...
     M = spikes.info.kst.simScore; % ... use their simScore
-else % Use inverse Mahalanobis distance
-    M = 1 / spikes.clusters.mahal;
+else % Don't merge
+    return;
 end
 
 M(~triu(true(size(M)),1)) = -realmax; % Ignore lower triangular part
@@ -53,10 +53,6 @@ IDs = find(M(:) >= parameters.cluster.merge_thresh); % Do thresholding
 
 clusterIDs = 1:size(M,1);
 spikes = merge_clusters(spikes,clusterIDs(I_row),clusterIDs(I_col));
-
-% Calculate features of newly formed clusters
-
-spikes.clusters = psr_sst_cluster_features(spikes,freq,metadata,parameters);
 
 end
 

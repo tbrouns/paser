@@ -1,27 +1,32 @@
-function assigns = psr_sst_sorting_OPS(spikes,parameters)
+function assigns = psr_sst_sorting_OPS(spikes,data,parameters)
 
-Fs = spikes.Fs;
-K  = 3; % Number of PCA components to use.
+%% Set parameters
 
-waves = spikes.waveforms(:,:); 
+Fs = parameters.Fs;
+K  = parameters.sorting.ops.dims; % Number of PCA components to use.
+
+params = parameters.sorting.ops;
+params.Phi_0 = params.Phi_0f * eye(K);
+params.bet   = 1./(params.betf * Fs);
+
+%% Convert data
+
+data = psr_single(data,parameters);
+if (size(data,2) > size(data,1)); data = data'; end
+
+%% Extract data
+
+waves = psr_single(spikes.waveforms(:,:),parameters); 
 waves = waves'; % [samples per waveform x number of spikes]
-data  = spikes.data; 
 
 %% Reduce dimensionality
 
 [U,~,~] = svd(waves,'econ');
 U = U(:,1:K);
-
-%% Set parameters:
-params.alph    = 1e-1;
-params.kappa_0 = 0.01;
-params.nu_0    = 0.1;
-params.Phi_0   = 0.1*eye(K);
-params.a_pii   = 1;
-params.b_pii   = 1e7;
-params.bet     = 1./(30*Fs);
+clear waves;
 
 %% run M_OPASS
+
 [z,gam,ngam,muu,lamclus,nu,kappa,Phi,S] = m_opass(data,U,params);
 
 %% Plot non-trivial clusters

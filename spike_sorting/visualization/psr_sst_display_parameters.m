@@ -2,6 +2,8 @@ function spikes = psr_sst_display_parameters(spikes)
 
 %% DISPLAY PARAMETERS
 
+spikes.params.display.metrics = true; % show metrics in plot title
+
 % plot_waveforms
 spikes.params.display.default_waveformmode = 3;       % 1 = show all waveforms, 2 = show 95% waveform bands, 3 = show 2d histogram
 spikes.params.display.time_scalebar        = 1;       % ms, length of scalebar in milliseconds on waveform plots
@@ -21,6 +23,9 @@ spikes.params.display.trial_spacing           = 0.5;   % s, time padding between
 % plot_stability parameters
 spikes.params.display.stability_bin_size = 10;   % s, bin used for estimating firing rate
 spikes.params.display.max_scatter        = 5000; % maximum number of waveforms to show in amplitude scatter plot
+
+% detection criterion
+spikes.params.display.show_gaussfit = true;
 
 % figure layout
 spikes.params.display.default_figure_size         = [0.05 0.1 0.9 0.8]; % location of default figure

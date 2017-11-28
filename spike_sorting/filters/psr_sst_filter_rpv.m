@@ -1,15 +1,18 @@
-function spikes = psr_sst_filter_rpv(spikes,parameters)
+function spikes = psr_sst_filter_rpv(spikes,parameters,method)
 
-nclusts = length(unique(spikes.assigns));
+PC = psr_pca(spikes,parameters.cluster.pca_dims);
 
-for iclust = 1:nclusts
+nClusts = length(unique(spikes.assigns));
+spikes.rpvs = zeros(nClusts,1); 
+
+for iClust = 1:nClusts
     
-    show = get_spike_indices(spikes, iclust);
+    show = get_spike_indices(spikes, iClust);
+    
+    PC_clust = PC(show,:);
     
     nspikes = length(show);
     if (nspikes <= parameters.cluster.min_spikes); continue; end
-    
-    PC = psr_pca(spikes,parameters.cluster.pca_dims,show);
         
     % Find refractory period violations (RPVs)
     
@@ -35,25 +38,25 @@ for iclust = 1:nclusts
         if (spiketimes(id(itr+1)) - spiketimes(id(itr)) <= 0.001 * parameters.spikes.ref_period)
             v     = [id(itr);id(itr+1)];
             itrV  = [itr;itr+1];
-            [~,I] = max(mahal(PC(v,:),PC));
+            [~,I] = max(mahal(PC_clust(v,:),PC_clust));
             I1    = itrV(I);
             I2    = v(I);
             spiketimes(I2) = [];
-            PC(I2,:)       = [];
+            PC_clust(I2,:) = [];
             id(I1:end)     = id(I1:end) - 1;
             id(I1)         = [];
             del = [del;I2+n]; %#ok
             nRPVs = nRPVs - 1;
-            itr = itr - 1;
-            n   = n + 1;
+            itr   =   itr - 1;
+            n     =     n + 1;
         end
         
         itr = itr + 1;
     end
     
     id = show(del);
-    spikes = psr_sst_spike_removal(spikes,id,'array');
-    
+    spikes = psr_sst_spike_removal(spikes,id,method);
+    spikes.rpvs(iClust) = length(id) / nspikes;
 end
 
 end
