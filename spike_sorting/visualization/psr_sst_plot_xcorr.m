@@ -1,8 +1,8 @@
 function psr_sst_plot_xcorr(spikes,clustID)
 
 Fs = spikes.Fs;
-id = logical([spikes.clusters.vars.id] == clustID);
-xc = spikes.clusters.vars(id).xc;
+id = logical([spikes.clusters.metrics.id] == clustID);
+xc = spikes.clusters.metrics(id).xc;
 
 if ~isempty(xc)
     n = 0.5 * (length(xc) - 1);

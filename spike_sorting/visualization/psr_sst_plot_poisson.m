@@ -1,13 +1,16 @@
 function psr_sst_plot_poisson(spikes,clustID,parameters)
 
 % Poisson distribution
-id     = find([spikes.clusters.vars.id] == clustID);
+id     = find([spikes.clusters.metrics.id] == clustID);
 twin   = parameters.cluster.stability_win;
-frate  = spikes.clusters.vars(id).frate;
-N      = spikes.clusters.vars(id).p_dist;
+frate  = spikes.clusters.metrics(id).frate;
+N      = spikes.clusters.metrics(id).p_dist;
 lambda = frate * twin;
 x      = 0:length(N)-1;
-y      = poisspdf(x,lambda);
+
+if (isempty(x)); set(gca,'Visible','off'); return; end % Don't show plot
+
+y = poisspdf(x,lambda);
 
 % Plot
 

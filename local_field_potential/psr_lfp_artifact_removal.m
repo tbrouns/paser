@@ -1,7 +1,5 @@
 function [data,artifacts] = psr_lfp_artifact_removal(data,artifacts,parameters)    
 
-psr_parameter_config; % TEMP
-
 % Set constants
 nTrials  = size(artifacts,1);
 nTypes   = size(artifacts,2);
@@ -43,9 +41,9 @@ for iTrial = 1:nTrials
         x = artifactsTrial(iArtifact,1):artifactsTrial(iArtifact,2);
         dataTrial(:,x) = NaN;
     end
-    artifactsAll{iTrial} = [artifactsAll{iTrial};artifactsTrial];
     
-    data{iTrial} = dataTrial;
+    artifactsAll{iTrial} = artifactsTrial;
+    data{iTrial}         = dataTrial;
 end
 
 artifacts = artifactsAll; % Output

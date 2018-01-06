@@ -4,6 +4,8 @@ function psr_plot_stacking(h)
 % h(1): top plot
 % h(2): bottom plot
 
+linkaxes([h(1),h(2)],'x')
+
 set(h(1),'xticklabel',[]);        
 pos    = get(h,'position');
 bottom = pos{2}(2);

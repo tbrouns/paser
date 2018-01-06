@@ -1,8 +1,6 @@
-function rez = psr_sst_sorting_KST(data,parameters,savePath)
+function spikes = psr_sst_sorting_KST(data,parameters,savePath)
 
 disp('Running Kilosort...');
-
-% KiloSort
 
 addpath(genpath(parameters.path.kst));
 
@@ -40,7 +38,7 @@ ops.scaleproc = sd;
 
 % Convert data to DAT filetype with int16 data
 
-ops.data = data; clear data; 
+ops.data = data; 
 fidout = fopen(ops.fbinary, 'w');
 fwrite(fidout, ops.data, 'int16');
 fclose(fidout);
@@ -61,6 +59,24 @@ catch
     rez = [];
 end
 
+if (~isempty(rez))
+    % extract info from rez
+    spiketimes = rez.st3(:,1);
+    if (size(rez.st3,2) >= 5); assigns = 1+rez.st3(:,5);
+    else,                      assigns = rez.st3(:,2);
+    end
+    spikes = psr_convert2spikes(data,spiketimes,assigns,parameters);
+    rez = rmfield(rez,'st3'); % Remove now-redundant field
+    spikes.info.kst = rez;
+else               
+    spikes = [];
+end
+
+% Clean-up
+fclose('all'); 
+delete(ops.fbinary);
+delete(ops.fproc);
+delete(ops.chanMap);
 rmpath(genpath(parameters.path.kst));
 
 disp('Kilosort completed');
@@ -82,8 +98,8 @@ ops.chanMap  = fullfile(savePath, 'chanMap.mat'); % make this file using createC
 ops.nNeighPC = ops.Nchan; % visualization only (Phy): number of channnels to mask the PCs, leave empty to skip (12)
 ops.nNeigh   = 16;        % visualization only (Phy): number of neighboring templates to retain projections of (16)
 
-ops.fshigh = parameters.spikes.bp_lower; % frequency for high pass filtering
-ops.fslow  = parameters.spikes.bp_upper; % frequency for low pass filtering (optional)
+ops.fshigh = parameters.spikes.bp.lower; % frequency for high pass filtering
+ops.fslow  = parameters.spikes.bp.upper; % frequency for low pass filtering (optional)
 
 % options for channel whitening
 ops.whitening      = 'noSpikes'; % type of whitening (default 'full', for 'noSpikes' set options for spike detection below)

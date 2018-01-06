@@ -2,19 +2,24 @@ function params = psr_analysis_parameters()
 
 params.Fs      = 30000;
 
+%% Stimuli
+
+params.stimOffset_1 = -37.1; % [ms]
+params.stimOffset_2 = -15.1; % [ms]
+
 %% LFP
 
-params.lfp.window   = [-700,700];
-params.lfp.base_win = [-700,  0];
+params.lfp.window    = [-500,500];
+params.lfp.base_win  = [-500,  0];
 params.lfp.base_type = 'absolute';
+params.lfp.base      = false;
+params.lfp.plot_mean = false;
 
 %% Spikes
 
-params.stimOffset = -36; % [ms]
-
 params.t_bin   = 25; % [ms]
 params.t_win   = [-600,600]; % Window to extract before and after stimulus [ms]
-params.t_del   = [ 0,  0]; % window on both sides of stimulus to delete all spikes [ms]
+params.t_del   = [-0.5,0.5]; % window on both sides of stimulus to delete all spikes [ms]
 params.t_pad   = 50; % [ms]
 params.t_array = ...
     [-500, -50;  ...

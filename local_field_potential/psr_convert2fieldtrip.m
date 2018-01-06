@@ -11,8 +11,8 @@ stimTimes = stimTimes{1};
 
 if (strcmp(method,'onset')) % only use onset
     
-    onset  = parameters.lfp.trial_onset  - parameters.lfp.trial_padding;
-    offset = parameters.lfp.trial_offset + parameters.lfp.trial_padding;
+    onset  = parameters.lfp.trial.onset  - parameters.lfp.trial.padding;
+    offset = parameters.lfp.trial.offset + parameters.lfp.trial.padding;
         
     onset     = round(Fr * onset);
     offset    = round(Fr * offset);

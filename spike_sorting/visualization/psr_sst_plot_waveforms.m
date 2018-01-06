@@ -1,70 +1,60 @@
-function psr_sst_plot_waveforms(spikes, show, parameters)
+function psr_sst_plot_waveforms(spikes, clustID, parameters)
 
 % Based on 'plot_waveforms' from UltraMegaSort2000 by Hill DN, Mehta SB, & Kleinfeld D  - 07/12/2010
 
-cla reset;
-
-clustID = show;
-
-% Argument checking
-
-if ~isfield(spikes,'waveforms'), error('No waveforms found in spikes object.'); end
-if nargin < 2; show = 1:size(spikes.waveforms,1); end
-
-% Which spikes are we showing?
-
-show = get_spike_indices(spikes, show);
-
 % Parse inputs
 
-spiketimes = sort(spikes.spiketimes(show));
-waveforms  = spikes.waveforms(show,:,:);
-Fs         = spikes.Fs;
-wstep      = spikes.params.display.waveform_step;
-
-nRPV = sum(diff(spiketimes) <= 0.001 * parameters.spikes.ref_period);
+spikeIDs  = ismember(spikes.assigns, clustID);
+waveforms = spikes.waveforms(spikeIDs,:,:);
+Fs        = spikes.Fs;
+ystep     = parameters.display.waveform_ystep;
 
 % Calculate average waveform maxima 
 
-med   = median(waveforms,1);
-ymin  = min(med(:));
-ymax  = max(med(:));
-p2p   = ymax - ymin; 
-ymax  = ymax + 0.5 * p2p;
-ymin  = ymin - 0.5 * p2p;
-if (ymin < ymax); ylims = [ymin, ymax];
-else,             ylims = [-inf,inf]; % auto
+med  = median(waveforms,1);
+ymin = min(med(:));
+ymax = max(med(:));
+p2p  = ymax - ymin; 
+ymax = ymax + 0.5 * p2p;
+ymin = ymin - 0.5 * p2p;
+ymax = max(abs([ymin,ymax]));
+if (ymin < ymax); ylims = [-ymax,ymax];
+else,             ylims = [ -inf, inf]; % auto
 end
 
-barcolor = [0.5 0 0];
+clims = [0, parameters.display.waveform_clims];
 
 % Plot waveforms
 
-cmap    = spikes.params.display.cmap;
-[n,x,y] = histxt(waveforms(:,:),wstep);
+cmap = parameters.display.cmap;
+[n,x,y] = histxt(waveforms(:,:),ystep);
 x = 1000 * (x - 1) / Fs; % in milliseconds
-imagesc(x,y,n);
+imagesc(x,y,n,clims);
+set(gca,'Color', cmap(1,:)); % Set background color
 colormap(cmap);
-set(gca,'Color', cmap(1,:));
-axis([x(1) x(end) ylims])
+caxis(clims);
 set(gca,'YDir','normal')
 
 % Make vertical lines to separate waveform into its channels
-num_channels = size(waveforms,3);
-num_samples  = size(waveforms,2);
-if num_channels > 1
-    l = zeros(num_channels-1,1);
-    for j = 1:num_channels-1
-        l(j) = line(1 + num_samples * j * [1 1], ylims);
+nSamples = size(waveforms,2);
+nChans   = size(waveforms,3);
+if nChans > 1
+    l = zeros(nChans-1,1);
+    for j = 1:nChans-1
+        l(j) = line(1000 * (nSamples * j * [1 1] - 0.5) / Fs, ylims);
     end
-    set(l,'Color',barcolor,'LineWidth',1.5) % electrode dividers
+    set(l,'Color',[0 0 0],'LineWidth',1.5) % electrode dividers
 end
 
-% Label axes
+axis([x(1) x(end) ylims])
 
-if (spikes.params.display.metrics)
-    N = size(waveforms,1);
-    fRPV = round(100 * (100 * nRPV / N)) / 100;
+% Label axes
+if (parameters.display.metrics)
+    clustIDs = [spikes.clusters.metrics.id];
+    I    = find(clustIDs == clustID,1);
+    N    = spikes.clusters.metrics(I).nspikes;
+    fRPV = spikes.clusters.metrics(I).rpv;
+    fRPV = round(100 * (100 * fRPV)) / 100;
     titleString = ['$\bf{Cluster \ \# ' num2str(clustID) ', \ N = ' num2str(N) ' \ (' num2str(fRPV) ' \% \ RPVs)}$'];
 else
     titleString = ['$\bf{Cluster \ \# ' num2str(clustID) '}$'];
@@ -77,32 +67,32 @@ set(gca,'TickLabelInterpreter','Latex');
 
 end
 
-function [counts,t_inds,x_inds] = histxt(x,step)
+function [counts,t_inds,y_inds] = histxt(y,step)
 
 % Based on 'histxt' from UltraMegaSort2000 by Hill DN, Mehta SB, & Kleinfeld D  - 07/12/2010
 
-[~,T] = size(x);
+[nSpikes,nSamples] = size(y);
 
 % Scale the data
 
-oldmin   = min(x(:));  
-oldmax   = max(x(:));
-oldrange = oldmax - oldmin;
-D        = round(oldrange / step);
+yMin   = min(y(:));  
+yMax   = max(y(:));
+yRange = yMax - yMin;
+nSteps = round(yRange / step);
 
-if (oldrange == 0); x = repmat(D / 2, size(x));
-else,               x = (D ./ oldrange) .* (x - oldmin);
+if (yRange == 0); y = repmat(nSteps / 2, size(y));
+else,             y = (nSteps / yRange) .* (y - yMin);
 end
 
-x = round(x);
+y = round(y);
 
 % Make bin centers/column indices 
 
-x_inds = linspace(oldmin,oldmax,D);
-t_inds = 1:T;
+y_inds = linspace(yMin,yMax,nSteps);
+t_inds = 1:nSamples;
 
 % Histogram
 
-counts = hist(x,1:D);
+counts = hist(y,1:nSteps) / nSpikes;
 
 end

@@ -25,21 +25,19 @@ function spikes = psr_kst_convert2spikes(rez,data,parameters)
 
 %------------- BEGIN CODE --------------
 
-spikes = [];
 Fs = parameters.Fs;
 window_samples = round(Fs * parameters.spikes.window_size / 1000);
 samples_hwidth = round(0.5 * window_samples);
 win = -samples_hwidth:samples_hwidth;
 sLength = size(data,2);
-if (isempty(rez)); return; end
     
 % extract info from rez
 spikeTimes     = rez.st3(:,1);
 spikeTemplates = rez.st3(:,2);
 if (size(rez.st3,2) >= 5)
-    spikeClusters = 1+rez.st3(:,5);
+    assigns = 1+rez.st3(:,5);
 else
-    spikeClusters = spikeTemplates;
+    assigns = spikeTemplates;
 end
 
 % Get raw data around spiketimes
@@ -58,7 +56,8 @@ waves = permute(waves,[2 1 3]);
 
 data = psr_single(data',parameters); % Convert data 
 
-spikes.assigns     = int16(spikeClusters');
+spikes = [];
+spikes.assigns     = int16(assigns');
 spikes.spiketimes  = single((spikeTimes - 1)' / Fs); % in secs
 spikes.waveforms   = waves;
 spikes.info.dur    = (sLength - 1) / Fs; % in secs

@@ -5,8 +5,8 @@ if (nargin < 4); filename = [];
 else             filename = ['Clusters' filename(7:end)];
 end
 
-clustID = cell2mat({clusters.vars.id});
-flags   = cell2mat({clusters.vars.flag});
+clustID = cell2mat({clusters.metrics.id});
+flags   = cell2mat({clusters.metrics.flag});
 clustID = clustID(flags);
 
 nclusts = length(clustID);
@@ -65,8 +65,8 @@ figure(fig4); suptitle('Maximum cluster amplitudes');
 
 % PCA
 
-id    = cell2mat({clusters.vars.id});
-flags = cell2mat({clusters.vars.flag});
+id    = cell2mat({clusters.metrics.id});
+flags = cell2mat({clusters.metrics.flag});
 id    = id(flags);
 
 nclusts = length(id);

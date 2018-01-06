@@ -1,0 +1,8 @@
+In "isocut5.h" and "jisotonic5.h":
+- Added "#include <inttypes.h>" for "bigint" type
+
+In "isosplit5.cpp":
+- Changed initialization of "array" to "std::vector" as solution for error: "expected constant expression"
+- "bigint" to "double" conversion for "ceil" function. 
+
+Code clean-up in "isocut5.m", "isosplit5.m", "jisotonic5.m"

@@ -32,31 +32,23 @@ function spikes = psr_sst_cluster_merge(spikes,parameters)
 
 % Store prior-merge cluster assigns
 
-if (~isfield(spikes,'assigns_prior'))
-    spikes.assigns_prior = spikes.assigns; 
-end
+if (~isfield(spikes,'assigns_prior')); spikes.assigns_prior = spikes.assigns; end
 
 % Find which clusters to merge
+spikes.assigns = spikes.assigns_prior;
+spikes.clusters.corr = psr_sst_cluster_corr(spikes,parameters,true);
+correlations = spikes.clusters.corr;
+correlations(~triu(true(size(correlations)),1)) = -realmax; % Ignore lower triangular part
+IDs = find(correlations(:) >= parameters.cluster.merge_thresh); % Do thresholding
 
-if (strcmpi(parameters.sorting.method,'kst')) % If KiloSort was used...
-    M = spikes.info.kst.simScore; % ... use their simScore
-else % Don't merge
-    return;
-end
+[I_row, I_col] = ind2sub(size(correlations),IDs);
 
-M(~triu(true(size(M)),1)) = -realmax; % Ignore lower triangular part
-IDs = find(M(:) >= parameters.cluster.merge_thresh); % Do thresholding
+%% Do the merging
 
-[I_row, I_col] = ind2sub(size(M),IDs);
+clusterIDs = 1:size(correlations,1);
 
-% Do the merging
-
-clusterIDs = 1:size(M,1);
-spikes = merge_clusters(spikes,clusterIDs(I_row),clusterIDs(I_col));
-
-end
-
-function spikes = merge_clusters(spikes,clustersX,clustersY)
+clustersX = clusterIDs(I_row);
+clustersY = clusterIDs(I_col);
 
 nMerges = length(clustersX);
 clustersXOld = clustersX;
@@ -99,6 +91,9 @@ end
 for iMerge = 1:length(clustersY)
     spikes.assigns(spikes.assigns == clustersYOld(iMerge)) = clustersY(iMerge);
 end
+
+%% Filter again after merging
+spikes = psr_sst_filter_spikes(spikes,parameters);
 
 end
 

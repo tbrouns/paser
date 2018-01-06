@@ -11,6 +11,7 @@ spikes.info.detect.dur    = spikes.info.dur;
 spikes.info.detect.stds   = spikes.info.stds;
 
 % SVD the data matrix
+spikes.waveforms = psr_single(spikes.waveforms,parameters);
 [pca.u,pca.s,pca.v] = svd(detrend(spikes.waveforms(:,:),'constant'), 0); 
 spikes.info.pca = pca;
 

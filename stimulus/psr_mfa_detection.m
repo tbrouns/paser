@@ -87,12 +87,6 @@ for iTrial = 1:nTrials
     
     MFAtimes{iTrial} = [onsets,offsets];
     
-%     else % Randomly select MFA times in order to get non-stimulus control data
-%         dur = (length(data_channels{1}) - 1) / Fs;
-%         MFAtimes{iTrial,1} = sort(dur * rand(1,parameters.mfa.control))';
-%         MFAtimes{iTrial,2} = sort(dur * rand(1,parameters.mfa.control))';
-%     end
-    
 end
 
 end

@@ -14,9 +14,9 @@ cfg.continuous       = 'yes';
 cfg.demean           = 'yes';
 cfg.preproc.bpfilter = 'yes';
 
-orders = parameters.lfp.bp_order:-1:1;                           % Try different filter orders (min 3)
-step   = 0.5 * parameters.lfp.bp_lower;
-F_low  = parameters.lfp.bp_lower:step:parameters.lfp.freq_lower; % Try different frequencies (in Hz)
+orders = parameters.lfp.bp.order:-1:1;                           % Try different filter orders (min 3)
+step   = 0.5 * parameters.lfp.bp.lower;
+F_low  = parameters.lfp.bp.lower:step:parameters.lfp.freq.lower; % Try different frequencies (in Hz)
 
 SUCCESS = 0;
 
@@ -26,15 +26,15 @@ for i = 1:length(orders)
     
     for j = 1:length(F_low)
         
-        cfg.preproc.bpfreq     = [F_low(j), parameters.lfp.bp_upper];
+        cfg.preproc.bpfreq     = [F_low(j), parameters.lfp.bp.upper];
         cfg.preproc.bpfiltord  = orders(i);
         
         try
             data  = ft_preprocessing(cfg, data_input);
             SUCCESS = 1;
             
-            parameters.lfp.bp_order = cfg.preproc.bpfiltord;
-            parameters.lfp.bp_lower = cfg.preproc.bpfreq;
+            parameters.lfp.bp.order = cfg.preproc.bpfiltord;
+            parameters.lfp.bp.lower = cfg.preproc.bpfreq;
             
             break;
         catch ME

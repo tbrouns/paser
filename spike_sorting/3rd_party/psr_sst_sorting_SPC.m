@@ -1,8 +1,8 @@
 function assigns = psr_sst_sorting_SPC(spikes,parameters)
 
 nspikes = length(spikes.spiketimes);
-dims    = parameters.sorting.wav.dims;
-scales  = parameters.sorting.wav.scales;
+dims    = parameters.sorting.spc.dims;
+scales  = parameters.sorting.spc.scales;
 mcs     = round(parameters.sorting.spc.mcs * nspikes);
 waves   = psr_single(spikes.waveforms(:,:),parameters); 
 clear spikes;
@@ -31,8 +31,9 @@ nclusts = length(C);
 
 assigns = zeros(1,nspikes);
 for iClust = 1:nclusts
-    id = C{iClust};    
+    id = C{iClust} + 1;    
     assigns(id) = iClust;    
 end
+assigns = assigns + 1;
 
 end

@@ -3,7 +3,9 @@ function assigns = psr_sst_sorting_FMM(spikes,parameters)
 % Wrapper for dictionary learning spike sorting. 
 % Focused mixture model (FMM) implementation.
 
-waveforms = spikes.waveforms(:,:); % Concatenate channels
+addpath(genpath(parameters.path.fmm));
+
+waveforms = psr_single(spikes.waveforms(:,:),parameters); % Concatenate channels
 waveforms = waveforms'; % Input should be [Nsamples X Nspikes]
 
 Sorter             = FMM(waveforms,parameters.sorting.fmm.k); 
@@ -14,5 +16,7 @@ Sorter.initialize;
 Sorter.runVBfit;
 
 assigns = getMAPassignment(Sorter);
+
+rmpath(genpath(parameters.path.fmm));
 
 end

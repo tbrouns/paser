@@ -10,7 +10,8 @@ end
 plotNum = 6;
 plotIds = fliplr([1,2,3,4,5,8]);
 
-spikes = psr_sst_display_parameters(spikes);
+parameters = psr_sst_display_parameters(parameters);
+parameters.display.metrics = false;
 
 assigns      = spikes.assigns;
 assignsPrior = spikes.assigns_prior;
@@ -58,6 +59,7 @@ for iClust = 1:nClusts
                 
                 if (nPlots == 1) % Padding
                     h = subaxis(2,4,plotIds(iPlot + 1));
+                    plot(0,0);
                     set(h,'Visible','off')
                 end
             end

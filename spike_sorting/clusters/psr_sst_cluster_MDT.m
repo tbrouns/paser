@@ -8,12 +8,11 @@ function metrics = psr_sst_cluster_MDT(spikes,parameters,weights)
 % Major edits by Terence Brouns (2017)
 
 if (nargin < 3); weights = ones(size(spikes.spiketimes)); end
-dims = parameters.cluster.mdt.dims;
+dims   = parameters.cluster.mdt.dims;
+scales = parameters.cluster.mdt.scales;
 
 % Remove clusters that are too small
 % Need to have consecutive cluster indices 
-
-% [spikes,clustIDs_old] = psr_sst_cluster_sort(spikes);
 
 clustIDs = 1:max(spikes.assigns);
 nclusts  = length(clustIDs);
@@ -43,7 +42,12 @@ end
 
 % Do PCA
 
-PC = psr_pca(spikes,dims);
+if (isa(spikes.waveforms,'int16'))
+    spikes.waveforms = psr_single(spikes.waveforms,parameters);
+end
+
+inspk = psr_wavelet_features(spikes.waveforms(:,:),dims,scales);
+inspk = inspk';
 
 % Data conversion
 
@@ -54,7 +58,7 @@ PC = psr_pca(spikes,dims);
 %     weighting       [N x 1] suggested weighting for training on a subset
 
 data             = [];
-data.spk_Y       = double(PC');
+data.spk_Y       = double(inspk);
 data.spk_t       = double(spikes.spiketimes' * 1000); % convert to ms
 data.spk_clustId = double(spikes.assigns');
 data.weighting   = double(weights');

@@ -1,67 +1,67 @@
-function psr_batch_visualization(subject,loadPath_root,savePath_root,expType,cfg)
+function psr_batch_visualization(subjectName,loadPathRoot,savePathRoot,expType,cfg)
 
-if (nargin < 1); subject       = [];    end
-if (nargin < 2); loadPath_root = [];    end
-if (nargin < 3); savePath_root = [];    end
-if (nargin < 4); expType       = 'all'; end
+if (nargin < 1); subjectName  = [];    end
+if (nargin < 2); loadPathRoot = [];    end
+if (nargin < 3); savePathRoot = [];    end
+if (nargin < 4); expType      = 'all'; end
 
 ptrn = 'passive';
 
-folder_names = dir([loadPath_root 'R*']);
-folder_names = char(folder_names.name);
+folderNames = dir([loadPathRoot 'R*']);
+folderNames = char(folderNames.name);
 
 %% sort files
 
-numfolders = length(folder_names(:,1));
+nFolders = length(folderNames(:,1));
 
-folders_passive = cell(1,1);
-folders_active  = cell(1,1);
-for iFolder = 1:numfolders
-    foldername = lower(folder_names(iFolder,:));
+foldersPassive = cell(1,1);
+foldersActive  = cell(1,1);
+for iFolder = 1:nFolders
+    foldername = lower(folderNames(iFolder,:));
     foldername = strtrim(foldername);
     k          = strfind(foldername,ptrn);
-    if isempty(k); folders_active {iFolder,1} = folder_names(iFolder,:);
-    else,          folders_passive{iFolder,1} = folder_names(iFolder,:);
+    if isempty(k); foldersActive {iFolder,1} = folderNames(iFolder,:);
+    else,          foldersPassive{iFolder,1} = folderNames(iFolder,:);
     end
 end
 
-folders_active  = folders_active (~cellfun('isempty',folders_active )); % remove empty cells
-folders_passive = folders_passive(~cellfun('isempty',folders_passive)); % remove empty cells
+foldersActive  = foldersActive (~cellfun('isempty',foldersActive )); % remove empty cells
+foldersPassive = foldersPassive(~cellfun('isempty',foldersPassive)); % remove empty cells
 
-if     (strcmp(expType,'all'));     folders = [folders_active;folders_passive];
-elseif (strcmp(expType,'active'));  folders = folders_active;
-elseif (strcmp(expType,'passive')); folders = folders_passive;
+if     (strcmp(expType,'all'));     folders = [foldersActive;foldersPassive];
+elseif (strcmp(expType,'active'));  folders = foldersActive;
+elseif (strcmp(expType,'passive')); folders = foldersPassive;
 end
 
-numfolders = length(folders);
+nFolders = length(folders);
 
-for iFolder = 1:numfolders
+for iFolder = 11:nFolders
     foldername = strtrim(folders{iFolder});
     
-    loadPath = [loadPath_root, foldername];
-    savePath = [savePath_root, foldername];
+    loadPath = [loadPathRoot, foldername];
+    savePath = [savePathRoot, foldername];
     
     if (loadPath(end) ~= '\'); loadPath = [loadPath, '\']; end %#ok
     if (savePath(end) ~= '\'); savePath = [savePath, '\']; end %#ok
     
-    MATfiles  = dir([loadPath '\Spikes_' subject '*.mat']);
-    numfiles  = size(MATfiles,1);
+    MATfiles  = dir([loadPath '\Spikes_' subjectName '*.mat']);
+    nFiles    = size(MATfiles,1);
     filenames = char(MATfiles.name);
     if (isempty(filenames)); continue; end
     
-    if (cfg.analysis)
+    if (cfg.analysis.flag)
         savePathFigures = [savePath 'analysis\'];
         [~,~,~] = mkdir(savePathFigures);
-        psr_batch_analysis(filenames,loadPath,loadPath,savePathFigures);
+        psr_batch_analysis(filenames,loadPath,loadPath,savePathFigures,cfg.analysis);
     end
     
-    for iFile = 1:numfiles
+    for iFile = 1:nFiles
         close all
         filename = filenames(iFile,:);
         fpath = [loadPath filename];
         load(fpath);
         [~,filename,~] = fileparts(filename);
-        
+        run(parameters.general.configPath); % TEMP
         if (cfg.cluster)
             savePathClusters = [savePath 'clusters\'];
             if (isfield(spikes,'spiketimes'))
@@ -79,11 +79,13 @@ for iFolder = 1:numfolders
         end
         
         if (cfg.manual)
-            spikes = psr_manual_labelling(spikes,metadata,parameters,freq);
-            save(fpath,'spikes','-append');
+            if (~isfield(spikes.clusters.metrics,'labels'))
+                labels = psr_manual_labelling(spikes,metadata,parameters,freq);
+                for iClust = 1:length(labels); spikes.clusters.metrics(iClust).labels = labels(iClust); end
+                save(fpath,'spikes','-append');
+            end
         end
     end
 end
 
 end
-

@@ -1,6 +1,6 @@
 function [SpikeTimes] = psr_get_spike_times(spikes)
 
-clusterIDs = [spikes.clusters.vars.id];
+clusterIDs = [spikes.clusters.metrics.id];
 numclusts  = length(clusterIDs);
 SpikeTimes =  cell(1,numclusts);
 

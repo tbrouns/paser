@@ -1,18 +1,25 @@
-function assigns = psr_sst_sorting_CBP(data,parameters)
-
-assigns = []; % not currently set
-
-data.data       = psr_single(data.data,parameters);
-data.nchan      = size(data.data,1);
-data.nsamples   = size(data.data,2);
-data.polarity   = 'min'; % Change to parameter field
-data.processing = [];
+function spikes = psr_sst_sorting_CBP(data,parameters)
 
 addpath(genpath(parameters.path.cbp));
 
+% Create input structure
+
+dataStruct.data       = data; clear data;
+dataStruct.dt         = 1 / parameters.Fs;                
+dataStruct.data       = psr_single(dataStruct.data,parameters);
+dataStruct.nchan      = size(dataStruct.data,1);
+dataStruct.nsamples   = size(dataStruct.data,2);
+dataStruct.polarity   = 'min'; % Change to parameter field
+dataStruct.processing = [];
+
+% Set parameters
+
 params = load_default_parameters();
+params.clustering.num_waveforms = parameters.sorting.cbp.nC;
 params.general.plot_diagnostics = 0;
-filtdata = FilterData(data, params);
+params.cbp.progress = false;
+params.cbp.debug_mode = true;
+filtdata = FilterData(dataStruct, params);
 
 %% ----------------------------------------------------------------------------------
 % Preprocessing Step 2: Estimate noise covariance and whiten
@@ -72,34 +79,23 @@ closeIfOpen(params.plotting.first_fig_num+[1,3]); % close Fourier and clustering
 [snippets, ~, ~, snippet_centers, ~] = PartitionSignal(data_pp.data, params.partition);
 
 %% ----------------------------------------------------------------------------------
-% CBP step 1: use CBP to estimate spike times
+% Use CBP to estimate spike times
+ 
+[spike_times, ~, ~] = SpikesortCBP(snippets, snippet_centers, init_waveforms, params.cbp_outer, params.cbp);
 
-% Turn off the Java progress bar if it causes errors
-params.cbp.progress = false; 
-
-[spike_times, spike_amps, ~] = SpikesortCBP(snippets, snippet_centers, init_waveforms, params.cbp_outer, params.cbp);
-
-% Diagnostics for CBP results:
-% Fig1: visually compare whitened data, recovered spikes
-% Fig2: residual histograms (raw, and cross-channel magnitudes) - compare to Fig3
-
-%% ----------------------------------------------------------------------------------
-% CBP step 2: Identify spikes by thresholding amplitudes of each cell
-
-% Calculate default thresholds.  This is done by fitting the amplitude
-% distribution (using a Gaussian kernel density estimator) and then choosing the
-% largest local minimum.
-amp_thresholds = cellfun(@(sa) ComputeKDEThreshold(sa, params.amplitude), spike_amps);
-
-%% ----------------------------------------------------------------------------------
-% CBP Step 3: Re-estimate waveforms
-
-% Compute waveforms using regression, with interpolation (defaults to cubic spline)
-nlrpoints = (params.general.waveform_len-1)/2;
-waveforms = cell(size(spike_times));
-for i = 1:numel(spike_times)
-    sts = spike_times{i}(spike_amps{i} > amp_thresholds(i)) - 1;
-    waveforms{i} = CalcSTA(data_pp.data', sts, [-nlrpoints nlrpoints]);
+nClusts = length(spike_times);
+spiketimes = [];
+assigns    = [];
+for iClust = 1:nClusts
+   times = spike_times{iClust};
+   spiketimes = [spiketimes;times];    
+   assigns    = [assigns;iClust*size(times)];
 end
+[spiketimes,I] = sort(spiketimes);
+assigns = assigns(I);
+
+spikes = psr_convert2spikes(data,spiketimes,assigns,parameters);
+
+rmpath(genpath(parameters.path.cbp));
 
 end

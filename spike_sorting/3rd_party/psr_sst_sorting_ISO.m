@@ -1,12 +1,10 @@
 function assigns = psr_sst_sorting_ISO(spikes,parameters)
 
-addpath(genpath(parameters.path.iso));
-
 % Perform clustering using isotonic regression
 nspikes = length(spikes.spiketimes);
-dims    = parameters.sorting.wav.dims;
-scales  = parameters.sorting.wav.scales;
-mcs     = round(parameters.sorting.spc.mcs * nspikes);
+dims    = parameters.sorting.iso.dims;
+scales  = parameters.sorting.iso.scales;
+mcs     = round(parameters.sorting.iso.mcs * nspikes);
 
 opts = [];
 opts.min_cluster_size = mcs;
@@ -19,8 +17,7 @@ waves = psr_single(spikes.waveforms(:,:),parameters);
 inspk = psr_wavelet_features(waves,dims,scales);
 inspk = double(inspk');
 
-[assigns,~] = isosplit5_mex(inspk,opts);
-
-rmpath(genpath(parameters.path.iso));
+% [assigns,~] = isosplit5(inspk,opts);
+assigns = isosplit5_mex(inspk);
 
 end

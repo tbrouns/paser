@@ -22,43 +22,44 @@
 
 parameters.process.spikes = true; % Perform spike detection
 parameters.process.lfp    = true; % Perform LFP detection
-parameters.process.ap     = true; % Active vs. passive conditions
 
-% General
-parameters.general.precision   = 1;   % Number of digits after decimal point to keep
-parameters.general.stim_offset = -40; % Artifact offset from detected stim position [ms]
+%% General
+parameters.general.precision = 1; % Number of digits after decimal point to keep for int16 data conversion
 
-% Development
+%% Development
 parameters.develop.comparison = false;
-parameters.develop.gamma = 0.3;
-
+parameters.develop.timing     = false;
+parameters.develop.gamma      = 0.3;
+parameters.develop.epsilon    = 0.5; % [ms]
 
 %% PSR_ARTIFACT_FFT
 % Parameters used in raw signal filtering in power spectrum
 
-parameters.filter.fft_freq   = 10;   % Size of frequency window [Hz]
-parameters.filter.fft_pad    = 0.01; % Size of half-window to extract artifact [Hz]
-parameters.filter.fft_thresh = 5;    % Threshold to detect artifact peaks, given by number of STDs above mean (using MAD)
+parameters.filter.fft.freq   = 10;   % Size of frequency window [Hz]
+parameters.filter.fft.pad    = 0.01; % Size of half-window to extract artifact [Hz]
+parameters.filter.fft.thresh = 5;    % Threshold to detect artifact peaks, given by number of STDs above mean (using MAD)
+
+%% PSR_ARTIFACT_DIFF
+parameters.filter.diff.win_slope    = 0.10; % [ms]
+parameters.filter.diff.win_stimulus = 100;  % [ms]
+parameters.filter.diff.win_pulse    = 30;   % Search window for second peak [ms]
+parameters.filter.diff.win_artifact = 2.0;  % [ms]
+parameters.filter.diff.win_padding  = 0.5;  % [ms]
+parameters.filter.diff.thresh       = 10;  
 
 %% SPIKE DETECTION
 
 parameters.spikes.thresh      = 3.0; % Threshold given as number of standard deviations above mean for spike detection
 parameters.spikes.ref_period  = 1.5; % Refractory period of spikes [ms]
 parameters.spikes.window_size = 1.5; % Width of a spike [ms]. Take samples symmetrically around peak.
-parameters.spikes.max_desync  = 0.2; % Maximum temporal desynchronization between channels of probe [ms]
-
-parameters.spikes.artifacts_corr = 0.5; % Correlation across probes threshold for spike removal
-
-parameters.spikes.corr_thresh = 0.5;
+parameters.spikes.max_desync  = 0.25; % Maximum temporal desynchronization between channels of probe [ms]
 
 % Zero-phase digital band-pass filter parameters for spike detection
-parameters.spikes.bp_upper = 6000; % Upper cutoff frequency [Hz]
-parameters.spikes.bp_lower = 600;  % Lower cutoff frequency [Hz]
-parameters.spikes.bp_order = 10;   % Order of filter 
+parameters.spikes.bp.upper = 6000; % Upper cutoff frequency [Hz]
+parameters.spikes.bp.lower = 600;  % Lower cutoff frequency [Hz]
+parameters.spikes.bp.order = 10;   % Order of filter 
 
 parameters.spikes.twin = 10; % Time of each individual section for spike detection (minutes)
-
-parameters.spikes.artifacts_removal = true;  % Remove artifacts based on correlation across tetrodes
 
 %% SPIKE SORTING
 
@@ -66,6 +67,7 @@ parameters.spikes.artifacts_removal = true;  % Remove artifacts based on correla
 % 'CBP' : Continuous Basis Pursuit      - https://github.com/chinasaur/CBPSpikesortDemo
 % 'FMM' : Focused Mixture Model         - https://github.com/decarlson/FMMSpikeSorter
 % 'ISO' : ISO-SPLIT                     - https://github.com/magland/isosplit_old
+% 'KFM' : Kalman filter mixture model   - https://github.com/AnaCalabrese/KFMM
 % 'KST' : KiloSort                      - https://github.com/cortex-lab/KiloSort
 % 'OPS' : OPASS                         - https://github.com/decarlson/opass
 % 'OST' : OSort                         - http://www.urut.ch/new/serendipity/index.php?/pages/osort.html
@@ -73,12 +75,6 @@ parameters.spikes.artifacts_removal = true;  % Remove artifacts based on correla
 % 'UMS' : UltraMegaSort2000             - https://github.com/danamics/UMS2K
 
 parameters.sorting.method  = 'KST'; % Spike sorting method (see above)
-
-% Wavelet decomposition for feature detection 
-% Used in ISO, SPC
-
-parameters.sorting.wav.dims   = 10; % Number of inputs to the clustering 
-parameters.sorting.wav.scales = 4; % Number of scales for the wavelet decomposition 
 
 %% Focused Mixture Model [FMM] (Dictionary learning) 
 parameters.sorting.fmm.p     = 1e-4;  % Changes how aggresively to cluster, range 0-1 (0: less clustering, 1: more clustering)
@@ -88,6 +84,7 @@ parameters.sorting.fmm.align = false; % Whether to align the waveforms
 
 %% Continuous Basis Pursuit [CBP]
 % [Need to set path to repository with "parameters.path.cbp"]
+parameters.sorting.cbp.nC     = 16; % number of clusters
 
 %% UltraMegaSort2000 [UMS]
 parameters.sorting.ums.kmeans_size = 0.01; % target size for miniclusters as fraction of total number of spikes
@@ -104,10 +101,19 @@ parameters.sorting.ops.b_pii   = 1e7;
 parameters.sorting.ops.betf    = 30; % Factor for 'bet'
 
 %% Super paramagnetic clustering [SPC]
-parameters.sorting.spc.mcs = 0.01; % Minimum cluster size as fraction of total number of spikes
+parameters.sorting.spc.mcs    = 0.01; % Minimum cluster size as fraction of total number of spikes
+parameters.sorting.spc.dims   = 10;   % Number of inputs to the clustering 
+parameters.sorting.spc.scales = 4;    % Number of scales for the wavelet decomposition 
 
 %% ISO-SPLIT [ISO]
-parameters.sorting.iso.mcs = 0.01; % Minimum cluster size as fraction of total number of spikes
+parameters.sorting.iso.mcs    = 0.01; % Minimum cluster size as fraction of total number of spikes
+parameters.sorting.iso.dims   = 10;   % Number of inputs to the clustering 
+parameters.sorting.iso.scales = 4;    % Number of scales for the wavelet decomposition 
+
+%% Kalman filter mixture model [KFM]
+parameters.sorting.kfm.nC     = 16; % number of clusters
+parameters.sorting.kfm.dims   = 10; % Number of inputs to the clustering 
+parameters.sorting.kfm.scales = 4;  % Number of scales for the wavelet decomposition 
 
 %% KiloSort [KST]
 
@@ -147,66 +153,71 @@ parameters.sorting.kst.nFiltMax        = 10000;   % maximum "unique" spikes to c
 
 %% CLUSTER PARAMETERS & QUALITY CONTROL
 
-% Thresholds
+%% PSR_SST_CLUSTER_CLASSIFIER
 
-parameters.cluster.max_rpv       = 0.05; % Maximum fraction of refractory period violations (RPVs) in cluster
-parameters.cluster.max_missing   = 0.05; % Maximum fraction of missing spikes in cluster due to threshold
-parameters.cluster.max_amplitude = 300;  % Maximum absolute mean spike amplitude of cluster (microvolt)
-parameters.cluster.max_artifact  = 2.00; % Maximum ratio between actual and expected number of spikes in LFP artifact region
-parameters.cluster.max_lratio    = 1.0;  % Maximum L-ratio for single unit
-parameters.cluster.max_lag       = parameters.spikes.max_desync; % Maximum lag of maximum pairwise cross correlation (ms)
-parameters.cluster.max_corr      = 0.25; % Maximum correlation across probes
+% Hard thresholds
 
-parameters.cluster.min_isodist = 10; % Minimum isolation distance for single unit
-parameters.cluster.min_spikes  = 10; % Minimum number of spikes in cluster (change to mean firing rate threshold)
-parameters.cluster.min_pauc    = 0.25; % Minimum area under curve for Poisson distribution
-parameters.cluster.min_frate   = 0.2; % Minimum average firing rate (Hz) 
+parameters.cluster.max_rpv       = 0.10; % Maximum fraction of refractory period violations (RPVs) in cluster
+parameters.cluster.max_sub       = 0.10; % Maximum fraction of sub-threshold spikes in cluster
+parameters.cluster.max_amplitude = 200;  % Maximum absolute mean spike amplitude of cluster [microvolt]
+parameters.cluster.max_p2p       = 300;  % Maximum absolute mean peak-to-peak amplitude of cluster [microvolt]
+parameters.cluster.min_spikes    = 50;   % Minimum number of spikes in cluster
+parameters.cluster.min_frate     = 0.05; % Minimum average firing rate (Hz) 
+parameters.cluster.max_lratio    = 0.25; % Maximum L-ratio for single unit
+parameters.cluster.min_isodist   = 20;   % Minimum isolation distance for single unit
 
-% Spike filtering
+%% PSR_SST_FILTER_SPIKES
 
-parameters.cluster.remove_amp  = true; % Remove high amplitude spikes 
-parameters.cluster.remove_corr = true; % Remove high global correlation spikes
-parameters.cluster.remove_rpv  = true; % Remove refractory period violations
+parameters.filter.spikes.corr_global = true; % Remove high global correlation spikes
+parameters.filter.spikes.mse_cluster = true; % Remove spikes with low within-cluster correlations
+parameters.filter.spikes.rpvs        = true; % Remove refractory period violations
+parameters.filter.spikes.amp         = true; % Remove spikes with amplitude at wrong channel or position
+
+parameters.filter.spikes.corr_thresh_global = 0.5; % Correlation across probes threshold for spike removal
+parameters.filter.spikes.corr_thresh_chan   = 0.5; % Used for non-spike channel noise subtraction
+parameters.filter.spikes.mse_thresh         = 5.0; % 
+parameters.filter.spikes.amp_offset         = 0.2; % Normalized amplitude difference from maximum, for channel selection
 
 % Quality calculation parameters
+
+parameters.cluster.amplitude_nbin = 20; % Average number of spikes per bin 
 
 parameters.cluster.thresh       = 4; % Number of standard deviations above mean for average amplitude of highest amplitude channel
 parameters.cluster.thresh_xcorr = 1; % Threshold for channel amplitude in order to be considered for cross-correlation, given by number of STDs.
 
-parameters.cluster.outlier_std = 3; % Maximum number of STDs from centre of PCA cluster
+%% PSR_SST_AMP_SPLIT & 
 
-parameters.cluster.pca_dims = 3; % first number of principle components to consider for spike filtering and cluster similarity calculation
+parameters.cluster.split.bin      = 20;   % Average number of spikes per bin
+parameters.cluster.split.smooth   = 7;    % Number of bins for Gaussian smoothing
+parameters.cluster.split.thresh   = 100;  % Number of spikes
+parameters.cluster.split.prom     = 0.1;  % Minimum fraction of maximum peak
+parameters.cluster.split.width    = 3;    % Minimum width of neighbouring peaks 
+parameters.cluster.split.terminal = 0.05; % Threshold for termination (fraction of maximum peak)
 
-parameters.cluster.split_bin    = 0.05; % Fraction of standard deviation
-parameters.cluster.split_smooth = 10;   % Number of bins
-parameters.cluster.split_thresh = 100;  % Number of spikes
-
-% parameters.cluster.merge_thresh:
-% Threshold to merge two clusters. Depends on 'parameters.sorting.method'
-% If parameters.sorting.method = KST, then merge_thresh: sim score threshold (between 0 and 1)
-parameters.cluster.merge_thresh = 0.85;
+% Cluster merge criterion
+parameters.cluster.merge_thresh = 0.90; % Cross-correlation threshold of concatenated channels
 
 % Stability 
-
 parameters.cluster.stability_win = 10; % [sec]
 
 % Mixture of drifting t-distribution model [MDT]
-parameters.cluster.mdt.dims              = 12; % Number of PC dimensions                               (default: 12)
-parameters.cluster.mdt.nu                = 7;  % t-distribution nu parameter (smaller = heavier tails) (default: 7)
-parameters.cluster.mdt.q_perhour         = 2;  % Drift regularization (smaller = more smoothing)       (default: 2)  
-parameters.cluster.mdt.timeframe_minutes = 1;  % Time frame duration (mostly a computational thing)    (default: 1)
+parameters.cluster.mdt.dims              = 10; % Number of dimensions for wavelet decomposition                   
+parameters.cluster.mdt.scales            = 4;  % Number of scales for the wavelet decomposition 
+parameters.cluster.mdt.nu                = 7;  % t-distribution nu parameter (smaller = heavier tails) 
+parameters.cluster.mdt.q_perhour         = 2;  % Drift regularization (smaller = more smoothing)         
+parameters.cluster.mdt.timeframe_minutes = 1;  % Time frame duration (mostly a computational thing)   
 
 %% LOCAL FIELD POTENTIAL
 
 parameters.lfp.rsfactor = 4; % Multiple of high band-pass filter frequency to resample at
 
-parameters.lfp.bp_upper = 300;
-parameters.lfp.bp_lower = 0.1;
-parameters.lfp.bp_order =   5;
+parameters.lfp.bp.upper = 300; % Band-pass filter upper cut-off frequency [Hz]
+parameters.lfp.bp.lower = 0.1; % Band-pass filter lower cut-off frequency [Hz]
+parameters.lfp.bp.order =   5; % Band-pass filter order
 
-parameters.lfp.trial_onset  = -0.2; % sec
-parameters.lfp.trial_offset =  0.5; % sec
-parameters.lfp.trial_padding = 1.0; % time window before and after trial on- and offset (sec)
+parameters.lfp.trial.onset  = -0.2; % sec
+parameters.lfp.trial.offset =  0.5; % sec
+parameters.lfp.trial.padding = 1.0; % time window before and after trial on- and offset (sec)
 
 parameters.lfp.miss_thresh = 0.5; % Maximum fraction of missing data in fft window
 
@@ -219,9 +230,9 @@ parameters.lfp.method = 'mtmconvol';
 parameters.lfp.taper  = 'hanning';
 parameters.lfp.pad    = 'nextpow2';
 
-parameters.lfp.freq_lower = 2.0; % Lower limit of frequency bins [Hz]
-parameters.lfp.freq_upper = 60;  % Upper limit of frequency bins [Hz]
-parameters.lfp.freq_step  = 0.5; % Frequency bin size [Hz]
+parameters.lfp.freq.lower = 2.0; % Lower limit of frequency bins [Hz]
+parameters.lfp.freq.upper = 60;  % Upper limit of frequency bins [Hz]
+parameters.lfp.freq.step  = 0.5; % Frequency bin size [Hz]
 
 parameters.lfp.time_step = 0.02; % Time bin size [sec]
 
@@ -234,14 +245,17 @@ parameters.lfp.artifact.freqRange  = linspace(10,100,64); % Frequencies to calcu
 parameters.lfp.artifact.threshPSD  = 3; % PSD threshold
 parameters.lfp.artifact.window     = 0.5; % Window to calculate PSD [sec]
 
-% Z-score amplitude
-parameters.lfp.artifact.freq      = 30; % Maximum artifact frequency [Hz]
-parameters.lfp.artifact.tsection  = 10; % Window length in which we detect background noise [sec]
-parameters.lfp.artifact.threshAmp =  7; % Number of standard deviations above background noise
+% Amplitude
+parameters.lfp.artifact.cat            = true;  % Concatenate sessions
+parameters.lfp.artifact.sigma          = 0.005; % Gaussian filter window [sec]
+parameters.lfp.artifact.tsection       = 10;    % Window length in which we detect background noise [sec]
+parameters.lfp.artifact.threshAmpUpper =  6;    % Number of standard deviations above background noise
+parameters.lfp.artifact.threshAmpLower =  2; 
+parameters.lfp.artifact.tSlope         =  6;    % [ms]
 
 % General
 parameters.lfp.artifact.interval = 0.50; % Minimum clean interval between artifacts [sec]
-parameters.lfp.artifact.padding  = 0.25; % Padding added on either side of detected artifact [sec]
+parameters.lfp.artifact.padding  = 0;    % Padding added on either side of detected artifact [sec]
 
 %% Stimulus onset
 
@@ -254,3 +268,10 @@ parameters.mfa.min_dur   = 0.1; % Minimum duration of pulse [sec]
 %% PSR_CAM_DETECTION
 
 parameters.cam.thresh = 10;
+
+%% Experiment specific
+
+% Active vs. passive touch
+parameters.experimental.ap.process = false; % Process A.vs.P. sections
+parameters.experimental.ap.diff    = true;
+parameters.experimental.ap.offset  = true;

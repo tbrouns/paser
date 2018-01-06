@@ -55,21 +55,15 @@ else
     
     elseif (strcmp(inputs.method,'plot'))
     
-        freq     = inputs.freq;
-        baseline = inputs.baseline;
-        params   = inputs.params;
-        psr_lfp_plotting(freq,baseline,params);
+        freq = inputs.freq;
+        cfg  = inputs.cfg;
+        psr_lfp_plotting(freq,cfg);
         
     end
     
     if (~FT_PRESENT)
         try % Remove FT from path
-            fpath = path;
-            fpath = strsplit(fpath,';');
-            k = ~cellfun(@isempty,strfind(fpath,parameters.path.ft));
-            fpath = fpath(1,k);
-            fpath = strjoin(fpath,';');
-            rmpath(fpath);
+            psr_remove_path(parameters.path.ft);
             clearvars -global
         catch
             disp('Unable to remove FieldTrip from path.');

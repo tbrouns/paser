@@ -11,4 +11,6 @@ sortTill = 9999999;
 
 [assigns, nrAssigned, baseSpikes, baseSpikesID] = sortSpikesOnline(spikeWaveforms, stdEstimate, sortTill);
 
+psr_remove_path(parameters.path.ost);
+
 end

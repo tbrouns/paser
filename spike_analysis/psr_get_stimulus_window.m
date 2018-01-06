@@ -15,14 +15,14 @@ sPost = Fs * (tPost / 1000); % post-stimulus window
 sBin  = Fs * (tBin  / 1000); % bin size in stimulus window
 sDel  = Fs * (tDel  / 1000); % spike deletion window
 
-clusterIDs      = [spikes.clusters.vars.id];
+clusterIDs      = [spikes.clusters.metrics.id];
 nClusts         = length(clusterIDs);
 SpikeBinTrials  =  cell(1,nClusts);
 SpikeTimesTrial =  cell(2,nClusts);
 
 % Extract stimulus windows
 
-stimulusTimes = spikes.info.stimtimes{1}(:,1) + (params.stimOffset / 1000);
+stimulusTimes = spikes.info.stimtimes{1}(:,1) + spikes.info.stimoffset(1);
 nTrials = length(stimulusTimes); % number of stimulus onsets
 
 if (~isempty(stimulusTimes))
@@ -30,10 +30,13 @@ if (~isempty(stimulusTimes))
     stimulusTimes = round(Fs * stimulusTimes) + 1;
     if (size(stimulusTimes,1) > size(stimulusTimes,2)); stimulusTimes = stimulusTimes'; end
     
-    del = bsxfun(@plus,stimulusTimes,(sDel(1) : sDel(2) - 1)');
-    del(del < 1)    = 1;
-    del(del > Nmax) = Nmax;
-    del = del(:);
+    off_1 = round((Fs * spikes.info.stimoffset(1)) + 1);
+    off_2 = round((Fs * spikes.info.stimoffset(2)) + 1);
+    del_1 = bsxfun(@plus,stimulusTimes,                (sDel(1) : sDel(2))');
+    del_2 = bsxfun(@plus,stimulusTimes - off_1 + off_2,(sDel(1) : sDel(2))');
+    del = [del_1(:);del_2(:)];
+    del(del < 1)    = [];
+    del(del > Nmax) = [];
     
     ids = bsxfun(@plus,stimulusTimes,(sPre + 1 : sPost)');
     ids(ids < 1)    = 1;

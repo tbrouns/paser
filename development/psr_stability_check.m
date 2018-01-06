@@ -1,7 +1,8 @@
-function [filesSpikes,filesData] = psr_stability_check(filesSpikes,filesData)
+function filesSpikes = psr_stability_check(filesSpikes,filesData,sortMethod)
 
-nProbes = size(filesData,1);
-nTrials = size(filesData,2);
+nProbes    = size(filesData,1);
+nTrials    = size(filesData,2);
+sortMethod = upper(sortMethod);
 
 for iProbe = 1:nProbes
     
@@ -10,58 +11,80 @@ for iProbe = 1:nProbes
     warning('off', MSGID);
     load(filesData{iProbe,1},'perturb'); % Load first temp file
     warning('on', MSGID);
-    if ~exist('perturb','var'); perturb = 0; % No perturbation done yet
-    else,                       perturb = perturb + 1;
+    if ~exist('perturb','var') || ...
+            isempty(perturb); perturbTemp = 0; perturb = []; % No perturbation done yet
+    else,                     perturbTemp = perturb + 1;
     end
     
-    load(filesSpikes{iProbe}); % Load spikes
+    % Save old spikes file with new name
     
-    % Save new spikes file
+    load(filesSpikes{iProbe,1});
+    filename = getFilename(filesSpikes{iProbe,1},perturbTemp,sortMethod);
+    save(filename,'spikes','metadata','parameters');
     
-    vars = {'spikes','metadata','parameters'};
-    filesSpikes{iProbe} = saveFile(filesSpikes{iProbe},perturb,vars,spikes,[],metadata,parameters);
+    trialOnsets = metadata.trialonset;
     
-    % Perturb signal
-    
-    if (perturb < 2)
+    for iTrial = 1:nTrials
         
-        for iTrial = 1:nTrials
-            load(filesData{iProbe,iTrial},'ts_Spikes');
+        % Perturb signal
+        
+        if (perturbTemp < 2)
             
-            psr_parameter_config; % TEMP
+            % Save old data
+        
+            load(filesData{iProbe,iTrial});
+            filename = getFilename(filesData{iProbe,iTrial},perturbTemp,sortMethod);
+            save(filename,'metadata','parameters','ts_LFP','ts_Spikes','perturb');
+                    
+            % Load unperturbed data
             
-            signal = ts_Spikes.data;
+            filename = getFilename(filesData{iProbe,iTrial},0,sortMethod);
+            load(filename);
+            
+            signal        = ts_Spikes.data;
             parameters.Fs = ts_Spikes.Fs;
             which = find(spikes.trials == iTrial);
             spikesTrl = psr_sst_spike_removal(spikes,which,'keep');
-            spikesTrl.spiketimes = spikesTrl.spiketimes - metadata.trialonset(iTrial);
+            spikesTrl.spiketimes = spikesTrl.spiketimes - trialOnsets(iTrial);
             
-            if (perturb == 0); signal = psr_stability_blurring(spikesTrl,signal,parameters);
-            else,              signal = psr_stability_reversal(spikesTrl,signal,parameters);
+            if (perturbTemp == 0); signal = psr_stability_blurring(spikesTrl,signal,parameters);
+            else,                  signal = psr_stability_reversal(spikesTrl,signal,parameters);
             end
-        
+            
             ts_Spikes.data = signal;
-            vars = {'ts_Spikes','perturb'};
-            filesData{iProbe,iTrial} = saveFile(filesData{iProbe,iTrial},perturb,vars,[],ts_Spikes,metadata,parameters);
+            
+            % Save
+            perturb = perturbTemp;
+            save(filesData{iProbe,iTrial},'metadata','parameters','ts_LFP','ts_Spikes','perturb');
+        else
+            fileRAW = filesData{iProbe,iTrial};
+            fileUNP = getFilename(fileRAW,0,sortMethod);
+            fileBLR = getFilename(fileRAW,1,sortMethod);
+            delete(fileRAW);
+            delete(fileBLR);
+            movefile(fileUNP,fileRAW);
+            if (iTrial == 1)
+                delete(filesSpikes{iProbe,1});
+                filesSpikes{iProbe,1} = [];
+            end
         end
     end
-    
+        
     filesSpikes{iProbe,3} = [];
     clear perturb;
 end
 
 end
 
-function filename = saveFile(file,perturb,vars,spikes,ts_Spikes,metadata,parameters)
+function filename = getFilename(file,perturb,sortMethod)
 
 [fpath,filename,~] = fileparts(file);
 
-if     (perturb == 0); filename = [filename,'_UNP'];
-elseif (perturb == 1); filename = [filename,'_BLR'];
-else,                  filename = [filename,'_RVS'];
+if     (perturb == 0); filename = [filename '_' sortMethod '_UNP'];
+elseif (perturb == 1); filename = [filename '_' sortMethod '_BLR'];
+else,                  filename = [filename '_' sortMethod '_RVS'];
 end
 
 filename = [fpath '\' filename '.mat'];
-save(filename,vars{:});
-    
+
 end
