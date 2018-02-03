@@ -43,8 +43,10 @@ for iProbe = 1:nProbes
             
             signal        = ts_Spikes.data;
             parameters.Fs = ts_Spikes.Fs;
+            
+            % Grab spikes from trial
             which = find(spikes.trials == iTrial);
-            spikesTrl = psr_sst_spike_removal(spikes,which,'keep');
+            spikesTrl = psr_sst_spike_removal(spikes,which,'keep'); 
             spikesTrl.spiketimes = spikesTrl.spiketimes - trialOnsets(iTrial);
             
             if (perturbTemp == 0); signal = psr_stability_blurring(spikesTrl,signal,parameters);

@@ -1,36 +1,49 @@
-function artifacts = psr_lfp_artifact_detection_amp(signal,parameters)
+function artifacts = psr_lfp_artifact_detection_amp(data,parameters)
+
+% Signal can be given as single time-series (Nchans x Nsamples), or as a
+% cell array of such matrices or FieldTrip data structures
+
+if (iscell(data)) 
+    nTrials = length(data);
+    for iTrial = 1:nTrials
+        if isfield(data{iTrial},'trial') % Check for FieldTrip
+            data{iTrial} = data{iTrial}.trial{1}; % Do conversion
+        end
+    end
+else % Single time-series (Nchans x Nsamples)
+    nTrials = 1;
+end
 
 % Set parameters
 
 Fs = parameters.Fr;
-nTrials = length(signal);
 tSection = parameters.lfp.artifact.tsection;
 threshFactorUpper = parameters.lfp.artifact.threshAmpUpper;
 threshFactorLower = parameters.lfp.artifact.threshAmpLower;
 sWinSlope  = round(Fs * parameters.lfp.artifact.tSlope / 1000);
 
-[~,slength] = cellfun(@size,signal);
+[~,slength] = cellfun(@size,data);
 slength = [0;cumsum(slength)];
 
 if (parameters.lfp.artifact.cat) % Combine data across all stimulus conditions
-    signal = {cat(2,signal{:})};
+    data = {cat(2,data{:})};
 end
 
 artifacts = [];
 
-for iTrial = 1:length(signal)
+for iTrial = 1:length(data)
         
     %% Amplitude 
     
-    signalTrial = signal{iTrial};
-    signalTrial = abs(mean(signalTrial)); % Average across channels
+    dataTrial = data{iTrial};
+    dataTrial = abs(mean(dataTrial)); % Average across channels
     
-    artifactsTrial = findArtifacts(signalTrial,tSection,Fs,threshFactorUpper,threshFactorLower);
+    artifactsTrial = findArtifacts(dataTrial,tSection,Fs,threshFactorUpper,threshFactorLower);
     artifacts = [artifacts;artifactsTrial+slength(iTrial)];
     
     %% Derivative
     
-    derivative = abs(signalTrial(1+sWinSlope:end) - signalTrial(1:end-sWinSlope));
+    derivative = abs(dataTrial(1+sWinSlope:end) - dataTrial(1:end-sWinSlope));
     
     artifactsTrial = findArtifacts(derivative,tSection,Fs,threshFactorUpper,threshFactorLower);
     artifacts = [artifacts;artifactsTrial+slength(iTrial)];
@@ -132,7 +145,7 @@ onsets  = onsets (ids(onsets)  == 1);
 offsets = offsets(ids(offsets) == 1);
 artifacts = ([onsets;offsets])';
 
-%% Visualization
+% %% Visualization
 % figure;
 % artifactsTrial = unique(artifacts,'rows');
 % t = ((1:size(signal,2)) - 1) / Fs;

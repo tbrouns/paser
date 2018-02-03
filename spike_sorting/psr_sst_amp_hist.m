@@ -1,15 +1,15 @@
-function [x,n] = psr_sst_amp_hist(spikes,clustID,parameters,splitAmp)
+function [x,n,A] = psr_sst_amp_hist(spikes,clustID,parameters,SPLIT)
 
-if (splitAmp); amplitudes = psr_sst_amp_split(spikes,clustID,parameters);
-else,          amplitudes = psr_sst_amp      (spikes,clustID,parameters);
+if (SPLIT); A = psr_sst_amp_split(spikes,clustID,parameters);
+else,       A = psr_sst_amp      (spikes,clustID,parameters);
 end
 
-th(1,1,:) = mean(spikes.info.thresh);
-minBin = 10 * (10^-parameters.general.precision) / abs(mean(th(:)));
-bin = range(amplitudes) * (parameters.cluster.amplitude_nbin / length(amplitudes));
+thresh = abs(mean(spikes.info.thresh(:)));
+minBin = 10 * (10^-parameters.general.precision) / thresh;
+bin = range(A) * (parameters.cluster.amplitude_nbin / length(A));
 if (bin < minBin); bin = minBin; end
-X = min(amplitudes):bin:max(amplitudes);
-n = histcounts(amplitudes,X);
+X = min(A):bin:max(A);
+n = histcounts(A,X);
 x = X(1:end-1) + (X(2) - X(1))/2;
 if all(spikes.info.thresh < 0); x = -x; end
 

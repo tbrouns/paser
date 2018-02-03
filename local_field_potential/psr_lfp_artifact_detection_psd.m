@@ -1,8 +1,14 @@
-function artifacts = psr_lfp_artifact_detection_psd(signal,parameters)
+function artifacts = psr_lfp_artifact_detection_psd(data,parameters)
+
+% Signal can be given as single time-series (Nchans x Nsamples), or as a
+% cell array of such matrices or FieldTrip data structures
+
+if (iscell(data)); nTrials = length(data);
+else,              nTrials = 1;
+end
 
 % Artifact removal based on power spectral density
 
-nTrials = length(signal);
 fRange  = parameters.lfp.artifact.freqRange;
 Fr      = parameters.Fr;
 sWin    = parameters.lfp.artifact.window * Fr;
@@ -16,14 +22,16 @@ secAll = [];
 
 for iTrial = 1:nTrials
 
-    signalTrial   = mean(signal{iTrial}); % average across channels
-    signalSegment = buffer(signalTrial,sWin,sOff);
-    signalSegment = signalSegment(:,2:end-1); % ignore first and last segments
-    nSecs = size(signalSegment,2);
+    dataTrial   = data{iTrial};
+    if (isfield(dataTrial,'trial')); dataTrial = dataTrial.trial{1}; end
+    dataTrial   = mean(dataTrial); % average across channels
+    dataSegment = buffer(dataTrial,sWin,sOff);
+    dataSegment = dataSegment(:,2:end-1); % ignore first and last segments
+    nSecs = size(dataSegment,2);
    
     for iSec = 1:nSecs 
-        signalSec = signalSegment(:,iSec);
-        psd = pwelch(signalSec,[],[],fRange,Fr);
+        dataSec = dataSegment(:,iSec);
+        psd = pwelch(dataSec,[],[],fRange,Fr);
         if (iSec == 1); psdTrial = zeros(length(psd),nSecs,'single'); end
         psdTrial(:,iSec) = single(psd);
     end

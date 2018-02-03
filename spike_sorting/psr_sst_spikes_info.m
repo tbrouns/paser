@@ -17,7 +17,7 @@ for iProbe = 1:nProbes
         for iTrial = 1:nTrials
 
             load(filesData{iProbe,iTrial},'ts_Spikes','parameters');
-            ts_Spikes.data = psr_single(ts_Spikes.data,parameters);
+            ts_Spikes.data = psr_int16_to_single(ts_Spikes.data,parameters);
             
             if (iTrial == 1) % Initialize
                 nChans = size(ts_Spikes.data,1); 

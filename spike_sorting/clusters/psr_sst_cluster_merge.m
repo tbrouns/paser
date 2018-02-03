@@ -33,15 +33,27 @@ function spikes = psr_sst_cluster_merge(spikes,parameters)
 % Store prior-merge cluster assigns
 
 if (~isfield(spikes,'assigns_prior')); spikes.assigns_prior = spikes.assigns; end
+if (~isfield(spikes,'features')); disp('Spike features missing. Exiting function.'); return; end
 
 % Find which clusters to merge
 spikes.assigns = spikes.assigns_prior;
-spikes.clusters.corr = psr_sst_cluster_corr(spikes,parameters,true);
-correlations = spikes.clusters.corr;
-correlations(~triu(true(size(correlations)),1)) = -realmax; % Ignore lower triangular part
-IDs = find(correlations(:) >= parameters.cluster.merge_thresh); % Do thresholding
+spikes.clusters.corr   = psr_sst_cluster_corr(spikes,parameters);
+spikes.clusters.bhatta = findBhattaDistance(spikes);
 
-[I_row, I_col] = ind2sub(size(correlations),IDs);
+correlations = spikes.clusters.corr;
+bhattaDist   = spikes.clusters.bhatta;
+
+% Ignore lower triangular part
+correlations(~triu(true(size(correlations)),1)) = -Inf; 
+bhattaDist  (~triu(true(size(bhattaDist  )),1)) = -Inf; 
+
+% Do thresholding
+mergeIDs_1 = correlations(:) >= parameters.cluster.merge.thresh.corr; 
+mergeIDs_2 =   bhattaDist(:) <= parameters.cluster.merge.thresh.bhatta; 
+
+mergeIDs = find(mergeIDs_1 & mergeIDs_2);
+
+[I_row, I_col] = ind2sub(size(correlations),mergeIDs);
 
 %% Do the merging
 
@@ -92,8 +104,37 @@ for iMerge = 1:length(clustersY)
     spikes.assigns(spikes.assigns == clustersYOld(iMerge)) = clustersY(iMerge);
 end
 
-%% Filter again after merging
-spikes = psr_sst_filter_spikes(spikes,parameters);
+end
+
+function BD = findBhattaDistance(spikes)
+
+nClust = max(spikes.assigns);
+BD = NaN(nClust,nClust); % Bhattacharyya distance
+
+for iClust = 1:nClust
+    
+    % Extract cluster ID
+    nspikes = sum(spikes.assigns == iClust);
+    if (nspikes == 0); continue; end
+    
+    % Pair-wise cluster correlations
+    for jClust = iClust:nClust
+        
+        spikeIDs_1 = ismember(spikes.assigns, iClust);
+        spikeIDs_2 = ismember(spikes.assigns, jClust);
+        
+        WF_1 = spikes.features(:,spikeIDs_1)';
+        WF_2 = spikes.features(:,spikeIDs_2)';
+                
+        if (size(WF_1,1) > size(WF_1,2) && size(WF_2,1) > size(WF_2,2))
+            try
+                BD(iClust,jClust) = bhattacharyya(WF_1,WF_2);
+            catch
+                continue;
+            end
+        end
+    end
+end
 
 end
 

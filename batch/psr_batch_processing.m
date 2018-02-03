@@ -5,7 +5,7 @@ function psr_batch_processing(parameters)
 % Syntax:  psr_batch_processing(parameters)
 %
 % Inputs:
-%    parameters -  See toolbox README on how to set these parameters.
+%    parameters - See toolbox README on how to set these parameters.
 %
 % Outputs:
 %    One or more MAT files. See toolbox README for further details.
@@ -159,7 +159,7 @@ for iFolder = 1:nFolders
             [~,~,~] = mkdir(parameters.savePathSub);
             
             if (~OVERWRITE) % Check if 'spikes' files exist in save directory
-                filesSpikes = dir([parameters.savePathSub '\Spikes_*.mat']);
+                filesSpikes = dir([parameters.savePathSub '\PSR_*.mat']);
                 filesTemp   = dir([parameters.savePathSub   '\Temp_*.mat']);
                 filesSpikes = char(filesSpikes.name);
                 filesTemp   = char(filesTemp.name);

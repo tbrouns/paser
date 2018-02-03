@@ -8,16 +8,14 @@ nClust = size(spikes.clusters.metrics,2);
 
 % Convert and set necessary parameters
 
-if (isa(spikes.waveforms,'int16'))
-    spikes.waveforms = psr_single(spikes.waveforms,parameters);
-end
+spikes.waveforms = psr_int16_to_single(spikes.waveforms,parameters);
 
 spikes.info.kmeans.assigns = spikes.assigns;
 numclusts                  = max(spikes.info.kmeans.assigns); % perhaps redundant? see nClust
 cmap                       = jetm(numclusts);
 spikes.info.kmeans.colors  = cmap(randperm(numclusts),:);
 
-parameters = psr_sst_display_parameters(parameters);
+parameters = psr_parameters_display(parameters);
 parameters.display.metrics       = false;
 parameters.display.show_gaussfit = false;
 
@@ -26,7 +24,7 @@ parameters.display.show_gaussfit = false;
 clusterIDs = [spikes.clusters.metrics.id];
 
 % Get sim score
-M = psr_sst_cluster_corr(spikes,parameters,false);
+M = psr_sst_cluster_corr(spikes,parameters);
 M = M(clusterIDs,:);
 M = M(:,clusterIDs);
 
@@ -64,9 +62,7 @@ end
 ids = [spikes.clusters.metrics.id];
 clusterIDs = ids(clusterIDs);
 
-%% Filter spikes
 run(parameters.general.configPath); % TEMP
-spikes = psr_sst_filter_spikes(spikes,parameters,'delete');
 
 %% Ignore low spike count clusters
 nspikes = zeros(nClust,1);
@@ -89,7 +85,7 @@ while iClust <= nClust
     
     figure(fig); clf;
     subaxis(2,3,1:2,'Margin',0.05,'Padding',0); psr_sst_plot_waveforms(spikes,clusterID,parameters);
-    subaxis(2,3,  3,'Margin',0.05,'Padding',0); psr_sst_plot_amp_dist (spikes,clusterID,parameters);
+    subaxis(2,3,  3,'Margin',0.05,'Padding',0); psr_sst_plot_amp (spikes,clusterID,parameters);
     subaxis(2,3,4:5,'Margin',0.05,'Padding',0); psr_sst_plot_stability(spikes,clusterID,freq,metadata,parameters);
     subaxis(2,3,  6,'Margin',0.05,'Padding',0); psr_sst_plot_isi      (spikes,clusterID,parameters);
     

@@ -73,7 +73,7 @@ parameters.trialpattern = [];            % Used to differentiate between trials 
 parameters.nelectrodes  = 4;             % Number of electrodes per polytrode (e.g. tetrode: 4)
 
 parameters.path.kst = 'C:\PathToKiloSort\KiloSort';   % Path to the KiloSort repository
-parameters.path.ft  = 'D:\PathToFieldTrip\fieldtrip'; % Path to the FieldTrip repository
+parameters.path.ft  = 'D:\PathToFieldTrip\FieldTrip'; % Path to the FieldTrip repository
 
 psr_batch_processing(parameters); % Process raw data files
 ```
@@ -82,6 +82,10 @@ This script will load and then batch process `continuous` files in the directory
 Processed data is saved to the folder specified by `parameters.savePath`, where a matching directory tree will be created. 
 
 Not all of the parameters in this script are set correctly, so what follows is an explanation of how to select the right settings.
+
+### Parameter config file
+
+WORK IN PROGRESS
 
 ### Initial parameters
 
@@ -186,10 +190,9 @@ In order for the program to know where to look for the toolboxes, set the path p
 
 As mentioned earlier, a MAT file will be saved for each probe to the `savePath` for the current session. These files have the following naming convention:
 
-`Spikes_%SubjectName%_%Session%_P%ProbeNumber%_%Method%.mat`
+`PSR_%SubjectName%_%Session%_P%ProbeNumber%.mat`
 
-Where `%SubjectName%` is specified by `parameters.subject`, `%Session%` by the name of the session folder, 
-`%ProbeNumber%` by the probe number and `%Method%` by `parameters.sorting.method` (see `psr_parameter_default.m`).
+Where `%SubjectName%` is specified by `parameters.subject`, `%Session%` by the name of the session folder and `%ProbeNumber%` by the probe number.
 
 The data in every MAT file is organized in the following way:
 
@@ -261,11 +264,11 @@ spikes.info                    struct                    Session information
 spikes.clusters                struct                   Metrics for spike clusters                  	
                 mahal          double   [Nc x Nc]       Mahalanobis   distance between clusters in feature space
                 bhattacharyya  double   [Nc x Nc]       Bhattacharyya distance between clusters in feature space
-                vars           struct                   
+                metrics        struct                   
              
                 Nc: number of clusters
 
-spikes.clusters.vars                                    Metrics for each spike cluster
+spikes.clusters.metrics                                 Metrics for each spike cluster
                 id             integer  scalar          Cluster identifier
                 rpv            double   scalar          Fraction of refractory period violations 
                 missing        double   scalar          Fraction of missing spikes based on spike amplitude and Gaussian fit
@@ -340,9 +343,3 @@ varycolor                https://nl.mathworks.com/matlabcentral/fileexchange/210
 [5] Schmitzer-Torbert, N., et al. "Quantitative measures of cluster quality for use in extracellular recordings." Neuroscience 131.1 (2005): 1-11.
 
 [6] Shan, K. Q., Lubenov, E. V., & Siapas, A. G. (2017). Model-based spike sorting with a mixture of drifting t-distributions. bioRxiv, 109850.
-
-## To-do
-
-* Add kilosort parameter settings to psr_parameters_default
-* Add option to use '.spikes' file as data input
-* Add test data

@@ -8,8 +8,14 @@ function metrics = psr_sst_cluster_MDT(spikes,parameters,weights)
 % Major edits by Terence Brouns (2017)
 
 if (nargin < 3); weights = ones(size(spikes.spiketimes)); end
-dims   = parameters.cluster.mdt.dims;
-scales = parameters.cluster.mdt.scales;
+
+% Positive non-zero assigns
+
+n = 0;
+while (min(unique(spikes.assigns))) <= 0
+    spikes.assigns = spikes.assigns + 1;
+    n = n + 1;
+end
 
 % Remove clusters that are too small
 % Need to have consecutive cluster indices 
@@ -21,7 +27,7 @@ for iClust = 1:nclusts
     nspikes(iClust) = sum(spikes.assigns == clustIDs(iClust));
 end
 
-I        = nspikes <= 2 * dims;
+I        = nspikes <= 2 * size(spikes.features,1);
 del      = clustIDs(I);
 ndel     = length(del); % clusters to remove
 clustIDs = clustIDs(~I); % Keep remaining clusters
@@ -40,15 +46,6 @@ for iClust = 1:ndel
     
 end
 
-% Do PCA
-
-if (isa(spikes.waveforms,'int16'))
-    spikes.waveforms = psr_single(spikes.waveforms,parameters);
-end
-
-inspk = psr_wavelet_features(spikes.waveforms(:,:),dims,scales);
-inspk = inspk';
-
 % Data conversion
 
 %  New data structure with fields:
@@ -58,7 +55,7 @@ inspk = inspk';
 %     weighting       [N x 1] suggested weighting for training on a subset
 
 data             = [];
-data.spk_Y       = double(inspk);
+data.spk_Y       = double(spikes.features);
 data.spk_t       = double(spikes.spiketimes' * 1000); % convert to ms
 data.spk_clustId = double(spikes.assigns');
 data.weighting   = double(weights');
@@ -79,7 +76,7 @@ timeframe_ms = 60e3 * timeframe_minutes;
 model.attachData(data.spk_Y, data.spk_t,'frameDur',timeframe_ms);
 
 % Fit the model parameters based on our spike assignments
-clustAssigned = data.spk_clustId;
+clustAssigned = data.spk_clustId; 
 MSGID = 'MATLAB:nearlySingularMatrix';
 warning('off', MSGID); % Disable warning
 model.initFromAssign(clustAssigned);
@@ -137,7 +134,7 @@ for k = 1:nClust
     
     % Save these values
 
-    metrics(k).id     = clustIDs(k);     % Cluster ID
+    metrics(k).id     = clustIDs(k) - n; % Cluster ID
     metrics(k).Lratio = Lratio;          % L-ratio
     metrics(k).IsoDis = isolationDist;   % isolation distance
     metrics(k).FP_t   = falsePosMODT;    % False positives (T-distribution)

@@ -1,7 +1,7 @@
 function spikes = psr_sst_detection(signal, parameters)
 
 if (size(signal,2) > size(signal,1)); signal = signal'; end % Convert input
-if (isa(signal,'int16')); signal = psr_single(signal,parameters); end
+if (isa(signal,'int16')); signal = psr_int16_to_single(signal,parameters); end
 
 % Set constants
 

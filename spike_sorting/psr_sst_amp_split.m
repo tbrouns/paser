@@ -6,15 +6,16 @@ threshProm     = parameters.cluster.split.prom;
 threshWidth    = parameters.cluster.split.width;
 threshTerminal = parameters.cluster.split.terminal;
 
-th(1,1,:) = mean(spikes.info.thresh);
+thresh   = abs(mean(spikes.info.thresh(:)));
 spikeIDs = find(spikes.assigns == clustID);
 ampClust = psr_sst_amp(spikes,clustID,parameters);
 amplitudes = ampClust; % Initialize
 clear waves spikes;
 
 if (~isempty(amplitudes))
-        
-    minBin = 10 * (10^-parameters.general.precision) / abs(mean(th(:)));
+    
+    % Limit bin size by precision of data
+    minBin = 10 * (10^-parameters.general.precision) / thresh;
     
     nspikes = length(ampClust);
     bin     = binSpikes * range(ampClust) / nspikes;
@@ -24,7 +25,7 @@ if (~isempty(amplitudes))
     if (length(edges) >= 3) % condition needed for findpeaks
         
         counts    = histcounts(ampClust,edges); % amplitude distribution
-        counts    = gaussianSmoothing(counts,binSmooth);
+        counts    = psr_gauss_smoothing(counts,binSmooth);
         counts    = counts / max(counts); % normalize
         nbins     = length(counts);
         counts    = [0,counts]; % to ensure that first bin can also be peak
@@ -80,7 +81,7 @@ end
 
 end
 
-function x = gaussianSmoothing(x,n)
+function x = psr_gauss_smoothing(x,n)
 
 g = gausswin(n); % create Gaussian smoothing window
 g = g / sum(g); % normalize

@@ -39,21 +39,19 @@ if (isfield(freq,'artifacts'))
     onsets  = [0;cumsum(spikes.info.dur)];
     ntrials = size(freq,2);
     for iTrial = 1:ntrials
-        artifacts = [artifacts;freq(iTrial).artifacts + onsets(iTrial)]; %#ok
+        artifactsTemp = (freq(iTrial).artifacts - 1) / parameters.Fr;
+        artifacts = [artifacts;artifactsTemp + onsets(iTrial)]; %#ok
     end
     artifacts = getArtifactVector(spikes,artifacts);
 end
 
-% Filter spikes
-if (isfield(spikes,'delete')); spikes = psr_sst_filter_spikes(spikes,parameters,'delete'); end
-
 % Convert to single
-if (isa(spikes.waveforms,'int16'))
-    spikes.waveforms = psr_single(spikes.waveforms,parameters); 
-end
+spikes.waveforms = psr_int16_to_single(spikes.waveforms,parameters);
+
+% Filter spikes
+spikes = psr_sst_filter_spikes(spikes,parameters,'delete');
 
 % Calculate features of clusters
-
 metrics = [];
 
 for iClust = nClust:-1:1
@@ -71,30 +69,31 @@ for iClust = nClust:-1:1
     
     % Calculate individual cluster metrics
     
-    fRPV                  = getRPVs             (spikes, clusterID, parameters);
-    [fSub,~,~]            = psr_sst_amp_gaussfit(spikes, clusterID, parameters);
-    fCoinciding           = ss_censored         (spikes, clusterID, parameters);
-    [xcross,lagMax]       = crossCorrelation    (spikes, clusterID, parameters);
-    [pAuc,pDist]          = fitPoisson          (spikes, clusterID, parameters);
-    [k,ampAbs,ampRel,p2p] = checkThreshold      (spikes, clusterID, threshold);
-    overlapFactor         = getArtifactOverlap  (spikes, clusterID, artifacts);
-    firingRate            = getFiringRate       (spikes, clusterID);
-    signal2noise          = getSignalNoiseRatio (spikes, clusterID);
-    corrGlobal            = getCorrelationGlobal(spikes, clusterID);
-    corrProbe             = getCorrelationProbe (spikes, clusterID);
-    
-    metrics(iClust).rpv      = fRPV;
-    metrics(iClust).sub      = fSub;
-    metrics(iClust).co       = fCoinciding;
+    rpvRatio              = getRPVs                  (spikes, clusterID, parameters);
+    [subThreshRatio,~,~]  = psr_sst_amp_gaussfit     (spikes, clusterID, parameters);
+    overlapRatio          = psr_sst_spike_overlap    (spikes, clusterID, parameters);
+    [xcross,lagMax]       = crossCorrelation         (spikes, clusterID, parameters);
+    [cAuc,xDist,yDist]    = psr_sst_cluster_stability(spikes, clusterID, parameters);
+    [k,ampAbs,ampRel,p2p] = checkThreshold           (spikes, clusterID, threshold);
+    overlapFactor         = getArtifactOverlap       (spikes, clusterID, artifacts);
+    firingRate            = getFiringRate            (spikes, clusterID);
+    signal2noise          = getSignalNoiseRatio      (spikes, clusterID);
+    corrGlobal            = getCorrelationGlobal     (spikes, clusterID);
+    corrProbe             = getCorrelationProbe      (spikes, clusterID);
+     
+    metrics(iClust).frate    = firingRate;
+    metrics(iClust).rpv      = rpvRatio;
+    metrics(iClust).sub      = subThreshRatio;
+    metrics(iClust).co       = overlapRatio;
     metrics(iClust).xc       = xcross;
-    metrics(iClust).xc_lag   = 1000 * (lagMax / Fs); % [ms]
-    metrics(iClust).p_auc    = pAuc;
-    metrics(iClust).p_dist   = pDist;
+    metrics(iClust).xcLag    = 1000 * (lagMax / Fs); % [ms]
+    metrics(iClust).cAuc     = cAuc;
+    metrics(iClust).cxDist   = xDist;
+    metrics(iClust).cyDist   = yDist;
     metrics(iClust).amp      = ampAbs;
-    metrics(iClust).amp_rel  = ampRel;
+    metrics(iClust).ampRel   = ampRel;
     metrics(iClust).p2p      = p2p;
     metrics(iClust).chans    = k;
-    metrics(iClust).frate    = firingRate;
     metrics(iClust).artifact = overlapFactor;
     metrics(iClust).corrG    = corrGlobal;
     metrics(iClust).corrP    = corrProbe;
@@ -134,7 +133,6 @@ else
     rpvs       = diff(spiketimes) <= 0.001 * parameters.spikes.ref_period;
     fRPV       = sum(rpvs) / length(spiketimes);
 end
-
 
 end
 
@@ -198,50 +196,7 @@ xc = XC(:,I);
 
 end
 
-function [pAuc,pDist] = fitPoisson(spikes, clustID, parameters)
 
-spikeIDs = ismember(spikes.assigns, clustID);
-
-% Parse inputs
-
-spiketimes = sort(spikes.spiketimes(spikeIDs));
-nspikes = length(spiketimes);
-twin    = parameters.cluster.stability_win;
-tlength = sum(spikes.info.dur);
-frate   = nspikes / tlength;
-nWin    = floor(2 * tlength / twin); % number of windows
-counts  = zeros(nWin,1);
-tstart  = 1;
-
-% Acquire spike counts
-for i = 1:nWin
-    tend = tstart + twin; % Update frequency window
-    if (tend > tlength) % Check if end of signal is reached
-        tstart = tlength - twin;
-        tend   = tlength;
-    end
-    counts(i) = sum(spiketimes >= tstart & spiketimes < tend);
-    tstart = tstart + round(0.5 * twin); % Update starting frequency
-end
-
-kmax  = max(counts);
-edges = -0.5:kmax+0.5;
-pDist = histcounts(counts, edges, 'Normalization', 'probability');
-
-% Poisson distribution
-
-lambda = frate * twin;
-xmax = max(counts);
-x = 0:xmax;
-y = poisspdf(x,lambda);
-
-% Find difference between theoretical and empirical Poisson distributions
-
-A = pDist;
-A(A > y) = y(A > y);
-pAuc = sum(A) / sum(pDist); % area under Poisson curve (relative to total area)
-
-end
 
 function [chanIDs,maxAmp,relAmp,p2p] = checkThreshold(spikes, clustID, threshold)
 

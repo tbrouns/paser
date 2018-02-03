@@ -26,7 +26,7 @@ for iClust = 1:nClust
     t = t(:);
     
     % Extract waveforms
-    w = psr_single(signal(:,t),parameters);
+    w = psr_int16_to_single(signal(:,t),parameters);
     w = permute(w,[3 2 1]);
     w = reshape(w,[],nspikes,nChan);
     w = permute(w,[2 1 3]);

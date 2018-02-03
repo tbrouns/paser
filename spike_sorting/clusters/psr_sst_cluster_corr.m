@@ -1,18 +1,13 @@
-function correlations = psr_sst_cluster_corr(spikes,parameters,filterSpikes)
-
-if (nargin < 3); filterSpikes = true; end
+function correlations = psr_sst_cluster_corr(spikes,parameters)
 
 nClust = max(spikes.assigns);
 
-% Filter spikes
-if (isfield(spikes,'delete') && filterSpikes)
-    spikes = psr_sst_filter_spikes(spikes,parameters,'delete');
-end
-
 % Convert to single
-if (isa(spikes.waveforms,'int16')); spikes.waveforms = psr_single(spikes.waveforms,parameters); end
+spikes.waveforms = psr_int16_to_single(spikes.waveforms,parameters);
 
-% Calculate features of clusters
+% Filter spikes
+spikes = psr_sst_filter_spikes(spikes,parameters,'delete');
+
 correlations = NaN(nClust,nClust);
 
 for iClust = 1:nClust

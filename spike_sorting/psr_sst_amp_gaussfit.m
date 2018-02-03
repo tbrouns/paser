@@ -54,8 +54,8 @@ stdev = [];
 
 if (spikes.info.detected) % If spike threshold was used
     
-    [x,n] = psr_sst_amp_hist(spikes,clustID,parameters,true);
-
+    [x,n,amplitudes] = psr_sst_amp_hist(spikes,clustID,parameters,true);
+    
     % fit the histogram with a cutoff gaussian
     m = mode_guesser(amplitudes, 0.05);    % use mode instead of mean, since tail might be cut off
     [stdev,mu] = stdev_guesser(amplitudes, n, x, m); % fit the standard deviation as well
@@ -67,19 +67,14 @@ if (spikes.info.detected) % If spike threshold was used
     if all(spikes.info.thresh < 0); mu = -mu; end
 
 else
-    
-    th(1,1,:) = mean(spikes.info.thresh);
     spikeIDs  = ismember(spikes.assigns,clustID);
-    
-    waves = spikes.waveforms(spikeIDs,:,:);
-    if (isa(waves,'int16')); waves = psr_single(waves,parameters); end
-    waves = waves ./ repmat(th, [size(waves,1) size(waves,2) 1]);
-    waves = max(waves,[],2);
-    waves = max(waves,[],3);
-    
-    nspikes = size(waves,1);
-    p = sum(waves < 1) / nspikes;
-        
+    waveforms = spikes.waveforms(spikeIDs,:,:);
+    waveforms = psr_int16_to_single(waveforms,parameters);
+    waveforms = psr_sst_norm_waveforms(waveforms,mean(spikes.info.thresh));
+    waveforms = max(waveforms,[],2);
+    waveforms = max(waveforms,[],3);
+    nspikes = size(waveforms,1);
+    p = sum(waveforms < 1) / nspikes;
 end
 
 end
@@ -93,26 +88,19 @@ init = sqrt(mean((m - thresh_val(thresh_val >= m)).^2));
 
 % try 20 values, within a factor of 2 of the initial guess
 num        = 20;
-sd_guesses = linspace(init/2, init*2, num);
-md_guesses = linspace(m-init,max(m+init,1),num);
-Nmd = length(md_guesses);
+sd_guesses = linspace(init/3, init*3, num);
 Nsd = length(sd_guesses);
-errors = zeros(Nmd,Nsd);
-for iMode = 1:Nmd
-    for iStd = 1:Nsd
-        b = normpdf(x,md_guesses(iMode),sd_guesses(iStd));
-        b = b * sum(n) / sum(b);
-        errors(iMode,iStd) = sum(abs(b(:)-n(:)));
-    end
+errors = zeros(1,Nsd);
+for iStd = 1:Nsd
+    b = normpdf(x,m,sd_guesses(iStd));
+    b = b * max(n) / max(b);
+    errors(iStd) = sum(abs(b(:)-n(:)));
 end
 
 % which one has the least error?
 [~,pos] = min(errors(:));
-jpos    = mod(pos, num); if jpos == 0, jpos = num; end
 kpos    = ceil(pos / num);
 stdev   = sd_guesses(kpos);
 
-% refine mode estimate
-m = md_guesses(jpos);
 
 end
