@@ -46,7 +46,7 @@ for iProbe = 1:nProbes
             
             % Grab spikes from trial
             which = find(spikes.trials == iTrial);
-            spikesTrl = psr_sst_spike_removal(spikes,which,'keep'); 
+            spikesTrl = psr_sst_remove_spikes(spikes,which,'keep'); 
             spikesTrl.spiketimes = spikesTrl.spiketimes - trialOnsets(iTrial);
             
             if (perturbTemp == 0); signal = psr_stability_blurring(spikesTrl,signal,parameters);

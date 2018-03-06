@@ -1,4 +1,4 @@
-function metrics = psr_sst_cluster_features(spikes,freq,parameters)
+function spikes = psr_sst_cluster_features(spikes,parameters)
 
 % PSR_SST_CLUSTER_FEATURES - Calculates quality metrics for spike clusters.
 % This function calcules a number of statistics to assess cluster quality
@@ -8,9 +8,8 @@ function metrics = psr_sst_cluster_features(spikes,freq,parameters)
 %
 % Inputs:
 %    spikes     - See README
-%    freq       - See README
-%    metadata   - See README
 %    parameters - See README
+%    freq       - See README
 %
 % Output:
 %    clusters - See 'spikes.clusters' in README
@@ -28,28 +27,26 @@ function metrics = psr_sst_cluster_features(spikes,freq,parameters)
 %------------- BEGIN CODE --------------
 
 % Set parameters
-threshold  = parameters.cluster.thresh * (mean(spikes.info.thresh) / parameters.spikes.thresh);
+
 Fs         = spikes.Fs;
 clusterIDs = unique(spikes.assigns);
 nClust     = length(clusterIDs);
+spikesOld  = spikes;
+artifacts  = [];
 
-% Extract local field potential artifacts
-artifacts = [];
-if (isfield(freq,'artifacts'))
-    onsets  = [0;cumsum(spikes.info.dur)];
-    ntrials = size(freq,2);
-    for iTrial = 1:ntrials
-        artifactsTemp = (freq(iTrial).artifacts - 1) / parameters.Fr;
-        artifacts = [artifacts;artifactsTemp + onsets(iTrial)]; %#ok
+% Extract artifacts
+if (~psr_isempty_field(spikes,'spikes.info.artifacts'))
+    trialOnsets  = [0;cumsum(spikes.info.dur)];
+    nTrials = length(spikes.info.artifacts);
+    for iTrial = 1:nTrials
+        artifactsTemp  = spikes.info.artifacts{iTrial};
+        artifacts = [artifacts;artifactsTemp + trialOnsets(iTrial)]; %#ok
     end
     artifacts = getArtifactVector(spikes,artifacts);
 end
 
 % Convert to single
 spikes.waveforms = psr_int16_to_single(spikes.waveforms,parameters);
-
-% Filter spikes
-spikes = psr_sst_filter_spikes(spikes,parameters,'delete');
 
 % Calculate features of clusters
 metrics = [];
@@ -61,11 +58,11 @@ for iClust = nClust:-1:1
     clusterID = clusterIDs(iClust);
     nspikes   = sum(spikes.assigns == clusterID);
     
-    metrics(iClust).id       = clusterID;
-    metrics(iClust).nspikes  = nspikes;
-    metrics(iClust).fspikes  = nspikes / length(spikes.spiketimes);
+    metrics(iClust).id      = clusterID;
+    metrics(iClust).nspikes = nspikes;
+    metrics(iClust).fspikes = nspikes / length(spikes.spiketimes);
     
-    if (nspikes < parameters.cluster.min_spikes); continue; end
+    if (nspikes < parameters.cluster.quality.min_spikes); continue; end
     
     % Calculate individual cluster metrics
     
@@ -74,13 +71,11 @@ for iClust = nClust:-1:1
     overlapRatio          = psr_sst_spike_overlap    (spikes, clusterID, parameters);
     [xcross,lagMax]       = crossCorrelation         (spikes, clusterID, parameters);
     [cAuc,xDist,yDist]    = psr_sst_cluster_stability(spikes, clusterID, parameters);
-    [k,ampAbs,ampRel,p2p] = checkThreshold           (spikes, clusterID, threshold);
+    [k,ampAbs,ampRel,p2p] = psr_sst_cluster_amp      (spikes, clusterID, parameters);
     overlapFactor         = getArtifactOverlap       (spikes, clusterID, artifacts);
     firingRate            = getFiringRate            (spikes, clusterID);
     signal2noise          = getSignalNoiseRatio      (spikes, clusterID);
-    corrGlobal            = getCorrelationGlobal     (spikes, clusterID);
-    corrProbe             = getCorrelationProbe      (spikes, clusterID);
-     
+    
     metrics(iClust).frate    = firingRate;
     metrics(iClust).rpv      = rpvRatio;
     metrics(iClust).sub      = subThreshRatio;
@@ -95,120 +90,84 @@ for iClust = nClust:-1:1
     metrics(iClust).p2p      = p2p;
     metrics(iClust).chans    = k;
     metrics(iClust).artifact = overlapFactor;
-    metrics(iClust).corrG    = corrGlobal;
-    metrics(iClust).corrP    = corrProbe;
     metrics(iClust).snr      = signal2noise;
 end
 
-% Mixture of drifting t-distribution model for sorting spikes and measuring unit isolation
-
-metricsMDT = psr_sst_cluster_MDT(spikes,parameters);
-ID1      = [metricsMDT.id];
-ID2      = [metrics.id];
-nClusts  = length(ID1);
-
-for iClust = nClusts:-1:1
-    I = find(ID2 == ID1(iClust));
-    if (~isempty(I))
-        metrics(I).Lratio = metricsMDT(iClust).Lratio;
-        metrics(I).IsoDis = metricsMDT(iClust).IsoDis;
-        metrics(I).FP_t   = metricsMDT(iClust).FP_t;
-        metrics(I).FN_t   = metricsMDT(iClust).FN_t;
-        metrics(I).FP_g   = metricsMDT(iClust).FP_g;
-        metrics(I).FN_g   = metricsMDT(iClust).FN_g;
-    end
-end
+% Return structure
+spikes = spikesOld;
+spikes.clusters.metrics = metrics;
 
 end
 
 function fRPV = getRPVs(spikes, clustID, parameters)
 
-if (isfield(spikes.clusters,'rpvs'))
-    clustIDs = spikes.clusters.rpvs(:,2);
-    I = find(clustIDs == clustID,1);
-    fRPV = spikes.clusters.rpvs(I,1);
-else
-    spikeIDs   = ismember(spikes.assigns, clustID);
-    spiketimes = spikes.spiketimes(spikeIDs);
-    rpvs       = diff(spiketimes) <= 0.001 * parameters.spikes.ref_period;
-    fRPV       = sum(rpvs) / length(spiketimes);
-end
+spikeIDs   = ismember(spikes.assigns, clustID);
+spiketimes = spikes.spiketimes(spikeIDs);
+rpvs       = diff(spiketimes) <= 0.001 * parameters.spikes.ref_period;
+fRPV       = sum(rpvs) / length(spiketimes);
 
 end
 
-function [xc,lagMax] = crossCorrelation(spikes, clustID, parameters)
+function [crossCorr,lagMax] = crossCorrelation(spikes, clustID, parameters)
 
 spikeIDs  = ismember(spikes.assigns, clustID);
-nchan     = size(spikes.waveforms,3);
-nsamples  = size(spikes.waveforms,2);
-threshold = parameters.cluster.thresh_xcorr * (mean(spikes.info.thresh) / parameters.spikes.thresh);
+threshold = parameters.cluster.thresh_xcorr * spikes.info.bgn;
 
 %% Calculate cross-correlation between consecutive spike channels
 
-waves = spikes.waveforms(spikeIDs,:,:);
-waves_mean = squeeze(mean(waves,1));
-waves = reshape(permute(waves,[2 1 3]),size(waves,1)*size(waves,2),size(waves,3));
+waveforms = spikes.waveforms(spikeIDs,:,:);
 
-chanIDs = zeros(1,nchan);
-waves_max = max(abs(waves_mean));
+nSpikes  = size(waveforms,1);
+nSamples = size(waveforms,2);
+nChan    = size(waveforms,3);
+
+% Concatenate each spike on every individual channel
+chanIDs = zeros(1,nChan);
+waveformsMax = max(mean(waveforms,1),[],2);
 threshold = abs(threshold); % consider both positive and negative peaks
-for ichan = 1:nchan
-    chanIDs(ichan) = waves_max(ichan) >= threshold(ichan);
+for iChan = 1:nChan
+    chanIDs(iChan) = waveformsMax(iChan) >= threshold(iChan);
 end
 
-maxlag = round(0.75 * nsamples);
+maxlag = round(0.75 * nSamples);
 
-N  = (nchan / 2) * (nchan - 1);
-XC = zeros(2 * maxlag + 1, N);
-accept = zeros(1,N);
+N = (nChan^2 - nChan) / 2;
+crossCorr = zeros(2 * maxlag + 1, N);
+accept = false(1,N);
 
-n  = 1;
-for ichan = 1:nchan
-    x = waves(:,ichan);
-    for jchan = ichan+1:nchan
-        y = waves(:,jchan);
-        [XC(:,n),lags] = xcorr(x,y,maxlag,'coeff');
-        accept(n) = chanIDs(ichan) & chanIDs(jchan);
-        n = n + 1;
+waveforms = reshape(permute(waveforms,[2 1 3]),nSpikes*nSamples,nChan);
+
+itr = 1;
+for iChan = 1:nChan
+    x = waveforms(:,iChan);
+    for jChan = iChan+1:nChan
+        y = waveforms(:,jChan);
+        [crossCorr(:,itr),lags] = xcorr(x,y,maxlag,'coeff');
+        accept(itr) = chanIDs(iChan) & chanIDs(jChan);
+        itr = itr + 1;
     end
 end
 
 % Ignore low amplitude channels
-XC = XC(:,logical(accept));
-ncombi = size(XC,2);
+crossCorr = crossCorr(:,accept);
+nCombi = size(crossCorr,2);
 
 % Find location of xcorr peak with largest lag
 
-lagAll = zeros(ncombi,1);
+lagAll = zeros(nCombi,1);
 
-for icombi = 1:ncombi
-    xc = XC(:,icombi);
+for iCombi = 1:nCombi
+    xc = crossCorr(:,iCombi);
     [pks,loc] = findpeaks(xc);
     if (isempty(pks)); [~,I] = max(xc);
     else,              [~,I] = max(pks); I = loc(I);
     end
-    lagAll(icombi) = lags(I);
+    lagAll(iCombi) = lags(I);
 end
 
 [lagMax,I] = max(lagAll);
 if (isempty(lagMax)); lagMax = 0; end
-xc = XC(:,I);
-
-end
-
-
-
-function [chanIDs,maxAmp,relAmp,p2p] = checkThreshold(spikes, clustID, threshold)
-
-signThresh = sign(mean(threshold));
-spikeIDs   = ismember(spikes.assigns, clustID);
-waves      = spikes.waveforms(spikeIDs,:,:);
-waves      = signThresh * squeeze(mean(waves,1));
-maxAmp     = max(waves); % maximum amplitude per channel
-chanIDs    = find(maxAmp > abs(threshold)); % channels that cross threshold with mean amplitude
-relAmp     = max(maxAmp ./ abs(threshold));
-maxAmp     = max(maxAmp); % maximum mean channel amplitude
-p2p        = maxAmp - min(waves(:));
+crossCorr = crossCorr(:,I);
 
 end
 
@@ -248,17 +207,17 @@ Fs         = spikes.Fs;
 spikeIDs   = ismember(spikes.assigns, clustID);
 spiketimes = spikes.spiketimes(spikeIDs);
 spiketimes = round(Fs * spiketimes) + 1; % in sample number
-nlength    = length(artifacts);
+nLength    = length(artifacts);
 
 spiketimes(spiketimes < 1)       = [];
-spiketimes(spiketimes > nlength) = [];
+spiketimes(spiketimes > nLength) = [];
 
-nspikes = length(spiketimes);
+nSpikes = length(spiketimes);
 
 n = sum(artifacts);
 N = sum(artifacts(spiketimes));
-overlap_expected = n / nlength; % expected overlap in case of uniform spike distribution
-overlap_exact    = N / nspikes; % actual fraction of spikes that overlap with artifact
+overlap_expected = n / nLength; % expected overlap in case of uniform spike distribution
+overlap_exact    = N / nSpikes; % actual fraction of spikes that overlap with artifact
 
 overlap_diff = overlap_exact / overlap_expected;
 
@@ -277,26 +236,6 @@ noise    = bsxfun(@minus,waves,wavesAvg);
 noise    = noise(:);
 noise    = 2 * std(noise);
 snr      = A / noise;
-
-end
-
-function corrGlobal = getCorrelationGlobal(spikes,clustID)
-
-spikeIDs = ismember(spikes.assigns, clustID);
-corrGlobal = nanmean(spikes.corr_global(spikeIDs));
-
-end
-
-function corrProbe = getCorrelationProbe(spikes,clustID)
-
-nChans = size(spikes.waveforms,3);
-spikeIDs = ismember(spikes.assigns, clustID);
-waves = spikes.waveforms(spikeIDs,:,:);
-waves = permute(waves,[2 1 3]);
-waves = reshape(waves,[],nChans);
-R = triu(corr(waves),1);
-R = R(triu(true(size(R)),1));
-corrProbe = min(R);
 
 end
 

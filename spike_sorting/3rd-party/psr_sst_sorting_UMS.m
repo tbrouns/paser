@@ -8,7 +8,7 @@ spikes.params.detect.window_size = parameters.spikes.window_size;
 
 spikes.info.detect.thresh = spikes.info.thresh;
 spikes.info.detect.dur    = spikes.info.dur;
-spikes.info.detect.stds   = spikes.info.stds;
+spikes.info.detect.stds   = spikes.info.bgn;
 
 % SVD the data matrix
 spikes.waveforms = psr_int16_to_single(spikes.waveforms,parameters);

@@ -1,4 +1,4 @@
-function psr_wrapper_analysis(filenames,loadPath,savePath,cfg)
+function psr_wrapper_analysis(cfg)
 
 % "cfg.fpath" should contain path to function
 
@@ -8,15 +8,8 @@ names = names(~cellfun('isempty',names)); % remove empty cells
 fname = names{end};
 fpath = join(names(1:end-1),'\');
 
-oldFolder = cd(fpath{1});
-feval(fname,filenames,loadPath,savePath,cfg);
-% try % TEMP COMMENT
-%     feval(fname,filenames,loadPath,savePath,cfg);
-% catch ME
-%     disp(['Error in "' fname '"']);
-%     disp(ME.message);
-% end
-
-cd(oldFolder);
+oldFolder = cd(fpath{1}); % cd to path to ensure we call correct function
+feval(fname,cfg);
+cd(oldFolder); % go back to where we came from
 
 end

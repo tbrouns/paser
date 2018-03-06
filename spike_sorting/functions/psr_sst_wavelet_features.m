@@ -1,4 +1,4 @@
-function inspk = psr_sst_wavelet_features(spikes,parameters)
+function spikes = psr_sst_wavelet_features(spikes,parameters)
 
 % From: WaveClus
 % https://github.com/csn-le/wave_clus
@@ -7,26 +7,24 @@ function inspk = psr_sst_wavelet_features(spikes,parameters)
 % Neural Computation 16, 1661-1687; 2004.
 
 % Input: 
-%  waves - Nspikes X Nsamples 
+%  waves - Nspikes X Npoints 
 
 % Calculates the spike features
 
 dims   = parameters.cluster.wavelet.dims;
 scales = parameters.cluster.wavelet.scales;
 
-spikes.waveforms = psr_int16_to_single(spikes.waveforms,parameters);
-waves = spikes.waveforms(:,:); clear spikes;
+waveforms = psr_int16_to_single(spikes.waveforms(:,:),parameters); 
+nSpikes   = size(waveforms,1);
+nSamples  = size(waveforms,2);
 
-nSpikes = size(waves,1);
-ls      = size(waves,2);
-
-cc = zeros(nSpikes,ls);
+cc = zeros(nSpikes,nSamples);
 for i = 1 : nSpikes  % Wavelet decomposition
-    [c,~] = wavedec(waves(i,:), scales, 'haar');
-    cc(i,1:ls) = c(1:ls);
+    [c,~] = wavedec(waveforms(i,:), scales, 'haar');
+    cc(i,1:nSamples) = c(1:nSamples);
 end
 
-for i = 1 : ls  % KS test for coefficient selection
+for i = 1 : nSamples  % KS test for coefficient selection
 
     thr_dist     =  std(cc(:,i)) * 3;
     thr_dist_min = mean(cc(:,i)) - thr_dist;
@@ -43,15 +41,15 @@ for i = 1 : ls  % KS test for coefficient selection
 end
 
 [~, ind]      = sort(sd);
-coeff(1:dims) = ind(ls : -1 : ls - dims + 1);
+coeff(1:dims) = ind(nSamples : -1 : nSamples - dims + 1);
         
-inspk = zeros(nSpikes,dims);
+features = zeros(nSpikes,dims);
  
 for i = 1 : nSpikes
-    for j = 1 : dims; inspk(i,j) = cc(i,coeff(j)); end
+    for j = 1 : dims; features(i,j) = cc(i,coeff(j)); end
 end
 
-inspk = single(inspk');
+spikes.features = single(features');
 
 end
 

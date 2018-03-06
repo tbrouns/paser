@@ -3,7 +3,7 @@ function assigns = psr_sst_sorting_SPC(spikes,parameters)
 nspikes = length(spikes.spiketimes);
 mcs     = round(parameters.sorting.spc.mcs * nspikes);
 
-inspk = psr_sst_wavelet_features(spikes,parameters); clear spikes;
+features = psr_sst_features(spikes,parameters); clear spikes;
 
 %  * INPUT
 %  *  D - Ndimensions-by-Npoints array of feature data
@@ -18,7 +18,7 @@ inspk = psr_sst_wavelet_features(spikes,parameters); clear spikes;
 %  *  NMC - number of max-size clusters to consider
 %  *  K - number of K-nearest neighbors to use
 
-[C,P] = spc_mex(inspk,mcs);
+[C,~] = spc_mex(features,mcs);
 
 % Convert to regular assigns
 
@@ -29,6 +29,6 @@ for iClust = 1:nclusts
     id = C{iClust} + 1;    
     assigns(id) = iClust;    
 end
-assigns = assigns + 1;
+spikes.assigns = assigns + 1;
 
 end

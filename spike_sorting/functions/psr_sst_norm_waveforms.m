@@ -2,7 +2,7 @@ function waveforms = psr_sst_norm_waveforms(waveforms,normFactor)
 
 % Normalize waveforms 
 % normFactor: typically the threshold. Given as [1 x Nchannels] vector
-% waveforms: [Nspikes x Nsamples x Nchannels]
+% waveforms: [Nspikes x Npoints x Nchannels]
 
 % Check input
 [sz1,sz2,sz3] = size(normFactor);

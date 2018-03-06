@@ -1,4 +1,4 @@
-function spikes = psr_sst_sorting_KST(data,parameters,savePath)
+function spikes = psr_sst_sorting_KST(spikes,data,parameters,savePath)
 
 disp('Running Kilosort...');
 
@@ -65,11 +65,9 @@ if (~isempty(rez))
     if (size(rez.st3,2) >= 5); assigns = 1 + rez.st3(:,5);
     else,                      assigns =     rez.st3(:,2);
     end
-    spikes = psr_convert2spikes(data,spiketimes,assigns,parameters);
+    spikes = psr_convert2spikes(spikes,data,spiketimes,assigns,parameters);
     rez = rmfield(rez,'st3'); % Remove now-redundant field
     spikes.info.kst = rez;
-else               
-    spikes = [];
 end
 
 % Clean-up

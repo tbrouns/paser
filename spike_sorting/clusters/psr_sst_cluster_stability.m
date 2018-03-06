@@ -2,8 +2,8 @@ function [cAuc,xDist,yDist] = psr_sst_cluster_stability(spikes, clustID, paramet
 
 % Constants
 
-f_lambda = 5;
-k_ratio  = 0.025;
+f_lambda = 5; % Multiple of lambda to determine range
+k_ratio  = 0.025; % Factor to determine k step size
 
 % Parse inputs
 

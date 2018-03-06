@@ -1,4 +1,4 @@
-function spikes = psr_sst_sorting_CBP(data,parameters)
+function spikes = psr_sst_sorting_CBP(spikes,data,parameters)
 
 addpath(genpath(parameters.path.cbp));
 
@@ -94,7 +94,7 @@ end
 [spiketimes,I] = sort(spiketimes);
 assigns = assigns(I);
 
-spikes = psr_convert2spikes(data,spiketimes,assigns,parameters);
+spikes = psr_convert2spikes(spikes,data,spiketimes,assigns,parameters);
 
 rmpath(genpath(parameters.path.cbp));
 

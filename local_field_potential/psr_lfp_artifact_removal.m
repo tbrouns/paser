@@ -1,6 +1,6 @@
-function [data,artifacts] = psr_lfp_artifact_removal(data,artifacts,parameters)    
+function data = psr_lfp_artifact_removal(data,artifacts,parameters)    
 
-% Signal can be given as single time-series (Nchans x Nsamples), or as a
+% Signal can be given as single time-series (Nchans x Npoints), or as a
 % cell array of such matrices or FieldTrip data structures
 
 if (iscell(data)); nTrials = length(data);
@@ -63,7 +63,5 @@ for iTrial = 1:nTrials
         data{iTrial}.artifacts = artifactsAll{iTrial};
     end
 end
-
-artifacts = artifactsAll; % Output
 
 end

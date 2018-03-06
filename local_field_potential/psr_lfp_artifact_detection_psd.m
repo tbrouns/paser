@@ -1,6 +1,6 @@
 function artifacts = psr_lfp_artifact_detection_psd(data,parameters)
 
-% Signal can be given as single time-series (Nchans x Nsamples), or as a
+% Signal can be given as single time-series (Nchans x Npoints), or as a
 % cell array of such matrices or FieldTrip data structures
 
 if (iscell(data)); nTrials = length(data);

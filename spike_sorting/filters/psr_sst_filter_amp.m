@@ -7,7 +7,7 @@ spikes.waveforms = psr_int16_to_single(spikes.waveforms,parameters);
 Fs               = spikes.Fs;
 window           = round(0.5 * Fs * (parameters.spikes.max_desync / 1000));
 waveforms        = spikes.waveforms;
-waveforms        = psr_sst_norm_waveforms(waveforms,mean(spikes.info.thresh));
+waveforms        = psr_sst_norm_waveforms(waveforms,spikes.info.thresh);
 [waveforms,Imax] = max(waveforms,[],2);
 [~,maxChanIds]   = max(waveforms,[],3);
 
@@ -27,7 +27,7 @@ for iClust = 1:nClusts
     
     clustID = clustIDs(iClust);
     spikeIDs_1 = find(ismember(spikes.assigns,clustID));
-    if (length(spikeIDs_1) < parameters.cluster.min_spikes); continue; end
+    if (length(spikeIDs_1) < parameters.cluster.quality.min_spikes); continue; end
     [~,spikeIDs_2] = psr_sst_amp_split(spikes,clustID,parameters);
     ImaxCluster = Imax(spikeIDs_1,:); % Sample number of amplitude
     maxChanIdClust = maxChanIds(spikeIDs_1);
@@ -39,7 +39,7 @@ for iClust = 1:nClusts
     
     if (maxChanAmp >= 1) % Should exceed threshold
         
-        pksChanIdClust = find(chanAmps > maxChanAmp - parameters.filter.spikes.amp_offset);
+        pksChanIdClust = find(chanAmps > maxChanAmp - parameters.filter.spikes.amp.offset);
         nChan = length(pksChanIdClust);
         
         if (nChan > 0)

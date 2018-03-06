@@ -9,36 +9,84 @@ cfg.demean  = 'yes';
 
 switch (parameters.lfp.filter.type)
     case 'bp'
-        cfg.bpfilter  = 'yes'; 
+        cfg.bpfilter  = 'yes';
         cfg.bpfreq    = [parameters.lfp.filter.bp.lower,parameters.lfp.filter.bp.upper];
         cfg.bpfiltord =  parameters.lfp.filter.bp.order;
         cfg.bpinstabilityfix = 'split';
     case 'lp'
-        cfg.lpfilter  = 'yes'; 
+        cfg.lpfilter  = 'yes';
         cfg.lpfreq    = parameters.lfp.filter.lp.upper;
         cfg.lpfiltord = parameters.lfp.filter.lp.order;
         cfg.lpinstabilityfix = 'split';
 end
 
-% Add mirror padding
-[dataInput,padding] = addPadding(dataInput,parameters);
+sLength   = size(dataInput.trial{1},2);
+sPoints   = 60 * parameters.spikes.twin * parameters.Fs;
+nSections = ceil(sLength / sPoints);
+sPoints   = ceil(sLength / nSections);
+itr       = 1;
 
-try
-    data = ft_preprocessing(cfg, dataInput); % Do FieldTrip pre-processing
-    data = removePadding(data,padding);
-catch ME
-    fprintf('\n **** FieldTrip ERROR **** \n');
-    disp(ME.message);
-    fprintf(  ' ************************* \n\n');
+dataTemp = [];
+dataTemp.trial = [];
+dataTemp.time  = [];
+
+for iSection = 1:nSections
+    
+    I = itr:itr+sPoints-1; I(I > sLength) = []; 
+    dataSection.label   = dataInput.label;
+    dataSection.fsample = dataInput.fsample;
+    dataSection.trial   = {dataInput.trial{1}(:,I)};
+    dataSection.time    = {dataInput.time{1}(:,I)};
+    dataSection.sampleinfo = [1 length(I)];
+    
+    itr = I(end) + 1;
+    
+    if (parameters.lfp.filter.eps.run) % Remove mains hum with notch filter
+        try
+            % Design filter to remove mains hum
+            hw = parameters.lfp.filter.eps.bw / 2;    % Half-width
+            lf = parameters.lfp.filter.eps.freq + hw; % Lower frequency
+            uf = parameters.lfp.filter.eps.freq - hw; % Upper frequency
+            od = parameters.lfp.filter.eps.order;
+            filterDesign = designfilt('bandstopiir',  ...
+                'FilterOrder',         od, ...
+                'HalfPowerFrequency1', lf, ...
+                'HalfPowerFrequency2', uf, ...
+                'DesignMethod',        'butter', ...
+                'SampleRate', parameters.Fs);
+            dataSection.trial = filtfilt(filterDesign,cell2mat(dataSection.trial)')';
+            dataSection.trial = {dataSection.trial};
+        catch ME
+            disp(ME.message);
+            disp('Error using "filtfilt". Mains hum not removed.');
+        end
+    end
+    
+    % Add mirror padding
+    [dataSection,padding] = addPadding(dataSection,parameters);
+    
+    try
+        data = ft_preprocessing(cfg, dataSection); % Do FieldTrip pre-processing
+        data = removePadding(data,padding);
+    catch ME
+        fprintf('\n **** FieldTrip ERROR **** \n');
+        disp(ME.message);
+        fprintf(  ' ************************* \n\n');
+    end
+    
+    % Downsample filtered signal
+    if (~isempty(data) && ~isempty(parameters.lfp.Fr))
+        [dataProbe,timestamps] = resample(cell2mat(data.trial)',cell2mat(data.time),parameters.lfp.Fr);
+        dataTemp.trial = [dataTemp.trial,dataProbe'];
+        dataTemp.time  = [dataTemp.time, timestamps];
+    end
+    
 end
 
-% Downsample filtered signal
-if (~isempty(data) && ~isempty(parameters.lfp.Fr))
-    [dataProbe,timestamps] = resample(cell2mat(data.trial)',cell2mat(data.time),parameters.lfp.Fr);
-    data.trial = {dataProbe'};
-    data.time  = {timestamps};
-    data.sampleinfo = [1 length(timestamps)];
-end
+data.fsample    = parameters.lfp.Fr;
+data.trial      = {dataTemp.trial};
+data.time       = {dataTemp.time};
+data.sampleinfo = [1 length(dataTemp.time)];
 
 end
 

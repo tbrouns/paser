@@ -1,26 +1,17 @@
-function spikes = psr_sst_detection(signal, parameters)
+function spikes = psr_sst_detection(spikes, data, parameters)
 
-if (size(signal,2) > size(signal,1)); signal = signal'; end % Convert input
-if (isa(signal,'int16')); signal = psr_int16_to_single(signal,parameters); end
+if (size(data,2) > size(data,1)); data = data'; end % Convert input
+data = psr_int16_to_single(data,parameters);
 
 % Set constants
 
 Fs          = parameters.Fs;
-sLength     = size(signal,1); % total number of samples in signal
-nChan       = size(signal,2);
+sLength     = size(data,1); % total number of samples in signal
+nChan       = size(data,2);
 sWindow     = round(Fs * parameters.spikes.window_size / 1000);
 sWindowHalf = round(0.5 * (sWindow - 1));
 precision   = 10^parameters.general.precision;
-
-% Calculate threshold
-
-stdev  =  std(signal);
-thresh = -parameters.spikes.thresh * psr_mad(signal);
-
-spikes = [];
-spikes.info.stds   = stdev;
-spikes.info.thresh = thresh;
-spikes.info.dur    = sLength / Fs;
+thresh      = parameters.spikes.thresh * spikes.info.bgn;
 
 % Find peaks in signal that exceed threshold
 
@@ -28,7 +19,7 @@ locations = false(nChan,sLength);
 peaks     = zeros(nChan,sLength);
 
 for iChan = 1:nChan
-    signalChan = signal(:,iChan);
+    signalChan = data(:,iChan);
     del = signalChan > thresh(iChan);
     I   = find(~del); % Keep raw locations of thresholded data
     signalChan(del) = []; % Ignore sub-threshold data
@@ -76,9 +67,9 @@ spiketimes = (locations - 1) / Fs;
 spikes.spiketimes = single(spiketimes);
 
 indices = bsxfun(@plus,locations,(-sWindowHalf:sWindowHalf)');
-waves   = signal(indices, :);
-waves   = reshape(waves,size(indices,1),size(indices,2),nChan);
-waves   = permute(waves,[2 1 3]);
-spikes.waveforms = int16(precision * waves);
+waveforms = data(indices, :);
+waveforms = reshape(waveforms,size(indices,1),size(indices,2),nChan);
+waveforms = permute(waveforms,[2 1 3]);
+spikes.waveforms = int16(precision * waveforms);
 
 end

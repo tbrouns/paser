@@ -1,13 +1,12 @@
 function correlations = psr_sst_cluster_corr(spikes,parameters)
 
-nClust = max(spikes.assigns);
+% Filter spikes
+spikes = psr_sst_filter_spikes(spikes,parameters,'delete');
 
 % Convert to single
 spikes.waveforms = psr_int16_to_single(spikes.waveforms,parameters);
 
-% Filter spikes
-spikes = psr_sst_filter_spikes(spikes,parameters,'delete');
-
+nClust = max(spikes.assigns);
 correlations = NaN(nClust,nClust);
 
 for iClust = 1:nClust
@@ -17,7 +16,7 @@ for iClust = 1:nClust
     if (nspikes == 0); continue; end
     
     % Pair-wise cluster correlations
-    for jClust = (iClust+1):nClust
+    for jClust = iClust+1:nClust
         correlations(iClust,jClust) = clusterCorr(spikes,iClust,jClust,parameters);
     end
 end

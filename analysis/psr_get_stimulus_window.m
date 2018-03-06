@@ -1,96 +1,56 @@
-function [SpikeBinTrial,SpikeTimesTrial] = psr_get_stimulus_window(spikes,params)
+function spikes = psr_get_stimulus_window(spikes,params)
 
-tPre  = params.t_win(1);
-tPost = params.t_win(end);
-tBin  = params.t_bin;
-tDel  = params.t_del;
+tPre  = params.t_win(1)   / 1000;
+tPost = params.t_win(end) / 1000;
 
-tWin  = tPost - tPre;
+% Convert
 Tmax  = spikes.info.dur;
 Fs    = spikes.Fs;
 Nmax  = floor(Fs * Tmax) + 1;
-nBins = tWin / tBin;
-sPre  = Fs * (tPre  / 1000); % pre- stimulus window
-sPost = Fs * (tPost / 1000); % post-stimulus window
-sBin  = Fs * (tBin  / 1000); % bin size in stimulus window
-sDel  = Fs * (tDel  / 1000); % spike deletion window
-
-clusterIDs = [spikes.clusters.metrics.id];
-nClusts    = length(clusterIDs);
-
-SpikeBinTrial   = cell(1,nClusts);
-SpikeTimesTrial = cell(2,nClusts);
+sPre  = round(Fs * tPre);  % pre- stimulus window
+sPost = round(Fs * tPost); % post-stimulus window
 
 % Extract stimulus windows
 
-stimulusTimes = spikes.info.stimtimes{1}(:,1) + spikes.info.stimoffset(1);
+spikes.spiketimes = spikes.spiketimes - spikes.info.trialonset;
+spikePoints = round(Fs * spikes.spiketimes) + 1;
+stimulusTimes = spikes.info.stimtimes{1}(:,1) + spikes.info.stimoffset;
 nTrials = length(stimulusTimes); % number of stimulus onsets
+    
+spikes.trials = zeros(size(spikes.spiketimes));
+spikes.info.trialonset = stimulusTimes + tPre;
+
+spikeSignal = zeros(Nmax,1);
+spikeSignal(spikePoints) = 1;
 
 if (~isempty(stimulusTimes))
     
-    stimulusTimes = round(Fs * stimulusTimes) + 1;
-    if (size(stimulusTimes,1) > size(stimulusTimes,2)); stimulusTimes = stimulusTimes'; end
+    stimulusPoints = round(Fs * stimulusTimes) + 1;
+    if (size(stimulusPoints,1) > size(stimulusPoints,2)); stimulusPoints = stimulusPoints'; end
     
-    off_1 = round((Fs * spikes.info.stimoffset(1)) + 1);
-    off_2 = round((Fs * spikes.info.stimoffset(2)) + 1);
-    del_1 = bsxfun(@plus,stimulusTimes,                (sDel(1) : sDel(2))');
-    del_2 = bsxfun(@plus,stimulusTimes - off_1 + off_2,(sDel(1) : sDel(2))');
-    del = [del_1(:);del_2(:)];
-    del(del < 1)    = [];
-    del(del > Nmax) = [];
+    % Find which spikes to remove
     
-    ids = bsxfun(@plus,stimulusTimes,(sPre + 1 : sPost)');
-    ids(ids < 1)    = 1;
-    ids(ids > Nmax) = Nmax;
+    stimTrialIDs = bsxfun(@plus,stimulusPoints,(sPre + 1 : sPost)');
+    stimTrialIDs(stimTrialIDs < 1)    = 1;
+    stimTrialIDs(stimTrialIDs > Nmax) = Nmax;
         
-    d = round(Fs * (params.acf_win / 1000));
-    preId = bsxfun(@plus,stimulusTimes,(-d : 0)');
-    pstId = bsxfun(@plus,stimulusTimes,( 0 : d)');
-    preId = preId(:);
-    pstId = pstId(:);
-    preId(preId < 1)    = [];
-    pstId(pstId < 1)    = [];
-    preId(preId > Nmax) = [];
-    pstId(pstId > Nmax) = [];
-
-    for iClus = 1:nClusts
-
-        % Binary spiking vector
-        signal = false(Nmax, 1);
-        id = (spikes.assigns == clusterIDs(iClus));
-        spiketimes = spikes.spiketimes(id) - spikes.info.trialonset;
-        t = round(Fs * spiketimes) + 1; % in sample number
-        signal(t)   = true;
-        signal(del) = false;
-        
-        SpikeBinCount = signal(ids); % extract windows around each stimulus onset [samples per window x ntrials]
-        SpikeBinCount = reshape(SpikeBinCount, sBin, nBins, nTrials); % [samples per bin x nbins x ntrials]        
-        SpikeBinTrial{iClus} = SpikeBinCount;
-
-        % Pre- and post-stimulus spiking vectors
-
-        signalPre = false(Nmax,1);
-        signalPst = false(Nmax,1);
-
-        SpikeTimesPre = signal;
-        SpikeTimesPst = signal;
-
-        signalPre(preId) = true;
-        signalPst(pstId) = true;
-
-        SpikeTimesPre(~signalPre) = false;
-        SpikeTimesPst(~signalPst) = false;
-
-        SpikeTimesPre = (find(SpikeTimesPre) - 1) / Fs; 
-        SpikeTimesPst = (find(SpikeTimesPst) - 1) / Fs; 
-
-        SpikeTimesTrial{1,iClus} = SpikeTimesPre;
-        SpikeTimesTrial{2,iClus} = SpikeTimesPst;
-        SpikeTimesTrial{3,iClus} = Tmax;
-        SpikeTimesTrial{4,iClus} = spiketimes;
-        
+    for iTrial = 1:nTrials
+        I = stimTrialIDs(:,iTrial);       
+        spikeIDs = extractSpikeIDs(I,spikeSignal);
+        spikes.trials(spikeIDs) = iTrial;
     end
+    
+    del = find(spikes.trials == 0);
+    spikes = psr_sst_remove_spikes(spikes,del,'delete');
+    
+end 
 
 end
+
+function spikeIDs = extractSpikeIDs(I,spikeSignal)
+
+I = I(spikeSignal(I) == 1);
+spikeSignal(I) = spikeSignal(I) + 1;
+spikeIDs = spikeSignal(spikeSignal > 0) == 2;
 
 end

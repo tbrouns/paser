@@ -3,7 +3,12 @@ function signalFiltered = psr_artifact_fft(signal,parameters,Fs)
 % PSR_ARTIFACT_FFT - Filters raw time series signal in its power spectrum.
 % This function detects high intensity peaks in the signal's power spectrum
 % using median absolute deviation, subsequently removes them and returns
-% the filtered signal.
+% the filtered signal [Ref. 1]. 
+% 
+% References: 
+% [1] Jun, James Jaeyoon, et al. "Real-time spike sorting platform for
+% high-density extracellular probes with ground-truth validation and drift
+% correction." bioRxiv (2017): 101030.
 %
 % Syntax:  [dataFiltered] = psr_artifact_fft(data,parameters,Fs)
 %

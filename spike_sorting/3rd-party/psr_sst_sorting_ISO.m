@@ -1,4 +1,4 @@
-function assigns = psr_sst_sorting_ISO(spikes,parameters)
+function spikes = psr_sst_sorting_ISO(spikes,parameters)
 
 % Perform clustering using isotonic regression
 nspikes = length(spikes.spiketimes);
@@ -11,9 +11,9 @@ if (isfield(spikes,'assigns') && ~isempty(spikes.assigns))
     opts.initial_labels = spikes.assigns; 
 end
 
-inspk = psr_sst_wavelet_features(spikes,parameters);
+spikes = psr_sst_features(spikes,parameters);
 
 % [assigns,~] = isosplit5(inspk,opts);
-assigns = isosplit5_mex(inspk);
+spikes.assigns = isosplit5_mex(spikes.features);
 
 end

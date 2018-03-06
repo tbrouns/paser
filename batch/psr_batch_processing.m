@@ -104,8 +104,9 @@ switch parameters.process
             for iFolder = 1:nFolders
                 k = strfind(folders,parameters.folders{iFolder});
                 k = find(~cellfun(@isempty,k),1);
+                [k,~] = ind2sub(folders,k);
                 if (~isempty(k))
-                    foldersTemp{iFolder} = folders{k};
+                    foldersTemp(iFolder,:) = folders(k,:);
                 end
             end
             folders = foldersTemp;
@@ -113,6 +114,11 @@ switch parameters.process
            disp('The "process" field has been set to "given", but no folders were chosen in "folders" field.');
            return;
         end
+    case 'from'
+        k = strfind(folders,parameters.folders{1});
+        k = find(~cellfun(@isempty,k),1);
+        [k,~] = ind2sub(size(folders),k);
+        folders = folders(k:end,:);
     case 'new'
         OVERWRITE = false;
 end
@@ -129,38 +135,34 @@ for iFolder = 1:nFolders
     parameters.session      = []; % session names
     parameters.sessionIndex = []; % note session for each trial
     parameters.loadPathSub  = []; % where each trial is loaded from
-    
-    FILES_FOUND = false;
+    parameters.savePathSub  = [];
     
     for iSession = 1:nSessions % sessions to process together
-        
         folderName = strtrim(folders{iFolder,iSession});
-        
         % Locate relevant files in subfolders
         loadPathSub = dir([parameters.loadPath, folderName '\**\*.' parameters.extension]);
         loadPathSub =    char(loadPathSub.folder);
         loadPathSub =  unique(loadPathSub,'rows');
-        if (~isempty(loadPathSub)); FILES_FOUND = true; end
-        loadPathSub = cellstr(loadPathSub);
-        
-        parameters.session{iSession} = folderName;
-        parameters.loadPathSub  = [parameters.loadPathSub;loadPathSub];
-        parameters.sessionIndex = [parameters.sessionIndex;iSession*ones(size(loadPathSub))];
-        
-        if (iSession == 1); parameters.savePathSub = folderName;
-        else,               parameters.savePathSub = [parameters.savePathSub '-' folderName];
+        if (~isempty(loadPathSub))
+            loadPathSub = cellstr(loadPathSub);
+            parameters.session{iSession} = folderName;
+            parameters.loadPathSub  = [parameters.loadPathSub;loadPathSub];
+            parameters.sessionIndex = [parameters.sessionIndex;iSession*ones(size(loadPathSub))];
+            if (isempty(parameters.savePathSub)); parameters.savePathSub = [parameters.subject     '-' folderName];
+            else,                                 parameters.savePathSub = [parameters.savePathSub '-' folderName];
+            end
         end
     end
     
-    if (FILES_FOUND)
+    if (~isempty(parameters.loadPathSub))
         parameters.savePathSub = [parameters.savePath, parameters.savePathSub];
         
         if (~isempty(parameters.loadPathSub))
             [~,~,~] = mkdir(parameters.savePathSub);
             
             if (~OVERWRITE) % Check if 'spikes' files exist in save directory
-                filesSpikes = dir([parameters.savePathSub '\PSR_*.mat']);
-                filesTemp   = dir([parameters.savePathSub   '\Temp_*.mat']);
+                filesSpikes = dir([parameters.savePathSub  '\PSR_*.mat']);
+                filesTemp   = dir([parameters.savePathSub '\Temp_*.mat']);
                 filesSpikes = char(filesSpikes.name);
                 filesTemp   = char(filesTemp.name);
                 if size(filesSpikes,1) > 0 && size(filesTemp,1) == 0; continue; end

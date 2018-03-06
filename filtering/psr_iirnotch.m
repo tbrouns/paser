@@ -1,0 +1,16 @@
+function filterDesign = psr_iirnotch(parameters)
+
+    hw = parameters.lfp.filter.eps.bw / 2;    % Half-width
+    lf = parameters.lfp.filter.eps.freq + hw; % Lower frequency
+    uf = parameters.lfp.filter.eps.freq - hw; % Upper frequency
+    od = parameters.lfp.filter.eps.order;
+    
+    filterDesign = designfilt('bandstopiir',  ...
+        'FilterOrder',         od, ...
+        'HalfPowerFrequency1', lf, ...
+        'HalfPowerFrequency2', uf, ...
+        'DesignMethod',        'butter', ...
+        'SampleRate', parameters.Fs);
+    
+
+end

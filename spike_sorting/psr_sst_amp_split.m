@@ -6,17 +6,15 @@ threshProm     = parameters.cluster.split.prom;
 threshWidth    = parameters.cluster.split.width;
 threshTerminal = parameters.cluster.split.terminal;
 
-thresh   = abs(mean(spikes.info.thresh(:)));
+thresh   = abs(mean(spikes.info.thresh));
+minBin   = 10^(-parameters.general.precision + 1) / thresh; % limit bin size by precision of data
 spikeIDs = find(spikes.assigns == clustID);
 ampClust = psr_sst_amp(spikes,clustID,parameters);
 amplitudes = ampClust; % Initialize
 clear waves spikes;
 
 if (~isempty(amplitudes))
-    
-    % Limit bin size by precision of data
-    minBin = 10 * (10^-parameters.general.precision) / thresh;
-    
+      
     nspikes = length(ampClust);
     bin     = binSpikes * range(ampClust) / nspikes;
     if (bin < minBin); bin = minBin; end

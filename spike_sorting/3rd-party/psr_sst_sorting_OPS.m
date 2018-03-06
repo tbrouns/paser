@@ -1,4 +1,6 @@
-function assigns = psr_sst_sorting_OPS(spikes,data,parameters)
+function spikes = psr_sst_sorting_OPS(spikes,data,parameters)
+
+% NOTE: spikes.assigns not assigned
 
 %% Set parameters
 

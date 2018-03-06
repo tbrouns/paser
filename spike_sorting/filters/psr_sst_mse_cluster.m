@@ -1,4 +1,4 @@
-function meanSquaredErrors = psr_sst_mse_cluster(spikes,parameters)
+function removed = psr_sst_mse_cluster(spikes,parameters)
 
 % Convert input
 spikes.waveforms = psr_int16_to_single(spikes.waveforms,parameters);
@@ -15,7 +15,7 @@ for iClust = 1:nClusts
         
     % Ignore smaller clusters
     spikeIDs = find(ismember(spikes.assigns,clustID));
-    if (length(spikeIDs) < parameters.cluster.min_spikes); continue; end
+    if (length(spikeIDs) < parameters.cluster.quality.min_spikes); continue; end
     
     % Find average waveform
     [~,spikeIDs] = psr_sst_amp_split(spikes,clustID,parameters);
@@ -26,9 +26,9 @@ for iClust = 1:nClusts
     waves    = spikes.waveforms(spikeIDs,:,:);
     
     % Normalize by standard deviation
-    sd = mean(spikes.info.stds);
-    waveMean = psr_sst_norm_waveforms(waveMean,sd);
-    waves    = psr_sst_norm_waveforms(waves,   sd);
+    sigma = spikes.info.bgn;
+    waveMean = psr_sst_norm_waveforms(waveMean,sigma);
+    waves    = psr_sst_norm_waveforms(waves,   sigma);
     
     % Calculate MSE
     
@@ -39,5 +39,7 @@ for iClust = 1:nClusts
     meanSquaredErrors(spikeIDs) = single(MSE);
         
 end
+
+removed = meanSquaredErrors > parameters.filter.spikes.mse.thresh;
 
 end

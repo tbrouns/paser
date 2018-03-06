@@ -1,14 +1,14 @@
-function spikes = psr_convert2spikes(data,spiketimes,assigns,parameters)
+function spikes = psr_convert2spikes(spikes,data,spiketimes,assigns,parameters)
 
 % PSR_CONVERT2SPIKES - Convert spike times and cluster assigns to PASER data format.
 %
 % Syntax:  spikes = psr_convert2spikes(rez,data,parameters)
 %
 % Inputs:
-%    data - Filtered time series of extracellular recording [number of
-%    probe channels x number of data points]
-%    spiketimes - Time in seconds of each spike [number of spikes x 1] 
-%    assigns - Cluster index of each spike [number of spikes x 1]
+%    spikes - Can be empty 
+%    data - Filtered time series of extracellular recording [Nchannels x Npoints]
+%    spiketimes - Data points of each spike [Nspikes x 1] 
+%    assigns - Cluster index of each spike [Nspikes x 1]
 %    parameters - See README
 %
 % Outputs:
@@ -28,25 +28,26 @@ Fs = parameters.Fs;
 window_samples = round(Fs * parameters.spikes.window_size / 1000);
 samples_hwidth = round(0.5 * window_samples);
 win = -samples_hwidth:samples_hwidth;
-sLength = size(data,2);
-    
+
 % Get raw data around spiketimes
 
-times = bsxfun(@plus,spiketimes,win);
-times(times < 1) = 1;
-times(times > sLength) = sLength;
-times = times';
-times = times(:);
-waves = data(:,times);
-waves = permute(waves,[3 2 1]);
-waves = reshape(waves,length(win),[],parameters.general.nelectrodes);
-waves = permute(waves,[2 1 3]);
+waveforms = psr_sst_get_waveforms(spiketimes,data,win);
+
+% sLength = size(data,2);
+% timeArray = bsxfun(@plus,spiketimes,win);
+% timeArray(timeArray < 1) = 1;
+% timeArray(timeArray > sLength) = sLength;
+% timeArray = timeArray';
+% timeArray = timeArray(:);
+% waveforms = data(:,timeArray);
+% waveforms = permute(waveforms,[3 2 1]);
+% waveforms = reshape(waveforms,length(win),[],parameters.general.nelectrodes);
+% waveforms = permute(waveforms,[2 1 3]);
 
 %% Save results
 
-spikes = [];
-spikes.assigns     = int16(assigns');
-spikes.spiketimes  = single((spiketimes - 1)' / Fs); % in secs
-spikes.waveforms   = waves;
+spikes.assigns    = int16(assigns');
+spikes.spiketimes = single((spiketimes - 1)' / Fs); % in secs
+spikes.waveforms  = waveforms;
 
 %------------- END OF CODE --------------

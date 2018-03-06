@@ -69,7 +69,7 @@ nspikes = zeros(nClust,1);
 for iClust = 1:nClust
     nspikes(iClust) = sum(spikes.assigns == clusterIDs(iClust));
 end
-I = nspikes > parameters.cluster.min_spikes;
+I = nspikes > parameters.cluster.quality.min_spikes;
 clusterIDs = clusterIDs(I);
 nClust = length(clusterIDs);
 

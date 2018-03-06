@@ -7,7 +7,8 @@ for iSession = 1:nSessions % Convert to lower case
 end
 
 % Find active and passive trials
-k = find(~cellfun(@isempty,strfind(sessions,str)));
-k = (parameters.general.sessionIndex == k);
+I = find(~cellfun(@isempty,strfind(sessions,str)));
+k = false(size(parameters.general.sessionIndex));
+k(parameters.general.sessionIndex == I) = true;
 
 end

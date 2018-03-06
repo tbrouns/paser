@@ -1,4 +1,4 @@
-function assigns = psr_sst_sorting_KFM(spikes,parameters)
+function spikes = psr_sst_sorting_KFM(spikes,parameters)
 
 % % Define parameters
 % 
@@ -7,8 +7,8 @@ J        = parameters.sorting.kfm.nC; % number of clusters
 em_iters = 20;   % number of Em iterations for the GMM
 EM_iters = 20;   % number of EM iterations for the KFMM
 
-inspk = psr_sst_wavelet_features(spikes,parameters);
-inspk = inspk';
+features = psr_sst_features(spikes,parameters);
+features = features';
 
 % spiketimes = spikes.spiketimes; 
 % T = round(parameters.Fs * spiketimes(end));
@@ -20,7 +20,7 @@ inspk = inspk';
 
 T = size(spikes.waveforms,1);
 obs_id = true(T,1);
-Y = inspk; clear inspk;
+Y = features; clear inspk;
 
 % Structure to store the results
 P = struct([]); P_new = struct([]);
@@ -155,6 +155,7 @@ for iter = 1 : EM_iters
 end
 
 [~,assigns] = max(p,[],2);
+spikes.assigns = assigns;
 
 end
 
