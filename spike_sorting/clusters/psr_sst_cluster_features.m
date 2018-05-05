@@ -34,13 +34,17 @@ nClust     = length(clusterIDs);
 spikesOld  = spikes;
 artifacts  = [];
 
-% Extract artifacts
-if (~psr_isempty_field(spikes,'spikes.info.artifacts'))
+% Extract LFP artifacts
+if (~psr_isempty_field(spikes,'spikes.info.artifacts.lfp'))
     trialOnsets  = [0;cumsum(spikes.info.dur)];
-    nTrials = length(spikes.info.artifacts);
+    nTrials = length(spikes.info.artifacts.lfp);
     for iTrial = 1:nTrials
-        artifactsTemp  = spikes.info.artifacts{iTrial};
-        artifacts = [artifacts;artifactsTemp + trialOnsets(iTrial)]; %#ok
+        artifactsTemp  = spikes.info.artifacts.lfp{iTrial};
+        fields = fieldnames(artifactsTemp);
+        nFields = length(fields);
+        for iField = 1:nFields
+            artifacts = [artifacts;artifactsTemp.(fields{iField}) + trialOnsets(iTrial)]; %#ok
+        end
     end
     artifacts = getArtifactVector(spikes,artifacts);
 end
@@ -70,7 +74,7 @@ for iClust = nClust:-1:1
     [subThreshRatio,~,~]  = psr_sst_amp_gaussfit     (spikes, clusterID, parameters);
     overlapRatio          = psr_sst_spike_overlap    (spikes, clusterID, parameters);
     [xcross,lagMax]       = crossCorrelation         (spikes, clusterID, parameters);
-    [cAuc,xDist,yDist]    = psr_sst_cluster_stability(spikes, clusterID, parameters);
+    [MSE_diff,~,~]        = psr_sst_cluster_stability(spikes, clusterID, parameters);
     [k,ampAbs,ampRel,p2p] = psr_sst_cluster_amp      (spikes, clusterID, parameters);
     overlapFactor         = getArtifactOverlap       (spikes, clusterID, artifacts);
     firingRate            = getFiringRate            (spikes, clusterID);
@@ -82,12 +86,10 @@ for iClust = nClust:-1:1
     metrics(iClust).co       = overlapRatio;
     metrics(iClust).xc       = xcross;
     metrics(iClust).xcLag    = 1000 * (lagMax / Fs); % [ms]
-    metrics(iClust).cAuc     = cAuc;
-    metrics(iClust).cxDist   = xDist;
-    metrics(iClust).cyDist   = yDist;
-    metrics(iClust).amp      = ampAbs;
-    metrics(iClust).ampRel   = ampRel;
-    metrics(iClust).p2p      = p2p;
+    metrics(iClust).mse      = MSE_diff;
+    metrics(iClust).amp      = max(ampAbs);
+    metrics(iClust).ampRel   = max(ampRel);
+    metrics(iClust).p2p      = max(p2p);
     metrics(iClust).chans    = k;
     metrics(iClust).artifact = overlapFactor;
     metrics(iClust).snr      = signal2noise;

@@ -4,15 +4,16 @@ function spikes = psr_sst_remove_noise(spikes,parameters)
 % normalized waveforms between the channel and spike channel is large
 
 clusterIDs = unique(spikes.assigns);
+nClusts    = length(clusterIDs);
 nSamples   = size(spikes.waveforms,2);
 thresh     = parameters.filter.spikes.noise.thresh; % MSE threshold
 precision  = 10^parameters.general.precision;
-sigma      = spikes.info.bgn; 
+sigma      = spikes.info.bgn;
 
 VISUALIZE = true;
 if (VISUALIZE); figure; set(gcf,'position',get(0,'screensize')); end % TEMP
 
-for iClust = clusterIDs
+for iClust = fliplr(clusterIDs)
     
     if (VISUALIZE)
         clf; % TEMP
@@ -38,6 +39,7 @@ for iClust = clusterIDs
     waveforms = mean(waveforms,1);
     
     % Calculate mean-squared error (MSE) between channels
+    I = [];
     for iChan = 1:nLower
         MSE = zeros(nUpper,1);
         lowerID = lowerIDs(iChan);
@@ -45,11 +47,15 @@ for iClust = clusterIDs
             d = waveforms(:,:,upperIDs(jChan)) - waveforms(:,:,lowerID);
             MSE(jChan) = mean(d.^2); % mean-squared error
         end
-        if (MSE > thresh) % If MSE below threshold: substitute channels with Gaussian noise
+        if (MSE > thresh) % If MSE above threshold: substitute channels with Gaussian noise
             R = normrnd(0,sigma(lowerID),sum(spikeIDs),nSamples);
             spikes.waveforms(spikeIDs,:,lowerID) = int16(precision * R);
+            I(end) = lowerID;
         end
     end
+    
+    % Save
+    spikes.clusters.noise(iClust).mse = I;
     
     if (VISUALIZE)
         subplot(1,2,2); % TEMP

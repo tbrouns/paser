@@ -1,66 +1,45 @@
-function spikes = psr_sst_spike_align(spikes,parameters)
+function spikes = psr_sst_spike_align(spikes,parameters,files)
 
-if (parameters.filter.spikes.ripple.process)
-    parameters = psr_load_parameters(parameters); % Re-load parameters to get original window size
+Fs       = spikes.Fs;
+clustIDs = unique(spikes.assigns);
+nSpikes  = size(spikes.waveforms,1);
+nPoints  = size(spikes.waveforms,2);
+nChans   = size(spikes.waveforms,3);
+winHalf  = round(0.5 * (nPoints - 1));
+
+% Load raw data
+dataProbe = [];
+nTrials = length(files);
+for iTrial = 1:nTrials
+    load(files{iTrial},'ts_Spikes');
+    dataProbe = [dataProbe,ts_Spikes.data];
 end
 
-precision = 10^parameters.general.precision;
-win       = round(spikes.Fs * parameters.spikes.window_size / 1000);
-winHalf   = round(0.5 * (win - 1));
-clustIDs  = unique(spikes.assigns);
-nSpikes   = size(spikes.waveforms,1);
-nPoints   = size(spikes.waveforms,2);
-nChans    = size(spikes.waveforms,3);
-
-waveformsNew = NaN(nSpikes,win,nChans);
+waveformsNew = zeros(nSpikes,nPoints,nChans,'int16');
 
 for iClust = clustIDs
     
-    spikeIDs  = ismember(spikes.assigns,iClust);
+    spikeIDs = ismember(spikes.assigns, iClust);
+    
+    spiketimes = double(spikes.spiketimes(spikeIDs));
+    spiketimes = round(Fs * spiketimes)' + 1;
+    
     waveforms = spikes.waveforms(spikeIDs,:,:);
     waveforms = psr_int16_to_single(waveforms,parameters);
     waveforms = psr_sst_norm_waveforms(waveforms,spikes.info.thresh);
         
-    [~,locs] = max(mean(waveforms,1),[],2);
-%     chanIDs = find(pks > abs(1 / parameters.spikes.thresh))'; % threshold of 1 s.d
+    % Find location of peak in maximum amplitude channel
+    [~,~,ampRel,~] = psr_sst_cluster_amp(spikes, iClust, parameters);    
+    [~, chanMaxID] = max(ampRel); 
+    [~,   peakLoc] = max(mean(waveforms(:,:,chanMaxID),1),[],2);
     
-    for iChan = 1:nChans
-        
-        loc = locs(iChan); % peak location
-
-        d  = 0;
-        i1 = loc - winHalf;
-        i2 = loc + winHalf;
-
-        if (i1 < 1);       d = i1 - 1;       i1 = 1;       end
-        if (i2 > nPoints); d = i2 - nPoints; i2 = nPoints; end
-
-        waveforms = spikes.waveforms(spikeIDs,i1:i2,iChan);
-        waveforms = psr_int16_to_single(waveforms,parameters);
-        
-        if (d ~= 0)
-            nSpikes = size(waveforms,1);
-            padding = NaN(nSpikes,abs(d));
-            if     (d < 0); waveforms = [padding,waveforms];
-            elseif (d > 0); waveforms = [waveforms,padding];
-            end
-        end
-
-        waveformsNew(spikeIDs,:,iChan) = waveforms; 
-        
-    end
+    d = peakLoc - winHalf;
+    winidx = d + (-winHalf:winHalf);
+    
+    waveformsNew(spikeIDs,:,:) = psr_sst_get_waveforms(spiketimes,dataProbe,winidx);
     
 end
 
-for iChan = 1:nChans
-   % Add Gaussian noise
-    waveforms = waveformsNew(:,:,iChan);
-    I = find(isnan(waveforms));
-    waveforms(I) = normrnd(0,spikes.info.bgn(iChan),size(I));
-    waveformsNew(:,:,iChan) = waveforms; 
-    
-end
-
-spikes.waveforms = int16(precision * waveformsNew);
+spikes.waveforms = waveformsNew;
 
 end

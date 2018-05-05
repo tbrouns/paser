@@ -21,7 +21,7 @@ switch (parameters.lfp.filter.type)
 end
 
 sLength   = size(dataInput.trial{1},2);
-sPoints   = 60 * parameters.spikes.twin * parameters.Fs;
+sPoints   = 60 * parameters.general.twin * parameters.Fs;
 nSections = ceil(sLength / sPoints);
 sPoints   = ceil(sLength / nSections);
 itr       = 1;
@@ -75,7 +75,7 @@ for iSection = 1:nSections
     end
     
     % Downsample filtered signal
-    if (~isempty(data) && ~isempty(parameters.lfp.Fr))
+    if (~psr_isempty_field(data,'data.trial') && ~psr_isempty_field(parameters,'parameters.lfp.Fr'))
         [dataProbe,timestamps] = resample(cell2mat(data.trial)',cell2mat(data.time),parameters.lfp.Fr);
         dataTemp.trial = [dataTemp.trial,dataProbe'];
         dataTemp.time  = [dataTemp.time, timestamps];

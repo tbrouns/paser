@@ -20,18 +20,18 @@ else
     fname = split(fname,'.');
     fname = fname(2:end);
     if (size(fname,2) > 0)
-        fname = join(fname,'.');
-        fname = fname{1};
+        fname = cell2mat(join(fname,'.'));
         if (~isempty(S))
             try
                 names = fieldnamesr(S,'full');
                 I = strcmp(fname,names);
                 if (any(I)) % field exists, now check if empty
                     fname = split(fname,'.');
-                    for i = 1:length(fname); S = S.(fname{i}); end
+                    for i = 1:length(fname); S = [S.(fname{i})]; end
                     tf = isempty(S);
                 end
-            catch
+            catch ME
+                disp(ME.message);
             end
         end
     end

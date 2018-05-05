@@ -1,52 +1,36 @@
-function h = psr_lfp_plot_tfa(input)
+function h = psr_lfp_plot_tfa(data,parameters)
 
-% Grab data
-
-data = input.freq;
-
-% Initialize parameters
-
-cfg             = [];
-cfg.baseline    = false;
-cfg.convert     = false;
-cfg.interactive = 'no';
-cfg.powtype     = 'absolute';
-
-% Parse inputs
-
-if (~psr_isempty_field(input,'input.baseline')); cfg.baseline  = input.baseline; end
-if (~psr_isempty_field(input,'input.base_t0'));  cfg.base_t0   = input.base_t0;  end
-if (~psr_isempty_field(input,'input.base_t1'));  cfg.base_t1   = input.base_t1;  end
-if (~psr_isempty_field(input,'input.convert'));  cfg.convert   = input.convert;  end
-if (~psr_isempty_field(input,'input.powtype'));  cfg.powtype   = input.powtype;  end
-if (~psr_isempty_field(input,'input.xlim'));     cfg.xlim      = input.xlim;     end
-if (~psr_isempty_field(input,'input.ylim'));     cfg.ylim      = input.ylim;     end
-if (~psr_isempty_field(input,'input.zlim'));     cfg.zlim      = input.zlim;     end
-
-% Baseline correction
-cfg.powtype = lower(cfg.powtype);
-if (cfg.baseline)
-    data = psr_lfp_baseline(data,cfg);
+if (isempty(parameters.analysis.tfa.baseline))
+    powtype = lower(parameters.analysis.tfa.plot.powtype);
+    switch powtype; case 'decibel'; data.powspctrm = 10 * log10(data.powspctrm); end
+else
+    powtype = lower(parameters.analysis.tfa.baselineType);
 end
+yLabelStr = [upper(powtype(1)) powtype(2:end) ' \ power'];
 
-if (cfg.convert)
-    switch cfg.powtype
-        case 'decibel'; data.powspctrm = 10 * log10(data.powspctrm);
+% Check data
+
+nDims = ndims(data.powspctrm);
+nTimes = length(data.time);
+if (nTimes ~= size(data.powspctrm,nDims))
+    if     (nDims == 3); data.powspctrm = data.powspctrm(:,:,  1:nTimes);
+    elseif (nDims == 4); data.powspctrm = data.powspctrm(:,:,:,1:nTimes);
     end
 end
 
 % Spectrogram (Power vs. Frequency vs. Time)
-yLabelStr = [upper(cfg.powtype(1)) cfg.powtype(2:end) ' \ power'];
 
 % Remove artifacts field
 data = psr_remove_field(data,'missing');
 data = psr_remove_field(data,'artifacts');
 
-cfg.baseline = []; % Don't use built-in baseline
-
-if (all(isnan(data.powspctrm(:)))); return; end 
+if (all(isnan(data.powspctrm(:)))); return; end
 
 % Plot spectrogram
+cfg             = [];
+cfg.colormap    = parameters.analysis.tfa.plot.colormap;
+cfg.interactive = 'no';
+cfg.fontsize    = 11; % Default font-size
 ft_singleplotTFR(cfg,data); h = gca;
 xlabel('$\bf{Time \ [s]}$',      'Interpreter','Latex');
 ylabel('$\bf{Frequency \ [Hz]}$','Interpreter','Latex');
@@ -64,8 +48,8 @@ title('');
 cmap = colormap;
 set(gca,'Color',cmap(round(0.5 * size(cmap,1)),:));
 
-if (~psr_isempty_field(cfg,'cfg.xlim')); xlim(cfg.xlim); end
-if (~psr_isempty_field(cfg,'cfg.ylim')); ylim(cfg.ylim); end
-if (~psr_isempty_field(cfg,'cfg.zlim')); zlim(cfg.zlim); end
+if (~psr_isempty_field(parameters,'parameters.analysis.tfa.plot.tlim'));  xlim(parameters.analysis.tfa.plot.tlim); end
+if (~psr_isempty_field(parameters,'parameters.analysis.tfa.plot.flim'));  ylim(parameters.analysis.tfa.plot.flim); end
+if (~psr_isempty_field(parameters,'parameters.analysis.tfa.plot.plim')); caxis(parameters.analysis.tfa.plot.plim); end
 
 end

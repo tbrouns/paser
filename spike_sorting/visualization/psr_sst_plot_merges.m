@@ -77,7 +77,7 @@ for iClust = 1:nClusts
             
             subaxis(2,4,[6 7]);
             psr_sst_plot_waveforms(spikes,clustMainID,parameters);
-            suptitle(['Merges of Cluster #' num2str(clustMainID) ' (' num2str(iFig) ' of ' num2str(nFigs) ')']);
+            suplabel(['Merges of Cluster #' num2str(clustMainID) ' (' num2str(iFig) ' of ' num2str(nFigs) ')']);
             
             if (nFigs > 1); str = ['_' num2str(iFig)];
             else,           str = [];

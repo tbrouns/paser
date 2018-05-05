@@ -22,7 +22,7 @@ function [cfg] = psr_ft_spike_plot_raster(cfg, spike, timelock)
 %                           timelock.cfg.latency field to ensure that the
 %                           raster and the timelock data have the same
 %                           latency.
-%   cfg.linewidth        =  number indicating the width of the lines (default = 1);
+%   cfg.markersize       =  number indicating the size of the markers (default = 2);
 %   cfg.cmapneurons      =  'auto' (default), or nUnits-by-3 matrix.
 %                           Controls coloring of spikes and psth/density
 %                           data if multiple cells are present.
@@ -76,37 +76,49 @@ ft_preamble trackconfig
 spike = ft_checkdata(spike,'datatype', 'spike', 'feedback', 'yes'); % converts raw as well
 
 % get the default options
-cfg.spikechannel = ft_getopt(cfg,'spikechannel', 'all');
-cfg.trials     = ft_getopt(cfg,'trials', 'all');
-cfg.latency      = ft_getopt(cfg,'latency','maxperiod');
-cfg.linewidth    = ft_getopt(cfg,'linewidth', 1);
-cfg.cmapneurons  = ft_getopt(cfg,'cmapneurons', 'auto');
-cfg.spikelength  = ft_getopt(cfg,'spikelength', 0.9);
-cfg.topplotsize  = ft_getopt(cfg,'topplotsize', 0.5);
-cfg.topplotfunc  = ft_getopt(cfg,'topplotfunc', 'bar');
-cfg.errorbars    = ft_getopt(cfg,'errorbars', 'sem');
-cfg.trialborders = ft_getopt(cfg,'trialborders','yes');
-cfg.plotselection = ft_getopt(cfg,'plotselection','no');
-cfg.interactive  = ft_getopt(cfg,'interactive','yes');
+cfg.spikechannel  = ft_getopt(cfg,'spikechannel', 'all');
+cfg.trials        = ft_getopt(cfg,'trials',       'all');
+cfg.latency       = ft_getopt(cfg,'latency','maxperiod');
+cfg.markersize    = ft_getopt(cfg,'markersize',       2);
+cfg.cmapneurons   = ft_getopt(cfg,'cmapneurons', 'auto');
+cfg.spikelength   = ft_getopt(cfg,'spikelength',    0.9);
+cfg.topplotsize   = ft_getopt(cfg,'topplotsize',    0.5);
+cfg.topplotfunc   = ft_getopt(cfg,'topplotfunc',  'bar');
+cfg.errorbars     = ft_getopt(cfg,'errorbars',    'sem');
+cfg.trialborders  = ft_getopt(cfg,'trialborders', 'yes');
+cfg.plotselection = ft_getopt(cfg,'plotselection', 'no');
+cfg.interactive   = ft_getopt(cfg,'interactive',  'yes');
 
 % ensure that the options are valid
-cfg = ft_checkopt(cfg,'spikechannel',{'cell', 'char', 'double'});
-cfg = ft_checkopt(cfg,'latency', {'char', 'ascendingdoublebivector'});
-cfg = ft_checkopt(cfg,'trials', {'char', 'doublevector', 'logical'});
-cfg = ft_checkopt(cfg,'linewidth', 'doublescalar');
-cfg = ft_checkopt(cfg,'cmapneurons', {'char', 'doublematrix', 'doublevector'});
-cfg = ft_checkopt(cfg,'spikelength', 'doublescalar');
-cfg = ft_checkopt(cfg,'topplotsize', 'doublescalar');
-cfg = ft_checkopt(cfg,'topplotfunc', 'char', {'bar', 'line'});
-cfg = ft_checkopt(cfg,'errorbars', 'char', {'sem', 'std', 'conf95%', 'no', 'var'});
-cfg = ft_checkopt(cfg,'trialborders', 'char', {'yes', 'no'});
+cfg = ft_checkopt(cfg,'spikechannel',  {'cell', 'char', 'double'});
+cfg = ft_checkopt(cfg,'latency',       {'char', 'ascendingdoublebivector'});
+cfg = ft_checkopt(cfg,'trials',        {'char', 'doublevector', 'logical'});
+cfg = ft_checkopt(cfg,'markersize',    'doublescalar');
+cfg = ft_checkopt(cfg,'cmapneurons',   {'char', 'doublematrix', 'doublevector'});
+cfg = ft_checkopt(cfg,'spikelength',   'doublescalar');
+cfg = ft_checkopt(cfg,'topplotsize',   'doublescalar');
+cfg = ft_checkopt(cfg,'topplotfunc',   'char', {'bar', 'line'});
+cfg = ft_checkopt(cfg,'errorbars',     'char', {'sem', 'std', 'conf95%', 'no', 'var'});
+cfg = ft_checkopt(cfg,'trialborders',  'char', {'yes', 'no'});
 cfg = ft_checkopt(cfg,'plotselection', 'char', {'yes', 'no'});
-cfg = ft_checkopt(cfg,'interactive', 'char', {'yes', 'no'});
+cfg = ft_checkopt(cfg,'interactive',   'char', {'yes', 'no'});
 
-cfg = ft_checkconfig(cfg, 'allowed', {'spikechannel', 'latency', 'trials', 'linewidth', 'cmapneurons', 'spikelength', 'topplotsize', 'topplotfunc', 'errorbars', 'trialborders', 'plotselection', 'interactive'});
+cfg = ft_checkconfig(cfg, 'allowed', ...
+    {'spikechannel', ...
+    'latency',       ...
+    'trials',        ...
+    'markersize',    ...
+    'cmapneurons',   ...
+    'spikelength',   ...
+    'topplotsize',   ...
+    'topplotfunc',   ...
+    'errorbars',     ...
+    'trialborders',  ...
+    'plotselection', ...
+    'interactive'});
 
 % check if a third input is present, and check if it's a timelock structure
-if nargin==3
+if (nargin == 3)
     doTopData = true;
     timelock  = ft_checkdata(timelock,'datatype', 'timelock', 'feedback', 'yes');
     if isfield(timelock,'cfg') && isfield(timelock.cfg, 'latency')
@@ -120,7 +132,7 @@ end
 cfg.spikechannel = ft_channelselection(cfg.spikechannel, spike.label);
 spikesel         = match_str(spike.label, cfg.spikechannel);
 nUnits           = length(spikesel); % number of spike channels
-if nUnits==0, error('No spikechannel selected by means of cfg.spikechannel'); end
+if (nUnits == 0); error('No spikechannel selected by means of cfg.spikechannel'); end
 
 % get the number of trials and set the cfg.trials field
 nTrialsOrig = size(spike.trialtime,1);
@@ -132,7 +144,7 @@ elseif islogical(cfg.trials)
 end
 cfg.trials = sort(cfg.trials(:));
 
-if max(cfg.trials)>nTrialsOrig,
+if max(cfg.trials) > nTrialsOrig,
     error('maximum trial number in cfg.trials should not exceed length of spike.trial')
 end
 if isempty(cfg.trials), errors('No trials were selected in cfg.trials'); end
@@ -142,14 +154,10 @@ begTrialLatency = spike.trialtime(cfg.trials,1);
 endTrialLatency = spike.trialtime(cfg.trials,2);
 
 % select the latencies
-if strcmp(cfg.latency,'minperiod')
-    cfg.latency = [max(begTrialLatency) min(endTrialLatency)];
-elseif strcmp(cfg.latency,'maxperiod')
-    cfg.latency = [min(begTrialLatency) max(endTrialLatency)];
-elseif strcmp(cfg.latency,'prestim')
-    cfg.latency = [min(begTrialLatency) 0];
-elseif strcmp(cfg.latency,'poststim')
-    cfg.latency = [0 max(endTrialLatency)];
+if     strcmp(cfg.latency,'minperiod'); cfg.latency = [max(begTrialLatency) min(endTrialLatency)];
+elseif strcmp(cfg.latency,'maxperiod'); cfg.latency = [min(begTrialLatency) max(endTrialLatency)];
+elseif strcmp(cfg.latency,'prestim');   cfg.latency = [min(begTrialLatency)                    0];
+elseif strcmp(cfg.latency,'poststim');  cfg.latency = [0                    max(endTrialLatency)];
 end
 
 % check whether the time window fits with the data
@@ -161,7 +169,7 @@ if (cfg.latency(2) > max(endTrialLatency)), cfg.latency(2) = max(endTrialLatency
 end
 
 % delete trials that are not in our window
-overlaps      = endTrialLatency>=cfg.latency(1) & begTrialLatency<=cfg.latency(2);
+overlaps      = endTrialLatency >= cfg.latency(1) & begTrialLatency <= cfg.latency(2);
 trialSel      = overlaps(:);
 cfg.trials    = cfg.trials(trialSel); %update the trial selection
 if isempty(cfg.trials),warning('No trials were selected');end
@@ -251,16 +259,21 @@ for iUnit = 1:nUnits
     
     % make the raster plot and hold on for the next plots
     %   rasterHdl = line(x, y,'LineWidth', cfg.linewidth,'Color', color);
-    rasterHdl = scatter(x,y,2,color,'filled');
+    rasterHdl = scatter(x,y,cfg.markersize,color,'filled');
     cfg.hdl.raster = rasterHdl;
     set(ax(1),'NextPlot', 'add')
     set(ax(1),'Box', 'off')
 end
 
 % create the labels for the first axes
-xlabel('time (sec)')
+xlabel('Time [sec]')
 ylabel('Trial Number')
 axis ij
+
+yt = yticks; % Get y-tick values
+ys = mean(diff(yt)); % y-tick step
+if (mod(ys,1) ~= 0); ys = ceil(ys); end % Set to integer value
+yticks(yt(1):ys:yt(end));
 
 % plot the top data
 if doTopData

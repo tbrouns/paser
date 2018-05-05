@@ -28,13 +28,12 @@ save(fullfile(savePath, 'chanMap.mat'), ...
 
 ops = parameters.sorting.kst;
 ops.Nchan = nchans;
-ops = kilosort_config(ops,parameters,savePath);
+ops = configKilosort(ops,parameters,savePath);
 
 % Calculate threshold for spike initialization
 
-sd = psr_mad(single(data'));
-sd = mean(sd); % Take mean across channels, because we need scalar
-ops.scaleproc = sd;
+precision = 10^parameters.general.precision;
+ops.scaleproc = mean(precision * spikes.info.bgn); % Take mean across channels, because we need scalar
 
 % Convert data to DAT filetype with int16 data
 
@@ -54,7 +53,8 @@ try
     [rez, DATA, uproj] = preprocessData(ops);            % preprocess data and extract spikes for initialization
     rez                = fitTemplates(rez, DATA, uproj); % fit templates iteratively
     rez                = fullMPMU(rez, DATA);            % extract final spike times (overlapping extraction)
-catch
+catch ME
+    disp(ME)
     disp('Kilosort error. No spikes detected.');
     rez = [];
 end
@@ -81,7 +81,7 @@ disp('Kilosort completed');
 
 end
 
-function ops = kilosort_config(ops,parameters,savePath)
+function ops = configKilosort(ops,parameters,savePath)
 
 ops.parfor      = 0; % whether to use parfor to accelerate some parts of the algorithm
 ops.showfigures = 0; % whether to plot figures during optimization

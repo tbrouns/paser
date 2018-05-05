@@ -5,7 +5,6 @@ if (nargin < 2); type = 'general'; end
 fname = ['parameters.' type '.configPath'];
 
 tf = false;
-fprintf('\n')
 if (psr_isempty_field(parameters,fname))
     fprintf(['Path to config file for ' type ' parameters not set. '])
 else
@@ -15,7 +14,7 @@ else
         tf = true;
     catch ME
         fprintf(['Error found in config file for ' type ' parameters:\n'])
-        fprintf(['--' ME.message '\n']);
+        fprintf(['---- ' ME.message ' ----' '\n']);
     end
 end
 

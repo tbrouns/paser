@@ -10,18 +10,35 @@ nlength = size(spikes.spiketimes,2);
 if (strcmp(method,'find') && ~psr_isempty_field(spikes,'spikes.clusters.rpvs'))
     spikes.clusters = rmfield(spikes.clusters,'rpvs');
 end
+
+if (~psr_isfield(spikes,'spikes.delete')); spikes.delete = []; end
+
+switch method
     
-if (strcmp(method,'find') || ~isfield(spikes,'delete'))
-    spikes.delete = [];
+    case 'find'
+        spikes.delete = psr_remove_field(spikes.delete,'art');
+        spikes.delete = psr_remove_field(spikes.delete,'mse_cluster');
+        spikes.delete = psr_remove_field(spikes.delete,'rpvs');
+        spikes.delete = psr_remove_field(spikes.delete,'amp');
+        
+    case 'delete'
+        del = false(1,nlength);
 end
 
-if (strcmp(method,'delete'))
-    del = false(1,nlength);
+%% Spikes on raw signal artifacts
+
+if (parameters.filter.spikes.art.run)
+   
+    if (~isfield(spikes.delete,'art') || length(spikes.delete.art) ~= nlength)
+        spikes.delete.art = psr_sst_filter_art(spikes);
+    end
+    
+    if (strcmp(method,'delete')); del = del | spikes.delete.art; end
 end
 
 %% Mean-squared error to mean waveform of cluster
 
-if (parameters.filter.spikes.mse.process)
+if (parameters.filter.spikes.mse.run)
     
     if (~isfield(spikes.delete,'mse_cluster') || length(spikes.delete.mse_cluster) ~= nlength)
         spikes.delete.mse_cluster = psr_sst_mse_cluster(spikes,parameters);
@@ -32,7 +49,7 @@ end
 
 %% Refractory period violations
 
-if (parameters.filter.spikes.rpv.process)
+if (parameters.filter.spikes.rpv.run)
     
     if (~isfield(spikes.delete,'rpvs') || length(spikes.delete.rpvs) ~= nlength)
         spikes.delete.rpvs = psr_sst_filter_rpv(spikes,parameters);
@@ -43,7 +60,7 @@ end
 
 %% Difference in amplitude position
 
-if (parameters.filter.spikes.amp.process)
+if (parameters.filter.spikes.amp.run)
     
     if (~isfield(spikes.delete,'amp') || length(spikes.delete.amp) ~= nlength)
         spikes.delete.amp = psr_sst_filter_amp(spikes,parameters);

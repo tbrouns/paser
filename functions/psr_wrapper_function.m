@@ -1,4 +1,4 @@
-function psr_wrapper_analysis(cfg)
+function output = psr_wrapper_function(cfg)
 
 % "cfg.fpath" should contain path to function
 
@@ -9,7 +9,7 @@ fname = names{end};
 fpath = join(names(1:end-1),'\');
 
 oldFolder = cd(fpath{1}); % cd to path to ensure we call correct function
-feval(fname,cfg);
+output = feval(fname,cfg);
 cd(oldFolder); % go back to where we came from
 
 end

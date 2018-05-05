@@ -1,4 +1,4 @@
-function psr_sst_plot_multiple(spikes,metadata,parameters,freq,savePath,filename)
+function psr_sst_plot_multiple(spikes,metadata,parameters,savePath,filename)
 
 % PSR_SST_PLOT_MULTIPLE - Visualization of spike cluster obtained by PASER.
 % This function creates a multi-plot of various visualization methods to
@@ -29,12 +29,11 @@ function psr_sst_plot_multiple(spikes,metadata,parameters,freq,savePath,filename
 
 %------------- BEGIN CODE --------------
 
-if (nargin < 4); freq     = []; end
-if (nargin < 5); savePath = []; end % Save in current working directory
-if (nargin < 6); filename = []; end
+if (nargin < 4); savePath = []; end % Save in current working directory
+if (nargin < 5); filename = []; end
 
 if (~isempty(filename)); [~,filename,~] = fileparts(filename); 
-else,                    filename = ['Spikes_P' num2str(metadata.probe,'%02d')]; 
+else,                    filename = ['QC_P' num2str(metadata.probe,'%02d')]; 
 end
 
 nClust = size(spikes.clusters.metrics,2);
@@ -58,7 +57,7 @@ for iClust = 1 : nClust
         subaxis(2,4,[1 2],'Margin',0.05,'Padding',0); psr_sst_plot_waveforms(spikes,clusterID,parameters);
         subaxis(2,4,    3,'Margin',0.05,'Padding',0); psr_sst_plot_amp      (spikes,clusterID,parameters);  
         subaxis(2,4,    4,'Margin',0.05,'Padding',0); psr_sst_plot_xcorr    (spikes,clusterID);
-        subaxis(2,4,[5 6],'Margin',0.05,'Padding',0); psr_sst_plot_stability(spikes,clusterID,freq,metadata,parameters); 
+        subaxis(2,4,[5 6],'Margin',0.05,'Padding',0); psr_sst_plot_stability(spikes,clusterID,parameters,metadata); 
         subaxis(2,4,    7,'Margin',0.05,'Padding',0); psr_sst_plot_count    (spikes,clusterID,parameters);
         subaxis(2,4,    8,'Margin',0.05,'Padding',0); psr_sst_plot_isi      (spikes,clusterID,parameters);
         savestr = [savePath filename '_C' num2str(clusterID,'%02d')];

@@ -1,4 +1,4 @@
-function [cAuc,xDist,yDist] = psr_sst_cluster_stability(spikes, clustID, parameters)
+function [MSE_diff,xDist,yDist] = psr_sst_cluster_stability(spikes, clustID, parameters)
 
 % Constants
 
@@ -42,11 +42,17 @@ yDist = histcounts(counts, edges, 'Normalization', 'probability');
 xDist = edges(1:end-1) + 0.5 * k_step;
 y = psr_sst_normpdf_stability(xDist,lambda,parameters);
 
-% Find difference between theoretical and empirical Poisson distributions
+% Calculate MSE
 
-I = yDist > y;
-C = yDist;
-C(I) = y(I);
-cAuc = sum(C) / sum(yDist); % area under Poisson curve (relative to total area)
+y = round(nWin * y);
+counts_exp = [];
+nBins = length(y);
+for iBin = 1:nBins
+    counts_exp = [counts_exp;repmat(xDist(iBin),y(iBin),1)];
+end
+
+MSE_exp  = mean((counts_exp - lambda).^2);
+MSE      = mean((counts     - lambda).^2);
+MSE_diff = (MSE / MSE_exp);
 
 end

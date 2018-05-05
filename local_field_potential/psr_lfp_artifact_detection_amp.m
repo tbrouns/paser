@@ -1,39 +1,31 @@
 function artifacts = psr_lfp_artifact_detection_amp(data,parameters)
 
-% Signal can be given as single time-series (Nchans x Npoints), or as a
-% cell array of such matrices or FieldTrip data structures
-
-if (iscell(data)) 
-    nTrials = length(data);
-    for iTrial = 1:nTrials
-        if isfield(data{iTrial},'trial') % Check for FieldTrip
-            data{iTrial} = data{iTrial}.trial{1}; % Do conversion
-        end
-    end
-else % Single time-series (Nchans x Npoints)
-    nTrials = 1;
-end
+[data,nTrials] = psr_lfp_conversion(data);
 
 % Set parameters
 
-Fs = parameters.Fr;
-tSection = parameters.lfp.artifact.tsection;
-threshFactorUpper = parameters.lfp.artifact.threshAmpUpper;
-threshFactorLower = parameters.lfp.artifact.threshAmpLower;
-sWinSlope  = round(Fs * parameters.lfp.artifact.tSlope / 1000);
+Fs                = parameters.Fr;
+tSection          = parameters.lfp.artifact.amp.tsection;
+threshFactorUpper = parameters.lfp.artifact.amp.upper;
+threshFactorLower = parameters.lfp.artifact.amp.lower;
+sWinSlope         = round(Fs * parameters.lfp.artifact.amp.slope / 1000);
 
 [~,slength] = cellfun(@size,data);
-slength = [0;cumsum(slength)];
+slength     = [0;cumsum(slength)];
 
-if (parameters.lfp.artifact.cat) % Combine data across all stimulus conditions
+% Combine data across all blocks
+
+if (parameters.lfp.artifact.amp.cat) 
     data = {cat(2,data{:})};
 end
+
+% Find artifacts
 
 artifacts = [];
 
 for iTrial = 1:length(data)
         
-    %% Amplitude 
+    % Amplitude 
     
     dataTrial = data{iTrial};
     dataTrial = abs(mean(dataTrial)); % Average across channels
@@ -41,7 +33,7 @@ for iTrial = 1:length(data)
     artifactsTrial = findArtifacts(dataTrial,tSection,Fs,threshFactorUpper,threshFactorLower);
     artifacts = [artifacts;artifactsTrial+slength(iTrial)];
     
-    %% Derivative
+    % Derivative
     
     derivative = abs(dataTrial(1+sWinSlope:end) - dataTrial(1:end-sWinSlope));
     
@@ -49,6 +41,8 @@ for iTrial = 1:length(data)
     artifacts = [artifacts;artifactsTrial+slength(iTrial)];
     
 end
+
+% Find artifacts for each trial
 
 artifactsAll = cell(nTrials,1);
 
@@ -100,27 +94,6 @@ end
 stdev = min(stdev);
 
 end
-
-% function locs_artifact = findRange(locPeaks,locBounds,nSamples)
-% 
-% N             = length(locPeaks);
-% locs_artifact = zeros(2,N);
-% 
-% for iLoc = 1:N
-%     loc_max = locPeaks(iLoc);
-%     id = (loc_max - locBounds) > 0;
-%     [~,I1] = min(loc_max - locBounds( id));
-%     [~,I2] = max(loc_max - locBounds(~id));
-%     n = find(~id,1) - 1;
-%     if (~isempty(I1)); locs_artifact(1,iLoc) = locBounds(I1);
-%     else,              locs_artifact(1,iLoc) = 1;
-%     end
-%     if (~isempty(I2)); locs_artifact(2,iLoc) = locBounds(n + I2);
-%     else,              locs_artifact(2,iLoc) = nSamples;
-%     end
-% end
-% 
-% end
 
 function artifacts = findArtifacts(signal,tSection,Fs,threshFactorUpper,threshFactorLower)
 

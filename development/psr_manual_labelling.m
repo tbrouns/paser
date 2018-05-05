@@ -111,7 +111,7 @@ while iClust <= nClust
     iClust = iClust + 1;
     if iClust < 1; iClust = 1; 
     elseif iClust > nClust
-        suptitle('Press key to continue');
+        suplabel('Press key to continue');
         but = waitForButton();
         if isequal(but,28) % left arrow
             iClust = nClust;

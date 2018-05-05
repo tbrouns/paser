@@ -1,17 +1,12 @@
 function artifacts = psr_lfp_artifact_detection_psd(data,parameters)
 
-% Signal can be given as single time-series (Nchans x Npoints), or as a
-% cell array of such matrices or FieldTrip data structures
-
-if (iscell(data)); nTrials = length(data);
-else,              nTrials = 1;
-end
+[data,nTrials] = psr_lfp_conversion(data);
 
 % Artifact removal based on power spectral density
 
-fRange  = parameters.lfp.artifact.freqRange;
+fRange  = parameters.lfp.artifact.psd.frange;
 Fr      = parameters.Fr;
-sWin    = parameters.lfp.artifact.window * Fr;
+sWin    = parameters.lfp.artifact.psd.win * Fr;
 sOff    = 0.5 * sWin; % Take half of window
 sSec    = sWin - sOff;
 
@@ -50,7 +45,7 @@ psdAll  = bsxfun(@rdivide,psdAll,psdMean); % Normalize
 
 % Total PSD threshold
 psdSum  = sum(psdAll); 
-thresh  = parameters.lfp.artifact.threshPSD * psr_mad(psdSum);
+thresh  = parameters.lfp.artifact.psd.thresh * psr_mad(psdSum);
 artifacts = psdSum > thresh;
 
 % Extract intervals

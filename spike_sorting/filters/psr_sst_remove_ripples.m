@@ -1,10 +1,11 @@
-function spikes = psr_sst_remove_ripples(spikes,files,parameters)
+function spikes = psr_sst_remove_ripples(spikes,parameters,files)
 
-clusterIDs = unique(spikes.assigns);
-nSamples   = size(spikes.waveforms,2);
-nChans     = size(spikes.waveforms,3);
-precision  = 10^parameters.general.precision;
-sigma      = spikes.info.bgn;
+Fs        = spikes.Fs;
+clustIDs  = unique(spikes.assigns);
+nPoints   = size(spikes.waveforms,2);
+nChans    = size(spikes.waveforms,3);
+precision = 10^parameters.general.precision;
+sigma     = spikes.info.bgn;
 
 minLag = spikes.Fs / parameters.filter.spikes.ripple.freq_max; 
 maxLag = spikes.Fs / parameters.filter.spikes.ripple.freq_min; 
@@ -27,7 +28,7 @@ for iTrial = 1:nTrials
     dataProbe = [dataProbe,ts_Spikes.data];
 end
 
-for iClust = clusterIDs
+for iClust = fliplr(clustIDs)
     
     if (VISUALIZE)
         clf; % TEMP
@@ -36,10 +37,10 @@ for iClust = clusterIDs
     end
 
     % Extract cluster ID
-    spikeIDs  = ismember(spikes.assigns, iClust);
-    nSpikes   = sum(spikeIDs);
+    spikeIDs = ismember(spikes.assigns, iClust);
+    
     spiketimes = double(spikes.spiketimes(spikeIDs));
-    spiketimes = round(spiketimes * spikes.Fs)';
+    spiketimes = round(Fs * spiketimes)' + 1;
     
     waveforms = psr_sst_get_waveforms(spiketimes,dataProbe,winidx);
     waveforms = mean(waveforms,1);
@@ -67,10 +68,13 @@ for iClust = clusterIDs
     
     if (any(I)) % Replace with white noise
         for iChan = I
-            R = normrnd(0,sigma(iChan),sum(spikeIDs),nSamples);
+            R = normrnd(0,sigma(iChan),sum(spikeIDs),nPoints);
             spikes.waveforms(spikeIDs,:,iChan) = int16(precision * R);
         end
     end
+    
+    % Save
+    spikes.clusters.noise(iClust).ripples = I;
     
     if (VISUALIZE)
         subplot(2,2,2); % TEMP

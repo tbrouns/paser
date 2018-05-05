@@ -63,6 +63,8 @@ data.spk_t       = double(spikes.spiketimes' * 1000); % convert to ms
 data.spk_clustId = double(spikes.assigns');
 data.weighting   = double(weights');
 
+if (isempty(data.spk_Y)); return; end
+
 % Run algorithm
 
 % These are the parameters that we recommend in the paper

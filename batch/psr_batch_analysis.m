@@ -24,7 +24,7 @@ end
 folders = folders(~cellfun('isempty',folders)); % remove empty cells
 nFolders = length(folders);
 
-for iFolder = nFolders:-1:1 
+for iFolder = 1:nFolders
     foldername = folders{iFolder};
     
     loadPath = [cfg.loadpath, foldername];
@@ -43,37 +43,40 @@ for iFolder = nFolders:-1:1
         cfg.analysis.files    = filenames;
         cfg.analysis.loadpath = loadPath;
         cfg.analysis.savepath = savePath;
-        psr_wrapper_analysis(cfg.analysis);
+        psr_wrapper_function(cfg.analysis);
     end
-    
-    for iFile = 1:nFiles
-        close all
-        filename = filenames(iFile,:);
-        fpath = [loadPath filename];
-        load(fpath);
-        [~,filename,~] = fileparts(filename);
         
-        % Visualize spike clusters
-        if (cfg.cluster.run)
-            savePathClusters = [savePath 'clusters\'];
-            if (isfield(spikes,'spiketimes'))
-                
-                savePathQuality = [savePathClusters 'quality\'];
-                [~,~,~] = mkdir(savePathQuality);
-                psr_sst_plot_multiple(spikes,metadata,parameters,freq,savePathQuality,filename);
-                
-                savePathMerges = [savePathClusters 'merges\'];
-                [~,~,~] = mkdir(savePathMerges);
-                psr_sst_plot_merges(spikes,parameters,savePathMerges,filename);
+    if (cfg.cluster.run) || (cfg.manual.run)
+        
+        for iFile = 1:nFiles
+            close all
+            filename = filenames(iFile,:);
+            filepath = [loadPath filename];
+            load(filepath);
+            [~,filename,~] = fileparts(filename);
+
+            % Visualize spike clusters
+            if (cfg.cluster.run)
+                savePathClusters = [savePath 'clusters\'];
+                if (isfield(spikes,'spiketimes'))
+
+                    savePathQuality = [savePathClusters 'quality\'];
+                    [~,~,~] = mkdir(savePathQuality);
+                    psr_sst_plot_multiple(spikes,metadata,parameters,savePathQuality,filename);
+
+                    savePathMerges = [savePathClusters 'merges\'];
+                    [~,~,~] = mkdir(savePathMerges);
+                    psr_sst_plot_merges(spikes,parameters,savePathMerges,filename);
+                end
             end
-        end
-        
-        % Spike cluster labelling (for development)
-        if (cfg.manual.run)
-            if (~isfield(spikes.clusters.metrics,'labels'))
-                labels = psr_manual_labelling(spikes,metadata,parameters,freq);
-                for iClust = 1:length(labels); spikes.clusters.metrics(iClust).labels = labels(iClust); end
-                save(fpath,'spikes','-append');
+
+            % Spike cluster labelling (for development)
+            if (cfg.manual.run)
+                if (~isfield(spikes.clusters.metrics,'labels'))
+                    labels = psr_manual_labelling(spikes,metadata,parameters,freq);
+                    for iClust = 1:length(labels); spikes.clusters.metrics(iClust).labels = labels(iClust); end
+                    save(filepath,'spikes','-append');
+                end
             end
         end
     end

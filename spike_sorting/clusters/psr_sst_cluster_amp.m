@@ -5,10 +5,9 @@ signThresh = sign(mean(threshold));
 spikeIDs   = ismember(spikes.assigns,clustID);
 waveforms  = spikes.waveforms(spikeIDs,:,:);
 waveforms  = signThresh * squeeze(mean(waveforms,1));
-amplitudes = max(waveforms); % maximum amplitude per channel
-chanIDs    = find(amplitudes  > abs(threshold)); % channels that cross threshold with mean amplitude
-ampRel     =  max(amplitudes ./ abs(threshold));
-ampAbs     =  max(amplitudes); % maximum mean channel amplitude
-p2p        = ampAbs - min(waveforms(:));
+ampAbs     = max(waveforms); % maximum amplitude per channel
+chanIDs    = find(ampAbs  > abs(threshold)); % channels that cross threshold with mean amplitude
+ampRel     = ampAbs ./ abs(threshold);
+p2p        = ampAbs - min(waveforms);
 
 end

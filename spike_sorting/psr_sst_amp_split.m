@@ -22,11 +22,11 @@ if (~isempty(amplitudes))
     
     if (length(edges) >= 3) % condition needed for findpeaks
         
-        counts    = histcounts(ampClust,edges); % amplitude distribution
-        counts    = psr_gauss_smoothing(counts,binSmooth);
-        counts    = counts / max(counts); % normalize
-        nbins     = length(counts);
-        counts    = [0,counts]; % to ensure that first bin can also be peak
+        counts = histcounts(ampClust,edges); % amplitude distribution
+        counts = psr_gauss_smoothing(counts,binSmooth);
+        counts = counts / max(counts); % normalize
+        nbins  = length(counts);
+        counts = [0,counts]; % to ensure that first bin can also be peak
         
         [pks,locs,widths,proms] = findpeaks(counts);
         

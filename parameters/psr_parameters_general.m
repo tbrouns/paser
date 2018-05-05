@@ -20,11 +20,14 @@
 %% Pipeline conditional parameters
 % Used to skip certain sections of data processing pipeline
 
-parameters.process.spikes = true; % Perform spike detection
-parameters.process.lfp    = true; % Perform LFP detection
+parameters.process.spikes  = true; % Perform spike detection
+parameters.process.lfp     = true; % Perform LFP detection
+parameters.process.delete  = true; % Delete temporary files 
+parameters.process.section = [];   % Used when forcing certain sections to be re-processed
 
 %% General
 parameters.general.precision = 1; % Number of digits after decimal point to keep for int16 data conversion
+parameters.general.twin = 5;     % Time of each individual section for certain processing steps (minutes)
 
 %% Development
 parameters.develop.comparison = false;
@@ -35,7 +38,7 @@ parameters.develop.epsilon    = 0.5; % [ms]
 %% PSR_ARTIFACT_FFT
 % Parameters used in raw signal filtering in power spectrum
 
-parameters.filter.fft.process = true;
+parameters.filter.fft.process = false;
 parameters.filter.fft.freq    = 10;   % Size of frequency window [Hz]
 parameters.filter.fft.pad     = 0.1;  % Size of half-window to extract artifact [Hz]
 parameters.filter.fft.thresh  = 5;    % Threshold to detect artifact peaks, given by number of STDs above mean (using MAD)
@@ -60,7 +63,6 @@ parameters.spikes.bp.upper = 6000; % Upper cutoff frequency [Hz]
 parameters.spikes.bp.lower = 600;  % Lower cutoff frequency [Hz]
 parameters.spikes.bp.order = 10;   % Order of filter 
 
-parameters.spikes.twin = 10; % Time of each individual section for spike detection (minutes)
 
 %% %%%% Spike Sorting %%%%
 
@@ -151,19 +153,22 @@ parameters.sorting.kst.nFiltMax        = 10000;   % maximum "unique" spikes to c
 
 %% PSR_SST_FILTER_SPIKES
 
-parameters.filter.spikes.rpv.process = true;  % Remove refractory period violations
-parameters.filter.spikes.mse.process = false; % Remove spikes with large mean-squared error from mean waveform
-parameters.filter.spikes.mse.thresh  = 5.0;   % Maximum MSE from mean waveform
-parameters.filter.spikes.amp.process = false; % Remove spikes with amplitude at wrong channel or position
-parameters.filter.spikes.amp.offset  = 0.2;   % Normalized amplitude difference from maximum, for channel selection
+parameters.filter.spikes.art.run    = true;  % Remove spikes detected on signal artifacts
+parameters.filter.spikes.rpv.run    = true;  % Remove refractory period violations
+
+parameters.filter.spikes.mse.run    = false; % Remove spikes with large mean-squared error from mean waveform
+parameters.filter.spikes.mse.thresh = 12.0;  % Maximum MSE from mean waveform
+
+parameters.filter.spikes.amp.run    = false; % Remove spikes with amplitude at wrong channel or position
+parameters.filter.spikes.amp.offset = 0.2;   % Normalized amplitude difference from maximum, for channel selection
 
 % Remove of general noise on non-spiking channels
-parameters.filter.spikes.noise.process = false; % Whether to do the filtering or not
+parameters.filter.spikes.noise.run = false; % Whether to do the filtering or not
 parameters.filter.spikes.noise.thresh  = 0.05;  % mean-squared error threshold 
 
 % Removal of noisy oscillations on non-spiking channels (ripples)
 
-parameters.filter.spikes.ripple.process  = false; % Whether to do the filtering or not
+parameters.filter.spikes.ripple.run  = false; % Whether to do the filtering or not
 parameters.filter.spikes.ripple.freq_max =  3000; % Maximimum frequency of noisy oscillations
 parameters.filter.spikes.ripple.freq_min =   600; % Minimum   frequency of noisy oscillations
 parameters.filter.spikes.ripple.corr_max =   0.5; % Maximum level of autocorrelation 
@@ -224,7 +229,7 @@ parameters.cluster.quality.max_amp    = 300;  % Maximum absolute mean spike ampl
 parameters.cluster.quality.min_amp    = 1.0;  % Minimum amplitude relative to "parameters.cluster.thresh"
 parameters.cluster.quality.max_p2p    = 400;  % Maximum absolute mean peak-to-peak amplitude of cluster [microvolt]
 parameters.cluster.quality.min_spikes = 50;   % Minimum number of spikes in cluster
-parameters.cluster.quality.min_auc    = 0.40; % Minimum area under curve for spike count distribution
+parameters.cluster.quality.max_mse    = 4.00; % Maximum mean-squared-error to expected spike count distribution
 parameters.cluster.quality.max_xclag  = 0.20; % Maximum lag of peak cross-correlation between probe channels [ms]
 
 % Isolation quality
@@ -239,6 +244,7 @@ parameters.cluster.quality.max_fn = 0.10; % Maximum false negative rate
 
 parameters.lfp.Fr = 1200; % Down-sampling frequency of LFP signal [Hz]. Leave empty if no down-sampling should occur.
 
+% Low- and band-pass filtering
 parameters.lfp.filter.type = 'lp'; % Low-pass filter: 'lp', Band-pass filter: 'bp' 
 
 parameters.lfp.filter.bp.upper = 300; % Band-pass filter upper cut-off frequency [Hz]
@@ -256,21 +262,26 @@ parameters.lfp.filter.eps.freq  =   50; % Mains hum frequency [Hz]
 parameters.lfp.filter.eps.bw    =  0.5; % Band-width of notch filter [Hz]
 parameters.lfp.filter.eps.order =    2; % Order of notch filter
 
-% Window parameters for LFP (should include some padding)
-parameters.lfp.trial.onset  = -1.0; % Trial start time relative to stimulus onset [sec]
-parameters.lfp.trial.offset =  2.0; % Trial end   time relative to stimulus onset [sec]
+% Subtract channel mean
+parameters.lfp.mean_subtract = false;
+
+%% PSR_LFP_ARTIFACT_CHANNEL
+parameters.lfp.artifact.chan.run    = false; % Whether to remove whole channels if highly contaminated with artifacts, compared to other channels
+parameters.lfp.artifact.chan.thresh = 3;     % Number of standard deviations above mean of other channels
 
 %% PSR_LFP_ARTIFACT_DETECTION_PSD
-parameters.lfp.artifact.freqRange = linspace(10,100,64); % Frequencies for which to calculate PSD
-parameters.lfp.artifact.threshPSD = 3;                   % PSD threshold
-parameters.lfp.artifact.window    = 0.5;                 % Window to calculate PSD [sec]
+parameters.lfp.artifact.psd.run    = true;                % Whether to remove high power spectral density (PSD) artifacts 
+parameters.lfp.artifact.psd.frange = linspace(10,100,64); % Frequencies for which to calculate PSD
+parameters.lfp.artifact.psd.thresh = 3;                   % PSD threshold
+parameters.lfp.artifact.psd.win    = 0.5;                 % Window to calculate PSD [sec]
 
 %% PSR_LFP_ARTIFACT_DETECTION_AMP
-parameters.lfp.artifact.cat            = true; % Concatenate trials
-parameters.lfp.artifact.tsection       = 10;   % Window length in which we detect background noise [sec]
-parameters.lfp.artifact.threshAmpUpper =  6;   % Upper threshold given as number of standard deviations above background noise
-parameters.lfp.artifact.threshAmpLower =  2;   % Lower threshold given as number of standard deviations above background noise
-parameters.lfp.artifact.tSlope         =  6;   % [ms]
+parameters.lfp.artifact.amp.run      = true; % Whether to remove high amplitude artifacts
+parameters.lfp.artifact.amp.cat      = true; % Concatenate trials
+parameters.lfp.artifact.amp.tsection = 10;   % Window length in which we detect background noise [sec]
+parameters.lfp.artifact.amp.upper    =  6;   % Upper threshold given as number of standard deviations above background noise
+parameters.lfp.artifact.amp.lower    =  2;   % Lower threshold given as number of standard deviations above background noise
+parameters.lfp.artifact.amp.slope    =  6;   % Duration of artifact slope for derivative threshold [ms]
 
 %% PSR_LFP_ARTIFACT_REMOVAL
 parameters.lfp.artifact.interval = 0.50; % Minimum clean interval between artifacts [sec]
@@ -288,23 +299,59 @@ parameters.ms.detect.min_dur   = 0.1;   % Minimum duration of pulse [sec]
 
 %% PSR_MS_DENOISE_RAW
 
-parameters.ms.denoise.raw.process      = false; % Remove magnetic stimulus artifacts in raw signal
-parameters.ms.denoise.raw.win.slope    = 0.10; % [ms]
-parameters.ms.denoise.raw.win.stimulus = 100;  % [ms]
-parameters.ms.denoise.raw.win.pulse    = 30;   % Search window for second peak [ms]
-parameters.ms.denoise.raw.win.artifact = 2.0;  % [ms]
-parameters.ms.denoise.raw.win.padding  = 0.5;  % [ms]
-parameters.ms.denoise.raw.thresh       = 10;   % Number of MADs above background noise
+parameters.ms.denoise.raw.run          = false; % Remove magnetic stimulus artifacts in raw signal
+parameters.ms.denoise.raw.win.slope    = 0.10;  % [ms]
+parameters.ms.denoise.raw.win.stimulus = 100;   % [ms]
+parameters.ms.denoise.raw.win.pulse    = 30;    % Search window for second peak [ms]
+parameters.ms.denoise.raw.win.artifact = 2.0;   % [ms]
+parameters.ms.denoise.raw.win.padding  = 0.5;   % [ms]
+parameters.ms.denoise.raw.thresh       = 10;    % Number of MADs above background noise
 
 %% PSR_MS_DENOISE_SPK
-
+% Subject to removal
 parameters.ms.denoise.spk.process = false; % Remove magnetic stimulus artifacts in detected spikes
+parameters.ms.denoise.spk.twin    = 0.050; % Window size [s]
+parameters.ms.denoise.spk.tbin    = 0.001; % Bin size [s]
+parameters.ms.denoise.spk.stim    = 80;    % Minimum stimulus amplitude [V]
+parameters.ms.denoise.spk.thresh  = 5;     % Number of multiples above expected spike count
+
+%% PSR_MS_DENOISE_OFF
+
+parameters.ms.denoise.off.run  = false;
+parameters.ms.denoise.off.twin = [0 3.0];
+
+%% PSR_MS_DENOISE_CLS
+
+parameters.ms.denoise.cls.run    = false;
+parameters.ms.denoise.cls.tstm   = [-500 500]; % Maximum window size in which single stimulus occurs [ms]
+parameters.ms.denoise.cls.tart   = [-50  0];   % Window around stimulus in which stimulus artifact occurs
+parameters.ms.denoise.cls.tbin   = 1;          % Bin size [ms] 
+parameters.ms.denoise.cls.tspk   = 0.3;        % Duration of artifact [ms]
+parameters.ms.denoise.cls.tslp   = 0.10;       % Derivative step size for artifact slope [ms]
+parameters.ms.denoise.cls.dlower = 2.00;       % Error detection threshold in number of standard deviations (waveform)
+parameters.ms.denoise.cls.dupper = 2.50;       % Error detection threshold in number of standard deviations (waveform)
+parameters.ms.denoise.cls.dclus  = 1.25;       % Error detection threshold in number of standard deviations (cluster)
+parameters.ms.denoise.cls.fr     = 2;          % Threshold as multiple of expected firing rate
+parameters.ms.denoise.cls.ampmin = 0.5;        % Fraction of highest stimulus amplitudes to consider
+parameters.ms.denoise.cls.spkmin = 5;          % Minimum number of spikes needed
+
+parameters.ms.denoise.cls.fc_upper = 36;% Threshold for artifact clusters
+parameters.ms.denoise.cls.fc_lower = 0.75;
+parameters.ms.denoise.cls.fb_upper = 10;
+parameters.ms.denoise.cls.fb_lower = 1.0;
 
 %% PSR_MS_DETECT_OFFSET
 
-parameters.ms.offset = false; % Detect stimulus offset
+parameters.ms.offset = []; % TEMP
+parameters.ms.offset.run   = false; % Detect stimulus offset
+parameters.ms.offset.min   = [-0.0375,-0.0150]; % Approximate position of stimulus offset 
+parameters.ms.offset.win   = 0.0100; % Window around the approximate position
+parameters.ms.offset.delta = 0.0005;
 
 %% %%%% Experiment specific parameters %%%%
 
 %% Active vs. Passive
 parameters.exp.avp.process = false; 
+
+%% MAGNETO
+parameters.exp.mgn.process = false;

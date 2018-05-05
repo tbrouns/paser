@@ -43,6 +43,14 @@ Therefore, please follow the installation instructions given in the KiloSort REA
 Once again, if you are not using KiloSort for anything else, then do not add the KiloSort directory to the MATLAB path. 
 We will instead load the toolbox the moment it is needed in the data processing pipeline. 
 
+### OpenEphys
+
+The OpenEphys toolbox is used to load the raw data:
+
+https://github.com/open-ephys/analysis-tools
+
+As with the FieldTrip and KiloSort toolboxes, it is not required to add it to the MATLAB path straight away. 
+
 ## PASER toolbox installation
 
 Clone or download PASER and add it to your MATLAB path: 
@@ -59,19 +67,20 @@ Create a MATLAB script containing the following lines of code:
 
 ```
 parameters = [];
-parameters.subject      = 'SubjectName'; % Name of subject used in output MAT filename (no spaces)
+
+parameters.configPath   = 'E:\PathToConfigFile\ConfigFile; % Where the parameters are loaded from
 parameters.loadPath     = 'C:\PathToLoadFolder\LoadFolder\'; % Where the data folders are
 parameters.savePath     = 'D:\PathToSaveFolder\SaveFolder\'; % Where you want to save the output MAT files
-parameters.configPath   = 'E:\PathToConfigFile\ConfigFile; % Where the parameters are loaded from
-parameters.txtfile      = [];            % Folders to process given in text file
-parameters.patterns     = [];            % Used to differentiate between experimental sessions (string cell array)
-parameters.type         = 'all';         % Which session type to process ('all' or one of the chosen patterns)
-parameters.process      = 'new';         % Which specific sessions to process ('new', 'given', 'from' or 'all')
-parameters.folders      = [];            % Sessions that you wish to process, if 'given' is chosen (string cell array)
-parameters.extension    = 'continuous';  % File extension of raw data files
-parameters.filepattern  = 'CH';          % Pattern to look for in data files
-parameters.blockpattern = [];            % Used to differentiate between blocks within session
+parameters.subject      = 'SubjectName'; % Name of subject used in output MAT filename (no spaces)
 parameters.nelectrodes  = 4;             % Number of electrodes per polytrode (e.g. tetrode: 4)
+parameters.extension    = 'continuous';  % File extension of raw data files
+parameters.rawpattern   = 'CH';          % Pattern to look for in data files
+parameters.blockpattern = [];            % Used to differentiate between blocks within session
+parameters.stimpatterns = [];            % Which session type to process
+parameters.process      = 'all';         % Which specific sessions to process ('all', 'given' or 'from')
+parameters.folders      = [];            % Sessions that you wish to process, if 'given' or 'from' is chosen above (string cell array)
+parameters.overwrite    = false;         % Whether to overwrite data from existing processed sessions
+parameters.txtfile      = [];            % Folders to process given in text file
 
 psr_batch_processing(parameters); % Process raw data files
 ```
@@ -81,33 +90,33 @@ Processed data is saved to the folder specified by `parameters.savePath`, where 
 
 Not all of the parameters in this script are set correctly, so what follows is an explanation of how to select the right settings.
 
-### Initial parameters
+### Initial parameter definitions
 
-#### Config file
+#### `parameters.configPath`
 
 You should create a `ConfigFile.m` that contains parameter settings for the various processing functions and then point `parameters.configPath` to this file. 
 This script should at least contain the following lines of code:
 
 ```
 psr_parameters_general;
-parameters.path.kst = 'C:\PathToKiloSort\KiloSort';   % Path to the KiloSort repository
-parameters.path.ft  = 'D:\PathToFieldTrip\FieldTrip'; % Path to the FieldTrip repository
+parameters.path.ft    = 'C:\PathToFieldTrip\FieldTrip'; % Path to the FieldTrip repository
+parameters.path.kst   = 'D:\PathToKiloSort\KiloSort';   % Path to the KiloSort  repository
+parameters.path.ephys = 'E:\PathToOpenEphys\OpenEphys'; % Path to the OpenEphys repository
 ```
+
+To avoid clogging up the MATLAB path, we add the third-party toolboxes given above whenever we need them and remove them afterwards. 
+In order for the program to know where to look for the toolboxes, set the path parameters in the following way:
+
+* `parameters.path.ft`    should point to the FieldTrip main directory, which contains e.g. `ft_defaults.m`
+* `parameters.path.kst`   should point to the KiloSort  main directory, which contains e.g. `preprocessData.m`
+* `parameters.psth.ephys` should point to the OpenEphys main directory, which contains e.g. `load_open_ephys_data.m`
 
 More `parameters` fields can be changed by adding more lines to the script. For example, if you do not want to process the LFP, you add:
 `parameters.process.lfp = false;`
 
 See `psr_parameters_general` for all other parameter fields. Comments next to each parameter explain its purpose. 
 
-#### Path settings
-
-To avoid clogging up the MATLAB path, we add the third-party toolboxes from the path whenever we need them and remove them afterwards. 
-In order for the program to know where to look for the toolboxes, set the path parameters in the following way:
-
-* `parameters.path.kst` should point to the KiloSort main directory, which contains e.g. `preprocessData.m`
-* `parameters.path.ft` should point to the FieldTrip main directory, which contains e.g. `ft_defaults.m`
-
-#### Load directory
+#### `parameters.loadPath`
 
 `parameters.loadPath` should point to a directory tree like the one given below. 
 
@@ -153,49 +162,98 @@ loadPath
 ```
 
 The `loadPath` folder should include one or more folders for specific experimental sessions. Here, we have two such folders called `Session_1` and `Session_1_Condition`.
-Each session folder then contains one or more folders for specific blocks that hold the raw data files. 
+Each session folder then contains one or more folders for specific experimental blocks that hold the raw data files. 
 In the case of `Session_1_Condition`, we have the `Block_0M` and `Block_1M`, which contain the `continuous` files. 
 To be clear, the names `Session` and `Block` are arbitrary here, you can use any other name you desire.
 
-However, we must note that we have two types of `continuous` files here. We only wish to load the `100_CH*.continuous` ones. 
-We can differentiate between the two types using `parameters.filepattern`, which should be set to `parameters.filepattern = 'CH'` in this case, because that is the common pattern between them. 
+##### Note on experimental "sessions" and "blocks" 
 
-The pattern specified by `parameters.filepattern` must immediately be followed by an integer in the filename. In turn, the integer should immediately be followed by the file extension or by an underscore. 
-This integer is used to determine which channels belong to which probe. For example, if we are using a tetrode, then the channels `{*CH1,*CH2,*CH3,*CH4}.continuous` are the channels for the first tetrode.
+Experimental sessions are processed separately from one-another, unless specified otherwise (see `parameters.txtfile`).
+Experimental blocks, on the other hand, are processed together for each probe within an experimental session.
 
-Depending on the experimental conditions, you may wish to vary some kind of experimental variable across different blocks. 
-If you indicate the value of the variable in the block folder name, then it will be extracted and saved by setting `parameters.blockpattern`. 
-Any value between the underscore and the specified pattern is recorded. If we set `parameters.blockpattern = 'M'`, we would get 0 and 1 for the blocks in `Session_1_Condition`. 
+This is based on the assumption that the electrodes will drift between experimental sessions, but roughly remain in the same position between experimental blocks in the same session.
 
-Furthermore, you can also differentiate between different session types and only process one particular type of session. 
-First set the different session types in `parameters.patterns` and in `parameters.type` which type you wish to process. 
-If we only want to process the 'Condition' sessions, we would have to specify `parameters.patterns = {'condition'}` and `parameters.type = 'condition'` (not case sensitive). 
+#### `parameters.savePath`
 
-The session folders you wish to process can be directly specified as well by setting `parameters.process` to `'given'` 
-and giving the session names as a cell array in `parameters.folders` (e.g. `parameters.folders = {'Session_1_Condition'}`). 
-You can also set `parameters.process` to `'from'` to process the data starting from a specific session, where the starting session is specified in `parameters.folders` as a cell. 
-Otherwise, `parameters.process` can be set to `'new'` when you only want to process sessions for which no output MAT files exist in the `savePath`, or `'all'` if you want to process every single session and overwrite any existing data.
+For `parameters.savePath` select the folder where you want to save the output MAT files. Folders are automatically created to match the `loadPath` directory tree. 
 
-Lastly, ... [INCLUDE INFO ABOUT TXTFILE FIELD]
+##### Example for the directory tree under `parameters.loadPath`:
 
-#### Note on blocks
+The folders `Session_1` and `Session_1_Condition` will be created in `savePath`, which will contain the output MAT files for the corresponding sessions. 
 
-We assume that blocks occur one after another during the experiment, which means that the electrodes will remain in the same position. 
-Therefore, we always perform spike sorting across different blocks for each probe within a session.
+#### `parameters.subject`
 
-#### Polytrode channels
+All data that is loaded from `parameters.loadPath` is assumed to come from the same animal. In `parameters.subject` you should specify a unique character string for identification of the subject animal. 
+When processing more than one animal, you should always change the `parameters.loadPath` and `parameters.subject` fields for each animal. 
+
+#### `parameters.nelectrodes`
 
 The number of channels of the polytrode should be indicated by `parameters.nelectrodes`.
 Each block folder should then contain a number of `continuous` files equal to the number of polytrodes multiplied by `parameters.nelectrodes`.
- 
-#### Save directory
 
-For `parameters.savePath` select the folder where you want to save the output MAT files. Folders are automatically created to match the `loadPath` directory tree. 
-So, in the example given above, the folders `Session_1` and `Session_1_Condition` will be created in `savePath`, which will contain the output MAT files for the corresponding sessions. 
+#### `parameters.extension`
+
+The extension of the raw data files. Right now this should always be set to `continuous`. 
+
+#### `parameters.rawpattern`
+
+We use this field to decide which files should be loaded from the `parameters.loadPath` directory and to determine which raw data files go with which probe (see example below). 
+The pattern specified by `parameters.rawpattern` must immediately be followed by an integer in the filename. In turn, the integer should immediately be followed by the file extension or by an underscore. 
+
+##### Example for the directory tree under `parameters.loadPath`:
+
+We have two types of `continuous` files (`*ADC*.continuous` and `*CH*.continuous`). We only wish to load the `100_CH*.continuous` ones. 
+We can differentiate between the two types using `parameters.rawpattern`, which should be set to `parameters.rawpattern = 'CH'` in this case, because that is the common pattern between them. 
+If we are using a tetrode, then the channels `{*CH1,*CH2,*CH3,*CH4}.continuous` are the channels for the first tetrode.
+
+#### `parameters.blockpattern`
+
+Depending on the experimental conditions, you may wish to vary some kind of experimental variable across different experimental blocks. 
+If you indicate the value of the variable in the block folder name, then it will be extracted and saved by setting `parameters.blockpattern`. 
+Any value between the underscore and the specified pattern is recorded. 
+
+##### Example for the directory tree under `parameters.loadPath`:
+
+If we set `parameters.blockpattern = 'M'`, we would get `0` and `1` for the blocks in the `Session_1_Condition` folder. 
+
+#### `parameters.stimpattern`
+
+Furthermore, you can also differentiate between different session types and only process one particular type of session. 
+The session type that you wish to process should be set by `parameters.patterns`. 
+
+##### Example for the directory tree under `parameters.loadPath`:
+
+If we only want to process the "*Condition" sessions (e.g. for the directory tree under `parameters.loadPath`, we would have to specify `parameters.patterns = {'condition'}` (not case sensitive). 
+
+#### `parameters.process`
+
+The session folders you wish to process can be directly specified as well by setting `parameters.process` to `'given'` 
+and giving the session names as a cell array in `parameters.folders`. You can also set `parameters.process` to `'from'` to process the data starting from a specific session, where the starting session is specified in `parameters.folders` as a single cell. 
+
+##### Example for the directory tree under `parameters.loadPath`:
+
+We could set `parameters.folders = {'Session_1_Condition'}` in order to only process the `Session_1_Condition` folder and thus ignore the `Session_1` folder. 
+
+#### `parameters.overwrite`
+
+Set `parameters.overwrite = false` if you only want to process sessions for which no output MAT files exist in `parameters.savePath`. Alternatively, set `parameters.overwrite = true` if you want to process every single session and overwrite any existing data.
+
+#### `parameters.txtfile`
+
+Multiple sessions can also be processed together by creating a TXT file and specifying on each line the sessions that should be combined. A whitespace should be left between each session name. 
+This is useful when sessions are recorded immediately after one another, so we can assume that the electrodes have not drifted significantly. 
+
+##### Example for the directory tree under `parameters.loadPath`:
+
+We can create a TXT file containing just the following line to process the two sessions together:
+`Session_1 Session_1_Condition`
+
+More lines can be added for more session combinations, e.g: 
+`Session_2 Session_2_Condition_1 Session_2_Condition_2` 
 
 ### Output files
 
-As mentioned earlier, a MAT file will be saved for each probe to the `savePath` for the current session. These files have the following naming convention:
+As mentioned under `parameters.savePath`, a MAT file will be saved for each probe to the `savePath` for the current session. These files have the following naming convention:
 
 `PSR_%SubjectName%_%Session%_P%ProbeNumber%.mat`
 
@@ -253,7 +311,7 @@ spikes                         struct                    Neural spiking data
 				features       single   [Nd x Ns]        Array of principle component scores
                 info           struct                    See further below
                 spiketimes     single   [ 1 x Ns]        Spike time of each detected spike [sec]
-                trials         int16    [ 1 x Ns]        Trial index of each detected spike
+                blocks         int16    [ 1 x Ns]        Experimental block index of each detected spike
                 waveforms      int16    [Ns x Np x Nc]   Waveform of each detected spike for each channel 
 				Fs             double   scalar           Sampling frequency of raw extracellular recording
 				

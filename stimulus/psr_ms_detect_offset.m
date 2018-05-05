@@ -4,9 +4,9 @@ tWinSlope = 0.1; % ms
 tWinOff   = 10;  % ms
 tWinStim  = 0.1; % sec
 
-sWinSlope  =  (tWinSlope / 1000) * Fs; 
-sWinOff    =  (tWinOff   / 1000) * Fs; 
-sWinStim   =  -tWinStim  * Fs;
+sWinSlope = (tWinSlope / 1000) * Fs; 
+sWinOff   = (tWinOff   / 1000) * Fs; 
+sWinStim  = -tWinStim          * Fs;
 
 tPks = [];
 

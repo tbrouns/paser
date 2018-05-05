@@ -1,4 +1,4 @@
-function [ax1,ax2] = psr_sst_plot_stability(spikes,clustID,metadata,parameters)
+function [ax1,ax2] = psr_sst_plot_stability(spikes,clustID,parameters,metadata)
 % UltraMegaSort2000 by Hill DN, Mehta SB, & Kleinfeld D  - 07/12/2010
 %
 % plot_stability - Plot amplitude and firing rate of a set of spikes over time

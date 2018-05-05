@@ -1,11 +1,11 @@
-function waveforms = psr_sst_get_waveforms(spiketimes,data,win)
+function waveforms = psr_sst_get_waveforms(spikePoints,data,win)
 
 % data - Filtered time series of extracellular recording [Nchannels x Npoints]
-% spiketimes - Time in seconds of each spike [Nspikes x 1] 
+% spiketimes - Sample number of each spike [Nspikes x 1] 
 
 nChans  = size(data,1);
 sLength = size(data,2);
-timeArray = bsxfun(@plus,spiketimes,win);
+timeArray = bsxfun(@plus,spikePoints,win);
 timeArray(timeArray < 1) = 1;
 timeArray(timeArray > sLength) = sLength;
 timeArray = timeArray';

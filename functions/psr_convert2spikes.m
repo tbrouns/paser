@@ -29,25 +29,10 @@ window_samples = round(Fs * parameters.spikes.window_size / 1000);
 samples_hwidth = round(0.5 * window_samples);
 win = -samples_hwidth:samples_hwidth;
 
-% Get raw data around spiketimes
-
-waveforms = psr_sst_get_waveforms(spiketimes,data,win);
-
-% sLength = size(data,2);
-% timeArray = bsxfun(@plus,spiketimes,win);
-% timeArray(timeArray < 1) = 1;
-% timeArray(timeArray > sLength) = sLength;
-% timeArray = timeArray';
-% timeArray = timeArray(:);
-% waveforms = data(:,timeArray);
-% waveforms = permute(waveforms,[3 2 1]);
-% waveforms = reshape(waveforms,length(win),[],parameters.general.nelectrodes);
-% waveforms = permute(waveforms,[2 1 3]);
-
 %% Save results
 
 spikes.assigns    = int16(assigns');
 spikes.spiketimes = single((spiketimes - 1)' / Fs); % in secs
-spikes.waveforms  = waveforms;
+spikes.waveforms  = psr_sst_get_waveforms(spiketimes,data,win);
 
 %------------- END OF CODE --------------

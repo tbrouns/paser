@@ -271,6 +271,7 @@ stat.time   = lags;
 stat.dimord = 'chan_chan_time';
 stat.label  = spike.label(chansel);
 stat.nmean  = nmean; 
+stat.cfg    = cfg;
 
 % do the general cleanup and bookkeeping at the end of the function
 ft_postamble trackconfig

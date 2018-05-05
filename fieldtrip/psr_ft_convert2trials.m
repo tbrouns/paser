@@ -12,12 +12,12 @@ if (nargin < 3); method    = []; end
 
 if (strcmp(method,'onset')) % only use onset
     
-    onset  = parameters.lfp.trial.onset;
-    offset = parameters.lfp.trial.offset;
+    onset  = parameters.analysis.lfp.t_win(1);
+    offset = parameters.analysis.lfp.t_win(2);
         
     onset     = round(Fr * onset);
     offset    = round(Fr * offset);
-    stimtimes = round(Fr * stimtimes(:,1));
+    stimtimes = round(Fr * stimtimes(:,1)) + 1;
     
     stimOnset  = stimtimes + onset;
     stimOffset = stimtimes + offset;    
@@ -25,19 +25,17 @@ if (strcmp(method,'onset')) % only use onset
 elseif (strcmp(method,'interval')) % Use both onset and offset to specify interval
         
     onset = 0;
-    stimOnset  = round(Fr * stimtimes(:,1));
-    stimOffset = round(Fr * stimtimes(:,2));
+    stimOnset  = round(Fr * stimtimes(:,1)) + 1;
+    stimOffset = round(Fr * stimtimes(:,2)) + 1;
     
 end
 
 if (~isempty(stimOnset))
         
-    % Ignore trials outside boundary
+    % Adjust trials outside boundary
     
-    nlength = round(Fr * data.time{1}(end));
-    del = stimOnset < 1 | stimOffset > nlength;
-    stimOnset (del) = [];
-    stimOffset(del) = [];
+    stimOnset (stimOnset  < data.sampleinfo(1)) = data.sampleinfo(1);
+    stimOffset(stimOffset > data.sampleinfo(2)) = data.sampleinfo(2);
     
     cfg = [];
     cfg.trl = [stimOnset,stimOffset,zeros(size(stimOnset))];

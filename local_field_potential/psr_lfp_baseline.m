@@ -1,12 +1,23 @@
-function data = psr_lfp_baseline(data,cfg)
+function data = psr_lfp_baseline(data,baseline,parameters)
 
-if (all(size(cfg.baseline) == size(data.powspctrm)))
-    baseline = cfg.baseline;
-else
-    baseline = getBaseline(data.powspctrm,cfg.base_t0,cfg.base_t1);
+% Based on FT_FREQBASELINE
+
+if (ndims(baseline) ~= ndims(data.powspctrm) || all(size(baseline) ~= size(data.powspctrm)))
+    base_twin = [];
+    if (strcmp(parameters.analysis.tfa.baseline,'pre'))
+        base_twin = [data.time(1) 0];
+    elseif (numel(parameters.analysis.tfa.baseline == 2))
+        base_twin = parameters.analysis.tfa.baseline; 
+    end
+    
+    if (isempty(base_twin) || base_twin(1) >= base_twin(2))
+        disp('Invalid baseline range'); return; 
+    end
+
+    baseline = getBaseline(data,base_twin);
 end
     
-switch cfg.powtype
+switch parameters.analysis.tfa.baselineType
     case 'absolute';   data.powspctrm =  data.powspctrm -  baseline;
     case 'relative';   data.powspctrm =  data.powspctrm ./ baseline;
     case 'relchange';  data.powspctrm = (data.powspctrm -  baseline) ./ baseline;
@@ -16,15 +27,15 @@ end
 
 end
 
-function baseline = getBaseline(data,t1,t2)
+function baseline = getBaseline(data,base_twin)
 
-if (nargin < 2); t1 = -Inf; end
-if (nargin < 3); t2 =  Inf; end
+t1 = base_twin(1);
+t2 = base_twin(2);
 
 baseline = [];
 nTrials  =   size(data.powspctrm,1);
 nDims    =  ndims(data.powspctrm);
-nTimes   = length(data.time);
+nTimes   =   size(data.powspctrm,nDims);
 i1 = find(data.time <= t1,1,'last');
 i2 = find(data.time >= t2,1,'first');
 if (isempty(i1)); i1 = 1; end

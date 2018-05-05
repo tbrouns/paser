@@ -1,4 +1,4 @@
-function data = psr_ms_denoise_raw(data,parameters,Fs)
+function [data,artifacts] = psr_ms_denoise_raw(data,parameters,Fs)
 
 % Deal with large signal transitions to reduce ringing artifacts after filtering
 
@@ -14,7 +14,7 @@ sLength    = length(derivative);
 thresh     = parameters.ms.denoise.raw.thresh * psr_mad(derivative);
 locThresh  = find(abs(derivative) > thresh);
 
-% Group samples together to form artifacts
+% Group adjacent data points together to form single artifacts
 
 itr = 1;
 N   = length(locThresh);
@@ -100,6 +100,9 @@ for iArtifact = 1:nArtifacts
     data = silenceArtifact(data,T2(1):T2(2));
         
 end
+
+artifacts = reshape(artifactPairs',2,[])';
+artifacts = (artifacts - 1) / Fs;
 
 end
 
