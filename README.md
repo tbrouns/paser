@@ -216,10 +216,10 @@ Any value between the underscore and the specified pattern is recorded.
 
 If we set `parameters.blockpattern = 'M'`, we would get `0` and `1` for the blocks in the `Session_1_Condition` folder. 
 
-#### `parameters.stimpattern`
+#### `parameters.stimpatterns`
 
 Furthermore, you can also differentiate between different session types and only process one particular type of session. 
-The session type that you wish to process should be set by `parameters.patterns`. 
+The session type that you wish to process should be set by `parameters.stimpatterns`. 
 
 ##### Example for the directory tree under `parameters.loadPath`:
 
