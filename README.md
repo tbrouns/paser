@@ -267,13 +267,13 @@ Structures:     Fields:	       Type:    Size:            Description:
 freq                           struct                    Local field potential (LFP) data                         
                 artifacts      double   [Na x  2]        Start and end point of LFP artifacts [sec]
                 cfg            struct                    FieldTrip configuration parameters
-				fsample        double   scalar           Sampling frequency
-				hdr            struct                    FieldTrip parameters
+                fsample        double   scalar           Sampling frequency
+                hdr            struct                    FieldTrip parameters
                 label          cell     [ 1 x Nc]        Cell array of label for each channel, where each cell contains:
                                string                    Channel label
-				sampleinfo     double   [Nt x  2]        Start and end points of trials 
-				time           cell     [ 1 x Nt]        Cell array of timestamps for each trial, where each cell contains:			   
-							   double   [ 1 x Ns]        Timestamps of specific trial [sec]
+                sampleinfo     double   [Nt x  2]        Start and end points of trials 
+                time           cell     [ 1 x Nt]        Cell array of timestamps for each trial, where each cell contains:
+                               double   [ 1 x Ns]        Timestamps of specific trial [sec]
                 trial          cell     [ 1 x Nt]        Cell array of voltage values for each trial, where each cell contains:
                                double   [Nc x Ns]        Voltage values of specific trial [muV]
 				
@@ -281,22 +281,22 @@ freq                           struct                    Local field potential (
 
                 Na: number of artifacts	
                 Nc: number of channels
-				Ns: number of data points 
+                Ns: number of data points 
                 Nt: number of trials
 				
 metadata                       struct                    General experimental data
                 duration       double   scalar           Duration of session [sec]
-				probe          integer  scalar           Probe number
-				session        string   [ 1 x Ns]        Name of session
-				stimtimes      cell     [Nb x  2]        Cell array with stimulus on- and offset timings, where each cell contains:
+                probe          integer  scalar           Probe number
+                session        string   [ 1 x Ns]        Name of session
+                stimtimes      cell     [Nb x  2]        Cell array with stimulus on- and offset timings, where each cell contains:
                                double   [Nt x  2]        Stimulus on- and offset times [sec]
                                string                    Stimulus type
                 stimulus       cell     [Nt x  1]        Vector of trial conditions
                 subject        string                    Name of subject
                 trialonset     double   [Nb x  1]        Onset time of every block [sec]
 				
-				Nb: number of blocks
-				Ns: number of sessions
+                Nb: number of blocks
+                Ns: number of sessions
                 Nt: number of trials
 				
 parameters                     struct                    Parameters for all data processing functions
@@ -307,13 +307,13 @@ spikes                         struct                    Neural spiking data
                 assigns        int16    [ 1 x Ns]        Cluster index of each detected spike after merging
                 assigns_prior  int16    [ 1 x Ns]        Cluster index of each detected spike before merging
                 clusters       struct                    See further below
-				delete         struct                    Logical arrays indicating spikes that are tagged for removal
-				features       single   [Nd x Ns]        Array of principle component scores
+                delete         struct                    Logical arrays indicating spikes that are tagged for removal
+                features       single   [Nd x Ns]        Array of principle component scores
                 info           struct                    See further below
                 spiketimes     single   [ 1 x Ns]        Spike time of each detected spike [sec]
                 blocks         int16    [ 1 x Ns]        Experimental block index of each detected spike
                 waveforms      int16    [Ns x Np x Nc]   Waveform of each detected spike for each channel 
-				Fs             double   scalar           Sampling frequency of raw extracellular recording
+                Fs             double   scalar           Sampling frequency of raw extracellular recording
 				
                 Ns: number of spikes
                 Np: number of data points
@@ -321,19 +321,19 @@ spikes                         struct                    Neural spiking data
 				
 spikes.info                    struct                    Session information
                 std            double   [1 x Nc]         Standard deviation of signal for each channel 
-				mad            double   [1 x Nc]         Median absolute deviation of signal for each channel
-				rms            double   [1 x Nc]         Root-mean-square of signal for each channel
-				env            double   [1 x Nc]         Signal envelope for each channel
-				bgn            double   [1 x Nc]         Measure of background noise for each channel
+                mad            double   [1 x Nc]         Median absolute deviation of signal for each channel
+                rms            double   [1 x Nc]         Root-mean-square of signal for each channel
+                env            double   [1 x Nc]         Signal envelope for each channel
+                bgn            double   [1 x Nc]         Measure of background noise for each channel
                 dur            double   [1 x Nb]         Duration of each experimental block [sec]				
                 thresh         double   [1 x Nc]         Spike detection thresholds for each channel
-				detected       logical                   Indicates whether the spikes were detected using a threshold
+                detected       logical                   Indicates whether the spikes were detected using a threshold
 				
                 Optional:
                 kst                                      KiloSort output variables 
                                                          [ see KiloSort docs for details: https://github.com/cortex-lab/KiloSort ]
 				
-				Nb: number of blocks
+                Nb: number of blocks
                 Nc: number of channels
 				
 spikes.clusters                struct                   Metrics for spike clusters                  	
@@ -344,24 +344,22 @@ spikes.clusters                struct                   Metrics for spike cluste
 
 spikes.clusters.metrics                                 Metrics for each spike cluster
                 id             integer  scalar          Cluster identifier
-				nspikes        integer  scalar          Number of spikes in cluster
-				fspikes        double   scalar          Fraction of total spike number
-				frate          double   scalar          Mean firing rate (Hz)
+                nspikes        integer  scalar          Number of spikes in cluster
+                fspikes        double   scalar          Fraction of total spike number
+                frate          double   scalar          Mean firing rate (Hz)
                 rpv            double   scalar          Fraction of refractory period violations 
                 sub            double   scalar          Fraction of sub-threshold spikes 
                 co             double   scalar          Fraction of spikes that are expected to coincide with spikes from other clusters
                 xc             double   vector          Cross-correlations of channel pair with greatest lag for cross-correlation peak
                 xcLag          double   scalar          Greatest lag of pairwise cross-correlation peaks between channels
-                cAuc           double   scalar          Area under curve of empirical and theoretically Poisson distributions
-                cxDist         double   vector          Empirical Poisson distribution (x-values)
-                cyDist         double   vector          Empirical Poisson distribution (y-values)
+                mse            double   scalar          Mean squared-error between empirical and theoretical spike count distribution (temporal stability measure)
                 amp            double   scalar          Mean absolute amplitude of waveform
                 ampRel         double   scalar          Mean relative amplitude of waveform, normalized by threshold
-				p2p            double   scalar          Mean peak-to-peak amplitude of waveform
+                p2p            double   scalar          Mean peak-to-peak amplitude of waveform
                 chans          integer  vector          Channels IDs that have above-threshold mean amplitude
                 artifact       double   scalar          Ratio between actual and expected number of spikes in LFP artifact region
                 snr            double   scalar          Signal-to-noise ratio
-				quality        integer  scalar          Quality measure of cluster (see "psr_sst_cluster_thresholds")
+                quality        integer  scalar          Quality measure of cluster (see "psr_sst_cluster_thresholds")
                 Lratio         double   scalar          L-ratio [Ref. 5]
                 IsoDis         double   scalar          Isolation distance [Ref. 5]
                 FP_t           double   scalar          False positive rate, based on fitting mixture of drifting t-distributions [Ref. 6]
