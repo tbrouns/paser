@@ -31,8 +31,8 @@ function [ax1,ax2] = psr_sst_plot_stability(spikes,clustID,parameters,metadata)
 
 % Check input
 
-if nargin < 3 || psr_isempty_field(metadata,'metadata.trialonset'); trialOnsets = [];
-else,                                                               trialOnsets = metadata.trialonset;
+if nargin < 3 || psr_isempty_field(metadata,'metadata.trialonset'); blockOnsets = [];
+else,                                                               blockOnsets = metadata.trialonset;
 end
 
 % Select waveforms
@@ -44,17 +44,27 @@ spiketimes = sort(spikes.spiketimes(spikeIDs));
 % Grab artifacts
 
 noisetimes  = [];
-if (~isempty(trialOnsets))
+if (~isempty(blockOnsets))
     if (~psr_isempty_field(spikes,'spikes.info.artifacts'))
-        nTrials = length(spikes.info.artifacts);
-        for iTrial = 1:nTrials
-            artifacts  = spikes.info.artifacts{iTrial};
-            noisetimes = [noisetimes;artifacts + trialOnsets(iTrial)]; %#ok
+        nBlocks = length(spikes.info.artifacts.lfp);
+        for iBlock = 1:nBlocks
+            artifactsBlock = spikes.info.artifacts.lfp{iBlock};
+            fields = fieldnames(artifactsBlock);
+            nFields = length(fields);
+            for iField = 1:nFields
+                artifacts  = artifactsBlock.(fields{iField});
+                noisetimes = [noisetimes;artifacts + blockOnsets(iBlock)]; %#ok
+            end
         end
         D = noisetimes(:,2) - noisetimes(:,1);
         [~,I] = sortrows(D,'descend');
         noisetimes = noisetimes(I,:);
-        noisetimes = noisetimes(1:parameters.display.max_artifacts,:);
+        
+        % Limit number of artifacts that we show
+        nmax = parameters.display.max_artifacts;
+        if (size(noisetimes,1) > nmax)
+            noisetimes = noisetimes(1:nmax,:);
+        end
     end
 end
 
@@ -138,19 +148,19 @@ set(ylabh,'position', get(ylabh,'position') + [0.03 0.25 0]);
 
 % Draw trial boundaries
 
-if (~isempty(trialOnsets))
-    nTrials = length(trialOnsets);
+if (~isempty(blockOnsets))
+    nBlocks = length(blockOnsets);
     hold on
     
     axes(ax1);
-    for iTrial = 2:nTrials
-        t = trialOnsets(iTrial);
+    for iBlock = 2:nBlocks
+        t = blockOnsets(iBlock);
         line([t t],[0 1] * ylim_ax1,'Color','k','LineStyle','--','LineWidth',1.5);
     end
     
     axes(ax2);
-    for iTrial = 2:nTrials
-        t = trialOnsets(iTrial);
+    for iBlock = 2:nBlocks
+        t = blockOnsets(iBlock);
         line([t t],[0 1] * ylim_ax2,'Color','k','LineStyle','--','LineWidth',1.5);
     end
     

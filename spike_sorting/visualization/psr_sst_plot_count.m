@@ -1,13 +1,12 @@
 function psr_sst_plot_count(spikes,clustID,parameters)
 
 % Poisson distribution
-I      = find([spikes.clusters.metrics.id] == clustID);
+I      = [spikes.clusters.metrics.id] == clustID;
 twin   = parameters.cluster.stability.win;
 frate  = spikes.clusters.metrics(I).frate;
-xDist  = spikes.clusters.metrics(I).cxDist;
-yDist  = spikes.clusters.metrics(I).cyDist;
 lambda = frate * twin;
 
+[~,xDist,yDist] = psr_sst_cluster_stability(spikes,clustID,parameters);
 if (isempty(xDist)); set(gca,'Visible','off'); return; end % Don't show plot
 y = psr_sst_normpdf_stability(xDist,lambda,parameters);
 
