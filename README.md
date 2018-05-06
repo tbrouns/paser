@@ -247,13 +247,13 @@ This is useful when sessions are recorded immediately after one another, so we c
 
 We can create a TXT file containing just the following line to process the two sessions together:
 ```
-`Session_1 Session_1_Condition`
+Session_1 Session_1_Condition
 ```
 
 More lines can be added for more session combinations, e.g: 
 ```
-`Session_1 Session_1_Condition`
-`Session_2 Session_2_Condition_1 Session_2_Condition_2` 
+Session_1 Session_1_Condition
+Session_2 Session_2_Condition_1 Session_2_Condition_2
 ```
 
 ### Output files
