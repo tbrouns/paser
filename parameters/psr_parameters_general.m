@@ -23,11 +23,13 @@
 parameters.process.spikes  = true; % Perform spike detection
 parameters.process.lfp     = true; % Perform LFP detection
 parameters.process.delete  = true; % Delete temporary files 
+parameters.process.warning = true; % Whether to keep processing after warning
 parameters.process.section = [];   % Used when forcing certain sections to be re-processed
 
 %% General
 parameters.general.precision = 1; % Number of digits after decimal point to keep for int16 data conversion
-parameters.general.twin = 5;     % Time of each individual section for certain processing steps (minutes)
+parameters.general.twin      = 5; % Time of each individual section for certain processing steps (minutes)
+parameters.general.minchans  = 4; % Minimum number of active channels per probe
 
 %% Development
 parameters.develop.comparison = false;
@@ -62,7 +64,6 @@ parameters.spikes.max_desync  =  0.25; % Maximum temporal desynchronization betw
 parameters.spikes.bp.upper = 6000; % Upper cutoff frequency [Hz]
 parameters.spikes.bp.lower = 600;  % Lower cutoff frequency [Hz]
 parameters.spikes.bp.order = 10;   % Order of filter 
-
 
 %% %%%% Spike Sorting %%%%
 

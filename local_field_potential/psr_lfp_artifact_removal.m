@@ -3,8 +3,8 @@ function data = psr_lfp_artifact_removal(data,artifacts,parameters)
 % Signal can be given as single time-series (Nchans x Npoints), or as a
 % cell array of such matrices or FieldTrip data structures
 
-if (iscell(data)); nTrials = length(data);
-else,              nTrials = 1;
+if (iscell(data)); nBlocks = length(data);
+else,              nBlocks = 1;
 end
 
 % Set constants
@@ -17,22 +17,22 @@ padding  = Fs * parameters.lfp.artifact.padding;
 
 artifactsAll = [];
 
-for iTrial = 1:nTrials
+for iBlock = 1:nBlocks
     
-    dataTrial = data{iTrial};
-    if (isfield(dataTrial,'trial')); dataTrial = dataTrial.trial{1}; end
-    slength = size(dataTrial,2);
+    dataBlock = data{iBlock};
+    if (isfield(dataBlock,'trial')); dataBlock = dataBlock.trial{1}; end
+    sLength = size(dataBlock,2);
     
     for iField = 1:nFields
         
-        artifactsTrial = artifacts.(fields{iField}){iTrial};
+        artifactsBlock = artifacts.(fields{iField}){iBlock};
         
-        if (~isempty(artifactsTrial))
+        if (~isempty(artifactsBlock))
         
-            artifactsTrial = round(Fs * artifactsTrial) + 1;
-            artifactsTrial = sortrows(artifactsTrial);
-            onsets  = artifactsTrial(:,1);
-            offsets = artifactsTrial(:,2);
+            artifactsBlock = round(Fs * artifactsBlock) + 1;
+            artifactsBlock = sortrows(artifactsBlock);
+            onsets  = artifactsBlock(:,1);
+            offsets = artifactsBlock(:,2);
 
             % Add padding
             onsets  = onsets  - padding;
@@ -40,40 +40,39 @@ for iTrial = 1:nTrials
 
             % Combine artifact intervals
             d  = onsets(2:end) - offsets(1:end-1);
-            id = find(d <= interval); % adjacent intervals
-            onsets (id + 1) = [];
-            offsets(id)     = [];
+            del = find(d <= interval); % adjacent intervals
+            onsets (del + 1) = [];
+            offsets(del)     = [];
 
             % Check limits
             onsets ( onsets < 1)       = 1;
-            offsets(offsets > slength) = slength;
-            artifactsTrial = [onsets,offsets];
-            artifactsTrial = unique(artifactsTrial,'rows');
+            offsets(offsets > sLength) = sLength;
+            artifactsBlock = [onsets,offsets];
+            artifactsBlock = unique(artifactsBlock,'rows');
 
-            nArtifacts = size(artifactsTrial,1);
+            nArtifacts = size(artifactsBlock,1);
             for iArtifact = 1:nArtifacts
-                x = artifactsTrial(iArtifact,1):artifactsTrial(iArtifact,2);
-                dataTrial(:,x) = NaN;
+                x = artifactsBlock(iArtifact,1):artifactsBlock(iArtifact,2);
+                dataBlock(:,x) = NaN;
             end
 
         end
         
-        artifactsAll.(fields{iField}){iTrial} = artifactsTrial;
+        artifactsAll.(fields{iField}){iBlock} = artifactsBlock;
 
-        
     end
     
-    if (isfield(data{iTrial},'trial')); data{iTrial}.trial = {dataTrial};
-    else,                               data{iTrial}       =  dataTrial;
+    if (isfield(data{iBlock},'trial')); data{iBlock}.trial = {dataBlock};
+    else,                               data{iBlock}       =  dataBlock;
     end
 end
 
 % Data conversion
 
-for iTrial = 1:nTrials
-    if (isfield(data{iTrial},'trial'))
+for iBlock = 1:nBlocks
+    if (isfield(data{iBlock},'trial'))
         for iField = 1:nFields
-            data{iTrial}.artifacts.(fields{iField}) = artifactsAll.(fields{iField}){iTrial};
+            data{iBlock}.artifacts.(fields{iField}) = artifactsAll.(fields{iField}){iBlock};
         end
     end
 end

@@ -13,8 +13,9 @@ nChans = size(data,1);
 
 for iChan = 1:nChans
     
-    dataChan = data(iChan,:);    
+    dataChan = data(iChan,:);
     dataChan = psr_int16_to_single(dataChan,parameters);
+    
     spikes.info.std(1,iChan) =     std(dataChan,[],2)'; % Standard deviation
     spikes.info.mad(1,iChan) = psr_mad(dataChan     )'; % Median absolute deviation
     spikes.info.rms(1,iChan) =     rms(dataChan,   2)'; % Root-mean-square
@@ -27,10 +28,15 @@ for iChan = 1:nChans
     binmax  = mean(yUpper) + 5 * std(yUpper);
     edges   = 0:binsize:binmax;
     [count,edges] = histcounts(yUpper,edges);
-    edges = edges(1:end-1) + 0.5 * diff(edges);
-    [~,I] = max(count);
-    spikes.info.env(1,iChan) = edges(I);
-
+    if (length(edges) > 1)
+        edges = edges(1:end-1) + 0.5 * diff(edges);
+        [~,I] = max(count);
+        env = edges(I);
+    else
+        env = 0;
+    end
+    
+    spikes.info.env(1,iChan) = env;
 end
 
 % Set background noise

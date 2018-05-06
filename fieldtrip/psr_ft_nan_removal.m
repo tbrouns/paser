@@ -8,9 +8,9 @@ nTrials = size(data.trial,2);
 for iTrial = 1:nTrials
     Y = data.trial{iTrial};
     T = data.time {iTrial};
-    M = false(size(T)); % missing data
-    
     nChans = size(Y,1);
+    M = false(nChans,length(T)); % missing data
+    
     for iChan = 1:nChans
         
         % First sweep: Interpolate NaNs
@@ -19,7 +19,7 @@ for iTrial = 1:nTrials
         del = isnan(y);
         y(del) = [];
         t(del) = []; 
-        M(del) = true; % Tag missing data points
+        M(iChan,del) = true; % Tag missing data points
         
         % Interpolation requires at least two sample points in each dimension
         if (length(y) > 1 && length(t) > 1)
@@ -29,7 +29,7 @@ for iTrial = 1:nTrials
         % Second sweep: Set any remaining NaNs to zero
         y = Y(iChan,:);
         del = isnan(y);
-        M(del) = true; % Tag missing data points
+        M(iChan,del) = true; % Tag missing data points
         Y(iChan,del) = 0;
         
     end

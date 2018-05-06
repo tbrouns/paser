@@ -65,22 +65,25 @@ for iSection = 1:nSections
     % Add mirror padding
     [dataSection,padding] = addPadding(dataSection,parameters);
     
+    % Remove NaNs
+    dataSection = psr_ft_nan_removal(dataSection);
+    missingChanIDs = any(dataSection.missing{1},2);
+    
     try
         data = ft_preprocessing(cfg, dataSection); % Do FieldTrip pre-processing
         data = removePadding(data,padding);
     catch ME
-        fprintf('\n **** FieldTrip ERROR **** \n');
-        disp(ME.message);
-        fprintf(  ' ************************* \n\n');
+        str = 'FieldTrip ERROR:';
+        psr_show_warning({str,ME.message});
     end
     
     % Downsample filtered signal
     if (~psr_isempty_field(data,'data.trial') && ~psr_isempty_field(parameters,'parameters.lfp.Fr'))
         [dataProbe,timestamps] = resample(cell2mat(data.trial)',cell2mat(data.time),parameters.lfp.Fr);
+        dataProbe(:,missingChanIDs) = NaN; % Insert NaNs
         dataTemp.trial = [dataTemp.trial,dataProbe'];
         dataTemp.time  = [dataTemp.time, timestamps];
     end
-    
 end
 
 data.fsample    = parameters.lfp.Fr;

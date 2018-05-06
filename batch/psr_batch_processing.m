@@ -24,16 +24,16 @@ function psr_batch_processing(parameters)
 
 %% Check input
 
-if (~isfield(parameters,'subject'));    parameters.subject    = [];           end
-if (~isfield(parameters,'loadPath'));   parameters.loadPath   = [];           end
-if (~isfield(parameters,'savePath'));   parameters.savePath   = [];           end
-if (~isfield(parameters,'configPath')); parameters.configPath = [];           end
-if (~isfield(parameters,'patterns'));   parameters.patterns   = [];           end
-if (~isfield(parameters,'folders'));    parameters.folders    = [];           end
-if (~isfield(parameters,'process'));    parameters.process    = 'all';        end
-if (~isfield(parameters,'extension'));  parameters.extension  = 'continuous'; end
-if (~isfield(parameters,'txtfile'));    parameters.txtfile    = [];           end
-if (~isfield(parameters,'overwrite'));  parameters.overwrite  = false;        end
+if (~isfield(parameters,'subject'));      parameters.subject      = [];           end
+if (~isfield(parameters,'loadPath'));     parameters.loadPath     = [];           end
+if (~isfield(parameters,'savePath'));     parameters.savePath     = [];           end
+if (~isfield(parameters,'configPath'));   parameters.configPath   = [];           end
+if (~isfield(parameters,'stimpatterns')); parameters.stimpatterns = [];           end
+if (~isfield(parameters,'folders'));      parameters.folders      = [];           end
+if (~isfield(parameters,'process'));      parameters.process      = 'all';        end
+if (~isfield(parameters,'extension'));    parameters.extension    = 'continuous'; end
+if (~isfield(parameters,'txtfile'));      parameters.txtfile      = [];           end
+if (~isfield(parameters,'overwrite'));    parameters.overwrite    = false;        end
 
 folderNames = dir(parameters.loadPath); % Locate all files and folders in directory
 folderNames = folderNames(~ismember({folderNames.name},{'.','..'}));
@@ -98,15 +98,15 @@ else
     
     % Extract folders that match given type
     
-    if (isempty(parameters.patterns))
+    if (isempty(parameters.stimpatterns))
         folders = [];
-        for iType = 1:nTypes
+        for iType = 1:size(folderTypes,1)
             folders = [folders;folderTypes{iType}];
         end
     else
         k = false(1,length(folderTypes));
-        for iType = 1:length(parameters.patterns)
-            k = k | strcmpi(patterns,parameters.patterns{iType});
+        for iType = 1:length(parameters.stimpatterns)
+            k = k | strcmpi(patterns,parameters.stimpatterns{iType});
         end
         folders = folderTypes(k);
     end

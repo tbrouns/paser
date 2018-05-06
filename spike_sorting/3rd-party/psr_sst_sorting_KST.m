@@ -1,18 +1,18 @@
 function spikes = psr_sst_sorting_KST(spikes,data,parameters,savePath)
 
-disp('Running Kilosort...');
+disp('Running KiloSort...');
 
 addpath(genpath(parameters.path.kst));
 
 % Dummy parameters
 
-nchans      = size(data,1);
-chanMap     = 1:nchans;
+nChans      = size(data,1);
+chanMap     = 1:nChans;
 chanMap0ind = chanMap - 1;    %#ok
-connected   = true(nchans,1); %#ok
-xcoords     = ones(nchans,1); %#ok
-ycoords     = (1:nchans)';    %#ok 
-kcoords     = ones(nchans,1); %#ok
+connected   = true(nChans,1); %#ok
+xcoords     = ones(nChans,1); %#ok
+ycoords     = (1:nChans)';    %#ok 
+kcoords     = ones(nChans,1); %#ok
 fs          = parameters.Fs;  %#ok
 
 save(fullfile(savePath, 'chanMap.mat'), ...
@@ -27,7 +27,7 @@ save(fullfile(savePath, 'chanMap.mat'), ...
 % Kilosort parameters
 
 ops = parameters.sorting.kst;
-ops.Nchan = nchans;
+ops.Nchan = nChans;
 ops = configKilosort(ops,parameters,savePath);
 
 % Calculate threshold for spike initialization
@@ -54,8 +54,9 @@ try
     rez                = fitTemplates(rez, DATA, uproj); % fit templates iteratively
     rez                = fullMPMU(rez, DATA);            % extract final spike times (overlapping extraction)
 catch ME
-    disp(ME)
-    disp('Kilosort error. No spikes detected.');
+    str_1 = 'KiloSort ERROR:';
+    str_2 = 'No spikes detected.';
+    psr_show_warning({str_1,ME.message,str_2});
     rez = [];
 end
 
@@ -77,7 +78,7 @@ delete(ops.fproc);
 delete(ops.chanMap);
 rmpath(genpath(parameters.path.kst));
 
-disp('Kilosort completed');
+disp('KiloSort completed');
 
 end
 

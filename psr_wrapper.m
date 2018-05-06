@@ -54,11 +54,9 @@ clear temp;
 parameters = psr_load_parameters(parameters);
 
 %% Constants
-nChans    =    parameters.general.nelectrodes;
-pattern   =    parameters.general.rawpattern;
-ext       =    parameters.general.extension;
-precision = 10^parameters.general.precision;
-tempFilePath = [savePath 'Temp_vars.mat'];
+rawpattern  =    parameters.general.rawpattern;
+precision   = 10^parameters.general.precision;
+logfilePath = [savePath 'Temp_logfile.mat'];
 
 %% Check if TEMP files exist in save folder
 
@@ -73,14 +71,11 @@ for iFile = 1:nfiles
     filesTemp{iProbe,iBlock} = filename;
 end
 tempFilesFound = ~cellfun(@isempty,filesTemp);
-
-fileTemp = dir(tempFilePath);
-fileTemp = char(fileTemp.name);
-tempFileFound = ~isempty(fileTemp);
+logfileFound = exist(logfilePath,'file');
 
 %% Start data processing
 
-if (~tempFileFound || any(~tempFilesFound(:)))
+if (~logfileFound || any(~tempFilesFound(:)))
     
     %% Extract experimental conditions from folder name
     
@@ -100,14 +95,14 @@ if (~tempFileFound || any(~tempFilesFound(:)))
     
     filesUnsorted = cell(nBlocks,1);
     for iBlock = 1:nBlocks
-        files = dir([loadPath{iBlock} '\*' pattern '*' ext]);
+        files = dir([loadPath{iBlock} '\*' rawpattern '*' parameters.general.extension]);
         if (size(files,1) == 0); return; end
         filesUnsorted{iBlock} = char(files.name);
     end
     
     %% Check raw data files and sort them in correct chronological order
     
-    filesRawAll = cell(nBlocks,1);
+    filesRawAll = cell(nBlocks,2);
     
     for iBlock = 1:nBlocks
         nFiles = length(filesUnsorted{iBlock}(:,1));
@@ -115,7 +110,7 @@ if (~tempFileFound || any(~tempFilesFound(:)))
         for iFile = 1:nFiles
             filename   = filesUnsorted{iBlock}(iFile,:);
             filename   = strtrim(filename);
-            itr        = strfind(filename,pattern) + length(pattern);
+            itr        = strfind(filename,rawpattern) + length(rawpattern);
             [~,name,~] = fileparts(filename); % remove extension
             str        = name(itr:end); % take string after pattern
             k          = strfind(str,'_'); % check if underscore is present
@@ -127,19 +122,33 @@ if (~tempFileFound || any(~tempFilesFound(:)))
             filesRaw{id,2} = [name(1:itr-1),name(itr+k:end)];
         end
         
-        filename = filesRaw{1,2}; % Compare first file with others
-        I = strcmp(filename,filesRaw(:,2));
+        % Check consistency
+        
+        % Find filename that matches most other files
+        matches = zeros(nFiles,1);
+        for iFile = 1:nFiles
+            filename = filesRaw{iFile,2}; % Compare file with others
+            I = strcmp(filename,filesRaw(:,2));
+            matches(iFile) = sum(I);
+        end
+        [~,I] = max(matches);
+        I = strcmp(filesRaw{I,2},filesRaw(:,2));
         
         if (any(~I))
-            strMain = ['ERROR: raw data filenames are not consistent. Check data folder: "' loadPath{iBlock} '"'];
-            str = repmat('-',1,length(strMain));
-            disp(str); 
-            disp(strMain);
-            disp(str)
-            return; 
+            str_1 = ['WARNING: raw data filenames are not consistent. Check data folder: "' loadPath{iBlock} '"'];
+            k = strfind(str_1,'\'); str_1(k) = '/';
+            if (parameters.process.warning)
+                str   = cell2mat(join(cellstr(num2str(find(~I),' %d\n'))'));
+                str_2 = ['Ignoring channel(s): ' str '. Max. channel: ' num2str(find(I,1,'last'))];
+            else
+                str_2 = ['Processing terminated for session "' session '"'];
+            end
+            psr_show_warning({str_1,str_2});
+            if (~parameters.process.warning); return; end
         end
         
-        filesRawAll{iBlock} = filesRaw; % All data files have similar data format
+        filesRawAll{iBlock,1} = filesRaw(:,1);
+        filesRawAll{iBlock,2} = I;
     end
     
     %% Add OpenEphys to path
@@ -173,18 +182,17 @@ if (~tempFileFound || any(~tempFilesFound(:)))
     for iBlock = 1:nBlocks 
         
         % Initialize
-        filesRaw        = filesRawAll{iBlock};
-        nFiles          = length(filesRaw);
+        filesRaw        = filesRawAll{iBlock,1};
+        fileFlags       = filesRawAll{iBlock,2};
+        loadPathBlock   = loadPath{iBlock};
+        nFiles          = size(filesRaw,1);
         nProbes         = nFiles / parameters.general.nelectrodes;
         stimTimesTrial  = stimTimes(iBlock,:);
         stim            = parameters.general.stimuli{iBlock};
         ts_Spikes       = [];
         ts_LFP          = [];
-        
+                
         for iProbe = 1:nProbes
-            
-            % Initialize
-            artifactsProbe = [];
             
             % Check if TEMP file already exists
             if (~isempty(tempFilesFound) && ...
@@ -192,14 +200,28 @@ if (~tempFileFound || any(~tempFilesFound(:)))
                     iBlock <= size(tempFilesFound,2))
                 if (tempFilesFound(iProbe,iBlock)); continue; end
             end
+                        
+            % Extract filenames for probe channels
+            nChans     = parameters.general.nelectrodes;
+            fileIdx    = (iProbe - 1) * nChans + (1:nChans);
+            probeChans = filesRaw(fileIdx,1);
+            keep       = fileFlags(fileIdx);
+            chanIDs    = find(keep)';
             
-            for iChan = 1:nChans
+            % Initialize
+            artifactsProbe = [];
+            dataChanRawSum = [];
+            dataProbe      = [];
+            timeProbe      = [];
+            DATA_ERROR     = false;
+            Fs_array       = NaN(nChans,1);
+            Ls_array       = NaN(nChans,1);
+                    
+            for iChan = chanIDs
                 
                 % Load Open-Ephys data
-                
-                iFile = (iProbe - 1) * nChans + iChan;
-                
-                filename = [loadPath{iBlock} filesRaw{iFile}];
+                                                                
+                filename = [loadPathBlock probeChans{iChan,1}];
                 filename = strtrim(filename);
                 
                 try % Load CONTINUOUS files [microvolts]
@@ -212,19 +234,25 @@ if (~tempFileFound || any(~tempFilesFound(:)))
                 
                 dataChanRaw = single(dataChanRaw);
                 
-                % Store variables
-                if (iChan == 1) % Initialize
-                    Fs_array = zeros(nChans,1);
-                    Ls_array = zeros(nChans,1);
+                % Check data properties
+                
+                Fs_array(iChan) = info.header.sampleRate; 
+                Ls_array(iChan) = length(dataChanRaw);            
+                [Fs,Ls] = checkDataProperties(Fs_array,Ls_array);
+                if (isnan(Fs) || isnan(Ls))
+                    str_1 = 'Inconsistent data found in file(s):';  
+                    str_2 = ['Directory: ' loadPathBlock]; 
+                    k = strfind(str_2,'\'); str_2(k) = '/';
+                    psr_show_warning([str_1,probeChans',str_2]);
+                    DATA_ERROR = true;
+                    break; 
                 end
                 
-                Fs = info.header.sampleRate;
-                Fs_array(iChan) = Fs; % Sampling frequencies should be equal
-                Ls_array(iChan) = length(dataChanRaw);
+                % Save sum of raw data
                 
                 if (parameters.ms.offset.run)
-                    if (iChan == 1); dataChanRawSum = dataChanRaw;
-                    else,            dataChanRawSum = dataChanRaw + dataChanRawSum;
+                    if (isempty(dataChanRawSum)); dataChanRawSum = dataChanRaw;
+                    else,                         dataChanRawSum = dataChanRaw + dataChanRawSum;
                     end
                 end
                 
@@ -261,7 +289,9 @@ if (~tempFileFound || any(~tempFilesFound(:)))
                         itr = I(end) + 1;
                     end
                     
-                    if (iChan == 1); ts_Spikes.data = zeros(nChans,length(dataChanFiltered),'int16'); end
+                    if (psr_isempty_field(ts_Spikes,'ts_Spikes.data')) % Initialize
+                        ts_Spikes.data = zeros(nChans,length(dataChanFiltered),'int16'); 
+                    end
                     
                     ts_Spikes.data(iChan,:) = int16(precision * dataChanFiltered);
                 end
@@ -269,27 +299,25 @@ if (~tempFileFound || any(~tempFilesFound(:)))
                 %% LOCAL FIELD POTENTIAL
                 
                 if (parameters.process.lfp)
-                    if (iChan == 1)
-                        dataProbe = zeros(nChans,Ls_array(iChan));
-                        timeProbe = zeros(nChans,Ls_array(iChan));
+                    if (isempty(dataProbe) || isempty(timeProbe))
+                        dataProbe = NaN(nChans,Ls);
+                        timeProbe = NaN(nChans,Ls);
                     end
                     dataProbe(iChan,:) = dataChanRaw;
                     timeProbe(iChan,:) = timestamps - timestamps(1);
                 end
-                
             end
             
-            % Check data
-            
             [Fs,Ls] = checkDataProperties(Fs_array,Ls_array);
-            if (isempty(Fs) || isempty(Ls)); continue; end
+            if (isnan(Fs) || isnan(Ls)); DATA_ERROR = true; end
+            if (DATA_ERROR); continue; end
             
             % Data conversion and filtering
             
             if (parameters.process.lfp)
                 parameters.Fs    = Fs;
                 input.data       = dataProbe;
-                input.timestamps = mean(timeProbe);
+                input.timestamps = nanmean(timeProbe);
                 data = psr_ft_convert2fieldtrip(input,parameters);
                 if (FT_FOUND)
                     ts_LFP = psr_lfp_preprocessing(data,parameters);
@@ -330,66 +358,64 @@ if (~tempFileFound || any(~tempFilesFound(:)))
     % Remove FieldTrip from path
     if (FT_FOUND && ~FT_PRESENT); psr_ft_path(parameters,'remove'); end
     
+    % Sort blocks
+
+    nBlocks = size(filesTemp,2);
+
+    sessions  = parameters.general.sessionIndex;
+    nSessions = length(unique(sessions));
+    trialIDs  = 1:nBlocks;
+    itr       = 1;
+    if (all(cellfun(@isnumeric,parameters.general.stimuli))) % Check if all stimuli are numbers
+        for iSession = 1:nSessions
+            stimSession = cell2mat(parameters.general.stimuli(sessions == iSession));
+            [~,Isort] = sort(stimSession);
+            n   = length(stimSession);
+            I   = itr:itr+n-1;
+            IDs = trialIDs(I);
+            trialIDs(I) = IDs(Isort);
+            itr = itr + n;
+        end
+    end
+    filesTemp = filesTemp(:,trialIDs);
+
     % Temporarily save all workspace variables. Useful when continuing after early stopping
     
-    keepvars = {...
+    saveList = {...
         'parameters',    ...
         'filesTemp',     ...
         'metadata',      ...
         'loadPath',      ...
         'savePath',      ...
-        'tempFilePath'};
-    clearvars('-except', keepvars{:});
-    save(tempFilePath);
-else
+        'logfilePath'};
+    if (exist(logfilePath,'file')); save(logfilePath,saveList{:},'-append');
+    else,                           save(logfilePath,saveList{:});
+    end
     
-    % Load temporary data processing file
-    filesSaved = [];
-    load(tempFilePath);
-    
-    % Force certain sections to be re-processed
-    parameters = psr_load_parameters(parameters); % TEMP
-    nProbes    = size(filesSaved,1);
-    nSections  = size(filesSaved,2);
-    if (~isempty(filesSaved) && ~psr_isempty_field(parameters,'parameters.process.section'))
-        for iProbe = 1:nProbes
-            for iSection = 1:nSections
-                str = filesSaved(iProbe,iSection);
-                I = any(strcmp(str,parameters.process.section));
-                if (I); filesSaved{iProbe,iSection} = []; end
-            end
+    % Remove OpenEphys from path
+    rmpath(parameters.path.ephys);
+  
+end
+
+%% Load temporary data processing file
+
+if (logfileFound || exist(logfilePath,'file')); load(logfilePath); end
+if (~exist('filesSaved','var'))
+    filesSaved = cell(size(filesTemp,1),5); % Array for temporary data logging
+end
+
+%% Force certain sections to be re-processed
+
+nProbes    = size(filesSaved,1);
+nSections  = size(filesSaved,2);
+if ~psr_isempty_field(parameters,'parameters.process.section')
+    for iProbe = 1:nProbes
+        for iSection = 1:nSections
+            str = filesSaved(iProbe,iSection);
+            I = any(strcmp(str,parameters.process.section));
+            if (I); filesSaved{iProbe,iSection} = []; end
         end
     end
-    
-end
-
-%% Remove OpenEphys from path
-rmpath(parameters.path.ephys);
-
-%% Sort trials
-
-nProbes = size(filesTemp,1);
-nBlocks = size(filesTemp,2);
-
-sessions  = parameters.general.sessionIndex;
-nSessions = length(unique(sessions));
-trialIDs  = 1:nBlocks;
-itr       = 1;
-if (all(cellfun(@isnumeric,parameters.general.stimuli))) % Check if all stimuli are numbers
-    for iSession = 1:nSessions
-        stimSession = cell2mat(parameters.general.stimuli(sessions == iSession));
-        [~,Isort] = sort(stimSession);
-        n   = length(stimSession);
-        I   = itr:itr+n-1;
-        IDs = trialIDs(I);
-        trialIDs(I) = IDs(Isort);
-        itr = itr + n;
-    end
-end
-filesTemp = filesTemp(:,trialIDs);
-
-if (~exist('filesSaved','var')) % Initialize array if not loaded
-    filesSaved = cell(nProbes,5); % Output files
 end
 
 %% Merge metadata across trials
@@ -402,37 +428,42 @@ for iProbe = 1:nProbes
     
     if (exist(filesSaved{iProbe,1},'file') && strcmp(filesSaved{iProbe,2},'META')); continue; end
     
-    artifactsAll =  cell(nBlocks,1);
-    stimAllTypes =  cell(nBlocks,1);
-    stimAllAmps  = zeros(nBlocks,1);
-    onsetTimes   = zeros(nBlocks,1);
+    artifactsAll = cell(nBlocks,1);
+    stimAllTypes = cell(nBlocks,1);
+    stimAllAmps  =  NaN(nBlocks,1);
+    onsetTimes   =  NaN(nBlocks,1);
     offsetTime   = 0;
     stimOffsets  = [];
     
     for iBlock = 1:nBlocks
         
-        load(filesTemp{iProbe,iBlock},'metadata','parameters'); % Load temporary trial data
+        filename = filesTemp{iProbe,iBlock};
         
-        artifactsAll{iBlock} = metadata.artifacts;
+        if ~isempty(filename)
+            
+            load(filename,'metadata','parameters'); % Load temporary trial data
         
-        if (iBlock == 1); stimAllTimes = cell(nBlocks,length(metadata.stimtimes)); end
-        stimAllTimes(iBlock,:) = metadata.stimtimes;
-        stimAllTypes{iBlock}   = metadata.stimulus;
-        
-        if (ischar(metadata.stimulus))
-            amp = regexp(metadata.stimulus,'\d*','Match');
-            amp = str2double(amp(:,1));
-        else
-            amp = metadata.stimulus;
+            artifactsAll{iBlock} = metadata.artifacts;
+
+            if (iBlock == 1); stimAllTimes = cell(nBlocks,length(metadata.stimtimes)); end
+            stimAllTimes(iBlock,:) = metadata.stimtimes;
+            stimAllTypes{iBlock}   = metadata.stimulus;
+
+            if (ischar(metadata.stimulus))
+                amp = regexp(metadata.stimulus,'\d*','Match');
+                amp = str2double(amp(:,1));
+            else
+                amp = metadata.stimulus;
+            end
+
+            stimAllAmps(iBlock) = amp;        
+
+            if (isfield(metadata,'stimoffset')); stimOffsets(iBlock,:) = sort(metadata.stimoffset)'; end
+
+            onsetTime  = offsetTime;
+            offsetTime = onsetTime + metadata.duration;
+            onsetTimes(iBlock) = onsetTime;
         end
-        
-        stimAllAmps(iBlock) = amp;        
-        
-        if (isfield(metadata,'stimoffset')); stimOffsets(iBlock,:) = sort(metadata.stimoffset)'; end
-        
-        onsetTime  = offsetTime;
-        offsetTime = onsetTime + metadata.duration;
-        onsetTimes(iBlock) = onsetTime;
         
     end
     
@@ -448,7 +479,7 @@ for iProbe = 1:nProbes
     
     filesSaved{iProbe,1} = saveFile([],[],metadata,parameters,savePath,true); % Save to MAT file
     filesSaved{iProbe,2} = 'META';
-    save(tempFilePath,'filesSaved','-append'); % Update output file array
+    save(logfilePath,'filesSaved','-append'); % Update output file array
             
 end
 
@@ -471,46 +502,55 @@ if (parameters.process.lfp)
             
             disp(['LFP processing for probe ' num2str(iProbe,'%02d') '...']);
             
+            % Initialize 
+            metadata  = [];
+            dataArray = [];
+            dataProbe = cell(0,0);
+            
             % Load all trials for probe
-            dataProbe = cell(nBlocks,1);
-            for iBlock = 1:nBlocks
-                load(filesTemp{iProbe,iBlock},'ts_LFP','metadata');
-                dataProbe{iBlock} = ts_LFP;
-            end
-            
-            load(filesTemp{iProbe,1},'parameters'); % Load parameters from first trial
-            
-            parameters = psr_load_parameters(parameters); % TEMP
-            
-            % Data filtering
-            
-            if (parameters.lfp.artifact.chan.run); dataProbe = psr_lfp_artifact_channel(dataProbe,parameters); end
-            if (parameters.lfp.mean_subtract);     dataProbe = psr_lfp_mean_subtraction(dataProbe); end
-                
-            % Artifact removal
-            
-            artifacts = [];
-            if (parameters.lfp.artifact.psd.run); artifacts.psd = psr_lfp_artifact_detection_psd(dataProbe,parameters); end
-            if (parameters.lfp.artifact.amp.run); artifacts.amp = psr_lfp_artifact_detection_amp(dataProbe,parameters); end
-            dataProbe = psr_lfp_artifact_removal(dataProbe,artifacts,parameters);
-            % TEMP: NEEDS TESTING
-            
-            % Convert LFP data to structure array
-            
-            freqArray = [];
             for iBlock = nBlocks:-1:1
-                freq           = dataProbe{iBlock};
-                freq.artifacts = dataProbe{iBlock}.artifacts;
-                fields = fieldnames(freq);
-                for iField = 1:length(fields); freqArray(iBlock).(fields{iField}) = freq.(fields{iField}); end
+                filename = filesTemp{iProbe,iBlock};
+                if (~isempty(filename))
+                    load(filename,'ts_LFP','metadata','parameters');
+                    dataProbe{iBlock} = ts_LFP;
+                end
+            end
+              
+            if (~isempty(dataProbe))
+            
+                % Data filtering
+
+                if (parameters.lfp.artifact.chan.run); dataProbe = psr_lfp_artifact_channel(dataProbe,parameters); end
+                if (parameters.lfp.mean_subtract);     dataProbe = psr_lfp_mean_subtraction(dataProbe); end
+
+                % Artifact removal
+
+                artifacts = [];
+                if (parameters.lfp.artifact.psd.run); artifacts.psd = psr_lfp_artifact_detection_psd(dataProbe,parameters); end
+                if (parameters.lfp.artifact.amp.run); artifacts.amp = psr_lfp_artifact_detection_amp(dataProbe,parameters); end
+                dataProbe = psr_lfp_artifact_removal(dataProbe,artifacts,parameters);
+
+                % Convert LFP data to structure array
+
+                for iBlock = nBlocks:-1:1
+                    dataBlock = dataProbe{iBlock};
+                    if (~isempty(dataBlock))
+                        dataBlock.artifacts = dataProbe{iBlock}.artifacts;
+                        fields = fieldnames(dataBlock);
+                        for iField = 1:length(fields); dataArray(iBlock).(fields{iField}) = dataBlock.(fields{iField}); end
+                    end
+                end
+
             end
             
             % Save LFP output
             
-            parameters.general.savelist = {'freq'};
-            filesSaved{iProbe,1} = saveFile([],freqArray,metadata,parameters,savePath,true);
+            if (~isempty(metadata))
+                parameters.general.savelist = {'freq'};
+                filesSaved{iProbe,1} = saveFile([],dataArray,metadata,parameters,savePath,true);
+            end
             filesSaved{iProbe,3} = 'LFP';
-            save(tempFilePath,'filesSaved','-append'); % Update output file array
+            save(logfilePath,'filesSaved','-append'); % Update output file array
         end
     end
     
@@ -531,15 +571,23 @@ if (parameters.process.spikes)
         % Check if output file + temp file (after sorting) exist
         if (exist(filesSaved{iProbe,1},'file') && strcmp(filesSaved{iProbe,4},'SPK')); continue; end
         
+        % Ignore missing blocks
+        
+        filesProbe = filesTemp(iProbe,:); 
+        keep = ~cellfun(@isempty,filesProbe);
+        filesProbe = filesProbe(keep);
+        nBlocks = length(filesProbe);
+        
         % Check for missing temporary files
         
         MISSING_FILE = false;
         for iBlock = 1:nBlocks
-            if (~exist(filesTemp{iProbe,iBlock},'file')); MISSING_FILE = true; break; end
+            filename = filesProbe{iBlock};
+            if (~exist(filename,'file')); MISSING_FILE = true; break; end
         end
         if (MISSING_FILE) % If not all files are present
             for iBlock = 1:nBlocks
-                filename = filesTemp{iProbe,iBlock};
+                filename = filesProbe{iBlock};
                 if (exist(filename,'file')); delete(filename); end % Delete temporary spikes file
             end
             disp(['Skipping probe ' num2str(iProbe) '...']);
@@ -549,110 +597,131 @@ if (parameters.process.spikes)
         disp(['Spike sorting probe ' num2str(iProbe,'%02d') '...']);
         tSort = tic; % Measure duration of spike detection and sorting
         
-        %% MERGE DATA ACROSS TRIALS
+        %% MERGE DATA ACROSS BLOCKS
         
         % Initialize
-        dataProbe = [];
+        dataProbe = cell(1,nBlocks);
         Fs_array  = zeros(nBlocks,1);
         Ls_array  = zeros(nBlocks,1);
         
         for iBlock = 1:nBlocks
             
-            load(filesTemp{iProbe,iBlock});
+            filename = filesProbe{iBlock};
             
-            parameters.Fs    = ts_Spikes.Fs;
-            Fs_array(iBlock) = ts_Spikes.Fs;
-            Ls_array(iBlock) = size(ts_Spikes.data,2);
-            
-            if (parameters.develop.timing) % For development
-                parameters = psr_load_parameters(parameters);
-                n = round(parameters.Fs * parameters.develop.time);
-                ts_Spikes.data = ts_Spikes.data(:,1:n);
-            end
-            
-            dataProbe = [dataProbe,ts_Spikes.data]; %#ok
-        end
+            if ~isempty(filename)
                 
-        %% Calculate spike info
-        
-        Fs = checkDataProperties(Fs_array);
-        if (isempty(Fs)); continue; end
-        parameters.Fs = Fs;
-        
-        spikesAll             = []; % structure to contain all spike information from all trials
-        spikesAll             = psr_sst_background_noise(spikesAll,dataProbe,parameters);
-        spikesAll.Fs          = Fs;
-        spikesAll.info.dur    = Ls_array ./ Fs_array;
-        spikesAll.info.thresh = parameters.spikes.thresh * spikesAll.info.bgn;
-        spikesAll.assigns     = [];
-        spikesAll.spiketimes  = [];
-        spikesAll.waveforms   = [];
-        
-        %% Spike detection
-        
-        if (any(strcmp(sortMethod,{'fmm','iso','kfm','ops','ost','spc','ums'}))) % Spike detection
-            spikesAll = psr_sst_detection(spikesAll,dataProbe,parameters);
-            spikesAll.info.detected = true;
-        else
-            spikesAll.info.detected = false;
-        end
+                load(filename,'ts_Spikes');
 
-        %% SPIKE SORT
-        
-        switch sortMethod
-            case 'cbp'; spikesAll = psr_sst_sorting_CBP(spikesAll,dataProbe,parameters);
-            case 'fmm'; spikesAll = psr_sst_sorting_FMM(spikesAll,parameters);
-            case 'iso'; spikesAll = psr_sst_sorting_ISO(spikesAll,parameters);
-            case 'kfm'; spikesAll = psr_sst_sorting_KFM(spikesAll,parameters);
-            case 'kst'; spikesAll = psr_sst_sorting_KST(spikesAll,dataProbe,parameters,savePath);
-            case 'ops'; spikesAll = psr_sst_sorting_OPS(spikesAll,dataProbe,parameters);
-            case 'ost'; spikesAll = psr_sst_sorting_OST(spikesAll,parameters);
-            case 'spc'; spikesAll = psr_sst_sorting_SPC(spikesAll,parameters);
-            case 'ums'; spikesAll = psr_sst_sorting_UMS(spikesAll,parameters);
-        end
-        
-        if (parameters.develop.timing) % For development
-            tEnd = toc(tSort); % Spike sorting time
-            filename = [savePath 'timings.mat'];
-            if (exist(filename,'file'))
-                load(filename);
-            else
-                timings = [];
-                methods = [];
+                parameters.Fs    = ts_Spikes.Fs;
+                Fs_array(iBlock) = ts_Spikes.Fs;
+                Ls_array(iBlock) = size(ts_Spikes.data,2);
+
+                if (parameters.develop.timing) % For development
+                    parameters = psr_load_parameters(parameters);
+                    n = round(parameters.Fs * parameters.develop.time);
+                    ts_Spikes.data = ts_Spikes.data(:,1:n);
+                end
+
+                dataProbe{iBlock} = ts_Spikes.data;
             end
-            methods{end+1} = sortMethod;
-            timings(end+1) = tEnd;
-            save([savePath 'timings.mat'],'methods','timings');
-            continue;
         end
-        
-        %% SET BLOCK INDEX FOR EACH SPIKE
                 
-        % Initialize arrays
+        dataProbe = cell2mat(dataProbe);
+                
+        %% Remove zero-signal channels
         
-        nBlocks     = size(filesTemp,2);
-        blocks      = zeros(size(spikesAll.spiketimes),'int16');
-        offsetTime  = 0;
-        offsetSpike = 0;
+        del = all(dataProbe == 0,2);
+        dataProbe(del,:) = [];
+        nChans = size(dataProbe,1);
         
-        for iBlock = 1:nBlocks
-            load(filesTemp{iProbe,iBlock},'metadata','parameters'); % Load temporary trial data
-            onsetTime   = offsetTime;
-            offsetTime  = onsetTime + metadata.duration;
-            onsetSpike  = offsetSpike + 1;
-            offsetSpike = find(spikesAll.spiketimes <= offsetTime,1,'last');
-            blocks(onsetSpike:offsetSpike) = iBlock;
+        %% Initialize and check data
+        
+        spikesAll = []; % structure to contain all spike information from all experimental blocks
+        Fs = checkDataProperties(Fs_array); % Only check sampling frequency, since data length may vary across blocks
+        
+        if (nChans >= parameters.general.minchans && ~isnan(Fs))
+            
+            parameters.Fs = Fs;
+
+            %% Calculate spike info
+
+            spikesAll             = psr_sst_background_noise(spikesAll,dataProbe,parameters);
+            spikesAll.Fs          = Fs;
+            spikesAll.info.dur    = Ls_array ./ Fs_array;
+            spikesAll.info.thresh = parameters.spikes.thresh * spikesAll.info.bgn;
+            spikesAll.assigns     = [];
+            spikesAll.spiketimes  = [];
+            spikesAll.waveforms   = [];
+
+            %% Spike detection
+
+            if (any(strcmp(sortMethod,{'fmm','iso','kfm','ops','ost','spc','ums'}))) % Spike detection
+                spikesAll = psr_sst_detection(spikesAll,dataProbe,parameters);
+                spikesAll.info.detected = true;
+            else
+                spikesAll.info.detected = false;
+            end
+
+            %% SPIKE SORT
+
+            switch sortMethod
+                case 'cbp'; spikesAll = psr_sst_sorting_CBP(spikesAll,dataProbe,parameters);
+                case 'fmm'; spikesAll = psr_sst_sorting_FMM(spikesAll,parameters);
+                case 'iso'; spikesAll = psr_sst_sorting_ISO(spikesAll,parameters);
+                case 'kfm'; spikesAll = psr_sst_sorting_KFM(spikesAll,parameters);
+                case 'kst'; spikesAll = psr_sst_sorting_KST(spikesAll,dataProbe,parameters,savePath);
+                case 'ops'; spikesAll = psr_sst_sorting_OPS(spikesAll,dataProbe,parameters);
+                case 'ost'; spikesAll = psr_sst_sorting_OST(spikesAll,parameters);
+                case 'spc'; spikesAll = psr_sst_sorting_SPC(spikesAll,parameters);
+                case 'ums'; spikesAll = psr_sst_sorting_UMS(spikesAll,parameters);
+            end
+
+            if (parameters.develop.timing) % For development
+                tEnd = toc(tSort); % Spike sorting time
+                filename = [savePath 'timings.mat'];
+                if (exist(filename,'file'))
+                    load(filename);
+                else
+                    timings = [];
+                    methods = [];
+                end
+                methods{end+1} = sortMethod;
+                timings(end+1) = tEnd;
+                save([savePath 'timings.mat'],'methods','timings');
+                continue;
+            end
+
+            %% SET BLOCK INDEX FOR EACH SPIKE
+
+            % Initialize arrays
+
+            blocks      = zeros(size(spikesAll.spiketimes),'int16');
+            offsetTime  = 0;
+            offsetSpike = 0;
+
+            for iBlock = 1:nBlocks
+                load(filesProbe{iBlock},'metadata'); % Load temporary trial data
+                onsetTime   = offsetTime;
+                offsetTime  = onsetTime + metadata.duration;
+                onsetSpike  = offsetSpike + 1;
+                offsetSpike = find(spikesAll.spiketimes <= offsetTime,1,'last');
+                blocks(onsetSpike:offsetSpike) = iBlock;
+            end
+
+            spikesAll.blocks = blocks;
+        
         end
-        
-        spikesAll.blocks = blocks;
         
         %% SAVE
-                
-        load(filesTemp{iProbe,1},'metadata'); % Load metadata from first trial
-        parameters.general.savelist = {'spikes','parameters'}; % What variables to save in output MAT file
-        filesSaved{iProbe,1} = saveFile(spikesAll,[],metadata,parameters,savePath,true); % Save to MAT file
+        
+        metadata = [];
+        if (~isempty(filesProbe))
+            load(filesProbe{1},'metadata');  % Load metadata from first block
+            parameters.general.savelist = {'spikes','parameters'}; % What variables to save in output MAT file
+            filesSaved{iProbe,1} = saveFile(spikesAll,[],metadata,parameters,savePath,true); % Save to MAT file
+        end
         filesSaved{iProbe,4} = 'SPK';
-        save(tempFilePath,'filesSaved','-append'); % Update output file array
+        save(logfilePath,'filesSaved','-append'); % Update output file array
         
     end
     
@@ -667,49 +736,52 @@ if (parameters.process.spikes)
         if (exist(filesSaved{iProbe,1},'file') && strcmp(filesSaved{iProbe,5},'CLS')); continue; end
         disp(['Processing clusters for probe ' num2str(iProbe,'%02d') '...']);
         
+        % Initialize
         spikes = [];
         freq   = [];
         
+        % Load spike data
         filename = filesSaved{iProbe,1};
         load(filename);
         
-        parameters.probeID = iProbe; % TEMP (for ripple visualization)
+        if (~psr_isempty_field(spikes,'spikes.spiketimes'))
         
-        if (psr_isempty_field(spikes,'spikes.spiketimes')); continue; end
+            % Raw data files
+            filesProbe = filesTemp(iProbe,:);
+            keep = ~cellfun(@isempty,filesProbe);
+            filesProbe = filesProbe(keep);
+
+            % Convert some variables
+            spikes = psr_sst_freq2spikes(spikes,freq);
+            if (isfield(metadata,'artifacts')); spikes.info.artifacts.raw = metadata.artifacts;
+            else,                               spikes.info.artifacts.raw = []; 
+            end
+
+            parameters.probeID = iProbe;
+
+            if (parameters.ms.denoise.off.run);       spikes = psr_ms_denoise_off    (spikes,metadata,parameters);   end % Stimulus artifact removal
+            if (parameters.filter.spikes.ripple.run); spikes = psr_sst_remove_ripples(spikes,parameters,filesProbe); end % Remove ripples on non-spike channels
+            if (parameters.filter.spikes.noise.run);  spikes = psr_sst_remove_noise  (spikes,parameters);            end % Remove noise on non-spike channels
+
+            spikes = psr_sst_cluster_quality   (spikes,parameters); % Pre-merge quality control
+            spikes = psr_sst_cluster_remove    (spikes);            % Delete noise clusters
+            spikes = psr_sst_spike_align       (spikes,parameters,filesProbe); % Centre on peak
+            spikes = psr_sst_features          (spikes,parameters); % Calculate low-dimensional features
+            spikes = psr_sst_cluster_merge     (spikes,parameters); % Merge clusters
+            spikes = psr_sst_cluster_quality   (spikes,parameters); % Post-merge quality control 
+            spikes = psr_sst_cluster_isolation (spikes,parameters); % Isolation quality of clusters    
+            spikes = psr_sst_cluster_thresholds(spikes,parameters); % Classify cluster quality
+            spikes = psr_sst_filter_spikes     (spikes,parameters,'delete'); % Now delete RPVs, if enabled
+
+            % Save 
+            spikes = orderfields(spikes);
+            save(filename,psr_varname(spikes),'-append');
         
-        filesProbe = filesTemp(iProbe,:);
-        
-        % Convert some variables
-        spikes = psr_sst_freq2spikes(spikes,freq);
-        if (isfield(metadata,'artifacts')); spikes.info.artifacts.raw = metadata.artifacts;
-        else,                               spikes.info.artifacts.raw = []; 
         end
-        
-        % Noise removal
-        
-        parameters = psr_load_parameters(parameters);
-        
-        if (parameters.ms.denoise.off.run);       spikes = psr_ms_denoise_off    (spikes,metadata,parameters);   end
-        if (parameters.filter.spikes.ripple.run); spikes = psr_sst_remove_ripples(spikes,parameters,filesProbe); end % Remove ripples on non-spike channels
-        if (parameters.filter.spikes.noise.run);  spikes = psr_sst_remove_noise  (spikes,parameters);            end % Remove noise on non-spike channels
-                
-        spikes = psr_sst_cluster_quality   (spikes,parameters); % Pre-merge quality control
-        spikes = psr_sst_cluster_remove    (spikes);            % Delete noise clusters
-        spikes = psr_sst_spike_align       (spikes,parameters,filesProbe); % Centre on peak
-        spikes = psr_sst_features          (spikes,parameters); % Calculate low-dimensional features
-        spikes = psr_sst_cluster_merge     (spikes,parameters); % Merge clusters
-        spikes = psr_sst_cluster_quality   (spikes,parameters); % Post-merge quality control 
-        spikes = psr_sst_cluster_isolation (spikes,parameters); % Isolation quality of clusters    
-        spikes = psr_sst_cluster_thresholds(spikes,parameters); % Classify cluster quality
-        spikes = psr_sst_filter_spikes     (spikes,parameters,'delete'); % Now delete RPVs, if enabled
-        
-        % Save 
-        spikes = orderfields(spikes);
-        save(filename,psr_varname(spikes),'-append');
         
         % Update output file array
         filesSaved{iProbe,5} = 'CLS';
-        save(tempFilePath,'filesSaved','-append'); 
+        save(logfilePath,'filesSaved','-append'); 
     end
     warning('on', MSGID);
     
@@ -720,13 +792,13 @@ end
 %% Stability check (for development)
 if (parameters.develop.comparison)
     filesSaved = psr_stability_check(filesSaved,filesTemp,sortMethod); %#ok
-    save(tempFilePath,'filesSaved','-append'); % Update output file array
+    save(logfilePath,'filesSaved','-append'); % Update output file array
     return;
 end
 
 %% Delete temporary files
 if (parameters.process.delete)
-    delete(tempFilePath);
+    delete(logfilePath);
     for iProbe = 1:nProbes
         for iBlock = 1:nBlocks
             delete(filesTemp{iProbe,iBlock});
@@ -753,8 +825,8 @@ parameters = orderfields(parameters);                    %#ok
 metadata   = orderfields(metadata);                      %#ok
 
 filename = [filename '.mat'];
-if (append && exist(filename,'file') > 0); save(filename,saveList{:},'-append');
-else,                                      save(filename,saveList{:});
+if (append && exist(filename,'file')); save(filename,saveList{:},'-append');
+else,                                  save(filename,saveList{:});
 end
 
 end
@@ -778,24 +850,15 @@ function [Fs,Ls] = checkDataProperties(Fs_array,Ls_array)
 if (nargin < 1); Fs_array = []; end
 if (nargin < 2); Ls_array = []; end
 
-Fs = [];
-Ls = [];
+Fs_array = Fs_array(~isnan(Fs_array));
+Ls_array = Ls_array(~isnan(Ls_array));
 
-if ~isempty(Fs_array)
-    if (any(Fs_array ~= Fs_array(1)))
-        disp('Sampling frequency mismatch');
-    else
-        Fs = Fs_array(1);
-    end
-end
+Fs = NaN;
+Ls = NaN;
 
-if ~isempty(Ls_array)
-    if (any(Ls_array ~= Ls_array(1)))
-        disp('Data length mismatch');
-    else
-        Ls = Ls_array(1);
-    end
-end
+if ~isempty(Fs_array) && all(Fs_array == Fs_array(1)); Fs = Fs_array(1); end
+if ~isempty(Ls_array) && all(Ls_array == Ls_array(1)); Ls = Ls_array(1); end
+
 end
 
 %------------- END OF CODE --------------
