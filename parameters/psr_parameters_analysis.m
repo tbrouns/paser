@@ -4,7 +4,7 @@ parameters.analysis.stimoffset = 0;
 
 % Windows to extract before and after stimulus [s] 
 parameters.analysis.spk.t_win = [-0.25,0.50]; % Spiking window
-parameters.analysis.lfp.t_win = [-1.00,1.00]; % Local field potential window (should include some padding)
+parameters.analysis.lfp.t_win = [-0.25,0.50]; % Local field potential window (should include some padding)
 
 %% Fast fourier transform
 

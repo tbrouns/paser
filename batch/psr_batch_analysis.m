@@ -49,16 +49,26 @@ for iFolder = 1:nFolders
     if (cfg.cluster.run) || (cfg.manual.run)
         
         for iFile = 1:nFiles
+            
+            % Initialize
+            
             close all
+            spikes     = [];
+            metadata   = [];
+            parameters = [];
+            
+            % Load data 
+            
             filename = filenames(iFile,:);
             filepath = [loadPath filename];
             load(filepath);
             [~,filename,~] = fileparts(filename);
 
             % Visualize spike clusters
+            
             if (cfg.cluster.run)
                 savePathClusters = [savePath 'clusters\'];
-                if (isfield(spikes,'spiketimes'))
+                if (~psr_isempty_field(spikes,'spikes.spiketimes'))
 
                     savePathQuality = [savePathClusters 'quality\'];
                     [~,~,~] = mkdir(savePathQuality);
@@ -71,6 +81,7 @@ for iFolder = 1:nFolders
             end
 
             % Spike cluster labelling (for development)
+            
             if (cfg.manual.run)
                 if (~isfield(spikes.clusters.metrics,'labels'))
                     labels = psr_manual_labelling(spikes,metadata,parameters,freq);

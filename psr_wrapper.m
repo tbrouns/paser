@@ -471,7 +471,8 @@ for iProbe = 1:nProbes
     metadata.stimtimes  = stimAllTimes;
     metadata.stimulus   = stimAllTypes;
     metadata.stimamps   = stimAllAmps;
-    metadata.trialonset = onsetTimes;
+    metadata.blockonset = onsetTimes;
+    metadata.blockdur   = diff([onsetTimes;offsetTime]);
     metadata.duration   = offsetTime;
     if (~isempty(stimOffsets)); metadata.stimoffset = stimOffsets; end
     

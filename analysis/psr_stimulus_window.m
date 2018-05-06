@@ -1,7 +1,7 @@
 function [spikes,freq] = psr_stimulus_window(spikes,freq,metadata,parameters)
 
 Fs   = spikes.Fs;
-Nmax = floor(Fs * metadata.dur) + 1;
+Nmax = floor(Fs * metadata.duration) + 1;
 
 % Extract stimulus windows
 
