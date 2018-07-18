@@ -1,4 +1,4 @@
-function spikes = psr_sst_freq2spikes(spikes,freq)
+function spikes = psr_freq2spikes(spikes,freq)
 
 if (isfield(freq,'artifacts'))
     nTrials = size(freq,2);

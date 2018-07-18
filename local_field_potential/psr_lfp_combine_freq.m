@@ -1,6 +1,8 @@
 function output = psr_lfp_combine_freq(freq)
 
-nTrials = length(freq);
+% Combine multiple FieldTrip LFP structures into one structure
+
+nBlocks = length(freq);
 output  = freq{1};
 if (isempty(output)); return; end
 nDims   = ndims(output.powspctrm);
@@ -8,10 +10,10 @@ nDims   = ndims(output.powspctrm);
 % Initialize
 sz    = zeros(1,nDims);
 sz(1) = length(freq);
-for iTrial = 1:nTrials
+for iBlock = 1:nBlocks
     for iDim = 2:nDims
-        if (~isempty(freq{iTrial}))
-            n = size(freq{iTrial}.powspctrm,iDim);
+        if (isfield(freq{iBlock},'powspctrm'))
+            n = size(freq{iBlock}.powspctrm,iDim);
             if (n > sz(iDim)); sz(iDim) = n; end            
         end
     end
@@ -20,9 +22,9 @@ output.powspctrm = NaN(sz);
 
 % Insert data
 itr = 1;
-for iTrial = 1:nTrials
-    if (~isempty(freq{iTrial}))
-        x = freq{iTrial}.powspctrm;
+for iBlock = 1:nBlocks
+    if (isfield(freq{iBlock},'powspctrm'))
+        x = freq{iBlock}.powspctrm;
         sz1 = size(x,    1);
         sz2 = size(x,nDims);
         I = itr : itr + sz1 - 1;

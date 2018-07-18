@@ -1,9 +1,9 @@
-function assigns = psr_sst_sorting_SPC(spikes,parameters)
+function spikes = psr_sst_sorting_SPC(spikes,parameters)
 
-nspikes = length(spikes.spiketimes);
-mcs     = round(parameters.sorting.spc.mcs * nspikes);
-
-features = psr_sst_features(spikes,parameters); clear spikes;
+nSpikes  = length(spikes.spiketimes);
+mcs      = round(spikes.info.dur * parameters.sorting.spc.mcs);
+spikes   = psr_sst_features(spikes,parameters);
+features = double(spikes.features);
 
 %  * INPUT
 %  *  D - Ndimensions-by-Npoints array of feature data
@@ -22,10 +22,9 @@ features = psr_sst_features(spikes,parameters); clear spikes;
 
 % Convert to regular assigns
 
-nclusts = length(C);
-
-assigns = zeros(1,nspikes);
-for iClust = 1:nclusts
+nClusts = length(C);
+assigns = zeros(1,nSpikes);
+for iClust = 1:nClusts
     id = C{iClust} + 1;    
     assigns(id) = iClust;    
 end

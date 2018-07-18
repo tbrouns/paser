@@ -8,13 +8,12 @@ halfWin    = round(0.5 * Fs * parameters.analysis.sync.bin    / 1000);
 desyncMax  = round(      Fs * parameters.analysis.sync.desync / 1000);
 chanID     = parameters.analysis.sync.chan;
 nSessions  = length(metadata.session);
-sessionIDs = metadata.sessionIndex;
 
 metadata.camoffsets = cell(nSessions,1);
 
 for iSession = 1:nSessions
     
-    loadPath = [parameters.general.loadPath '\' metadata.session{iSession}];
+    loadPath = [metadata.loadPath '\' metadata.session{iSession}];
     loadPathSub = [loadPath '\NIDAQ\'];
     
     filesNIDAQ = dir([loadPathSub 'Data_*.mat']);

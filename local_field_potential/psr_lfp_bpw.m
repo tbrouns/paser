@@ -7,10 +7,10 @@ fNorm   = [];
 bandpwr = [];
 missing = [];
     
-if (~psr_isempty_field(parameters,'parameters.analysis.bpw.trange')); tRange = parameters.analysis.bpw.trange; end
-if (~psr_isempty_field(parameters,'parameters.analysis.bpw.fnorm'));  fNorm  = parameters.analysis.bpw.fnorm;  end
+if (~isempty_field(parameters,'parameters.analysis.bpw.trange')); tRange = parameters.analysis.bpw.trange; end
+if (~isempty_field(parameters,'parameters.analysis.bpw.fnorm'));  fNorm  = parameters.analysis.bpw.fnorm;  end
 
-if (psr_isempty_field(data,'data.trial') || psr_isempty_field(data,'data.time')); return; end
+if (isempty_field(data,'data.trial') || isempty_field(data,'data.time')); return; end
 
 % Set parameters
 

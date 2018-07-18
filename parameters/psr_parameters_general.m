@@ -34,13 +34,14 @@ parameters.general.minchans  = 4; % Minimum number of active channels per probe
 %% Development
 parameters.develop.comparison = false;
 parameters.develop.timing     = false;
+parameters.develop.time       = 1000; % [s]
 parameters.develop.gamma      = 0.3;
 parameters.develop.epsilon    = 0.5; % [ms]
 
 %% PSR_ARTIFACT_FFT
 % Parameters used in raw signal filtering in power spectrum
 
-parameters.filter.fft.process = false;
+parameters.filter.fft.run = false;
 parameters.filter.fft.freq    = 10;   % Size of frequency window [Hz]
 parameters.filter.fft.pad     = 0.1;  % Size of half-window to extract artifact [Hz]
 parameters.filter.fft.thresh  = 5;    % Threshold to detect artifact peaks, given by number of STDs above mean (using MAD)
@@ -56,9 +57,10 @@ parameters.filter.fft.thresh  = 5;    % Threshold to detect artifact peaks, give
 % 'rms': Root-mean square
 parameters.spikes.bgntype     = 'env'; % Background noise type (see above)
 parameters.spikes.thresh      =  -3.0; % Threshold for spike detection, given as multiple of background noise (see "parameters.spikes.thresh_type")
+parameters.spikes.min_amp     =    25; % Minimum absolute amplitude of spike in at least one channel [muV] 
 parameters.spikes.ref_period  =   1.5; % Refractory period of spikes [ms]
 parameters.spikes.window_size =   1.5; % Width of a spike [ms]. Take samples symmetrically around peak.
-parameters.spikes.max_desync  =  0.25; % Maximum temporal desynchronization between channels of probe [ms]
+parameters.spikes.max_desync  =  0.15; % Maximum temporal desynchronization between channels of probe [ms]
 
 % Zero-phase digital band-pass filter parameters for spike detection
 parameters.spikes.bp.upper = 6000; % Upper cutoff frequency [Hz]
@@ -91,7 +93,7 @@ parameters.sorting.fmm.align = false; % Whether to align the waveforms
 parameters.sorting.cbp.nC = 16; % number of clusters
 
 %% UltraMegaSort2000 [UMS]
-parameters.sorting.ums.kmeans_size = 0.01; % target size for miniclusters as fraction of total number of spikes
+parameters.sorting.ums.kmeans_size = 0.1; % Minimum firing rate for determining mini-cluster size [Hz]
 parameters.sorting.ums.agg_cutoff  = 0.05; % higher = less aggregation, lower = more aggregation
 
 %% Opass [OPS]
@@ -105,10 +107,10 @@ parameters.sorting.ops.b_pii   = 1e7;
 parameters.sorting.ops.betf    = 30; % Factor for 'bet'
 
 %% Super paramagnetic clustering [SPC]
-parameters.sorting.spc.mcs = 0.01; % Minimum cluster size as fraction of total number of spikes
+parameters.sorting.spc.mcs = 0.1; % Minimum firing rate for determining minimum cluster size [Hz]
 
 %% ISO-SPLIT [ISO]
-parameters.sorting.iso.mcs = 0.01; % Minimum cluster size as fraction of total number of spikes
+parameters.sorting.iso.mcs = 0.1; % Minimum firing rate for determining minimum cluster size [Hz]
 
 %% Kalman filter mixture model [KFM]
 parameters.sorting.kfm.nC   = 16; % number of clusters
@@ -163,20 +165,22 @@ parameters.filter.spikes.mse.thresh = 12.0;  % Maximum MSE from mean waveform
 parameters.filter.spikes.amp.run    = false; % Remove spikes with amplitude at wrong channel or position
 parameters.filter.spikes.amp.offset = 0.2;   % Normalized amplitude difference from maximum, for channel selection
 
-% Remove of general noise on non-spiking channels
-parameters.filter.spikes.noise.run = false; % Whether to do the filtering or not
-parameters.filter.spikes.noise.thresh  = 0.05;  % mean-squared error threshold 
+%% psr_sst_filter_chan_mse
+parameters.filter.chan.mse.run     = false; % Whether to do the filtering or not
+parameters.filter.chan.mse.thresh  = 0.05;  % mean-squared error threshold 
 
-% Removal of noisy oscillations on non-spiking channels (ripples)
+%% psr_sst_filter_chan_rip
+parameters.filter.chan.rip.run    = false; % Whether to do the filtering or not
+parameters.filter.chan.rip.fmin   =   600; % Minimum frequency of noisy oscillations
+parameters.filter.chan.rip.thresh =  0.15; % Maximum amplitude in power spectrum
 
-parameters.filter.spikes.ripple.run  = false; % Whether to do the filtering or not
-parameters.filter.spikes.ripple.freq_max =  3000; % Maximimum frequency of noisy oscillations
-parameters.filter.spikes.ripple.freq_min =   600; % Minimum   frequency of noisy oscillations
-parameters.filter.spikes.ripple.corr_max =   0.5; % Maximum level of autocorrelation 
+%% psr_sst_filter_chan_loc
+% Uses parameters.spikes.max_desync
+parameters.filter.chan.loc.run = false; % Whether to do the filtering or not
 
 %% PSR_SST_FEATURES
-parameters.cluster.feature = 'pca'; % Feature type: 'pca' or 'wave'
-parameters.cluster.pca.dims = 5;     % Number of PC dimension 
+parameters.cluster.feature  = 'pca'; % Feature type: 'pca' or 'wave'
+parameters.cluster.pca.dims = 3;    % Number of PC dimensions
 
 %% PSR_SST_WAVELET_FEATURES
 parameters.cluster.wavelet.dims   = 10; % Number of dimensions for wavelet decomposition                   
@@ -206,7 +210,7 @@ parameters.cluster.stability.fvar = 2/3;  % Variance factor for model Gaussian d
 % 'zeta': zeta distance criterion
 % 'corr': correlation criterion
 % 'bhat': Bhattacharyya distance criterion
-parameters.cluster.merge.type = 'zeta';
+parameters.cluster.merge.type         = 'zeta';
 parameters.cluster.merge.zeta_thresh  = 3.0;   % Normalized zeta distance
 parameters.cluster.merge.corr_thresh  = 0.85;  % Cross-correlation threshold of concatenated channels
 parameters.cluster.merge.bhat_thresh  = 2.0;   % Bhattacharyya distance threshold
@@ -234,9 +238,7 @@ parameters.cluster.quality.max_mse    = 4.00; % Maximum mean-squared-error to ex
 parameters.cluster.quality.max_xclag  = 0.20; % Maximum lag of peak cross-correlation between probe channels [ms]
 
 % Isolation quality
-
-parameters.cluster.quality.max_fp = 0.10; % Maximum false positive rate
-parameters.cluster.quality.max_fn = 0.10; % Maximum false negative rate
+parameters.cluster.quality.min_f1 = 0.90; % Maximum f1 score (harmonic mean of precision and recall)
 
 %% %%%% FieldTrip parameters %%%%%
 % [Need to set path to repository with "parameters.path.ft"]
@@ -334,7 +336,7 @@ parameters.ms.denoise.cls.dupper = 2.50;       % Error detection threshold in nu
 parameters.ms.denoise.cls.dclus  = 1.25;       % Error detection threshold in number of standard deviations (cluster)
 parameters.ms.denoise.cls.fr     = 2;          % Threshold as multiple of expected firing rate
 parameters.ms.denoise.cls.ampmin = 0.5;        % Fraction of highest stimulus amplitudes to consider
-parameters.ms.denoise.cls.spkmin = 5;          % Minimum number of spikes needed
+parameters.ms.denoise.cls.spkmin = 6;          % Minimum number of spikes needed
 
 parameters.ms.denoise.cls.fc_upper = 36;% Threshold for artifact clusters
 parameters.ms.denoise.cls.fc_lower = 0.75;
@@ -343,16 +345,7 @@ parameters.ms.denoise.cls.fb_lower = 1.0;
 
 %% PSR_MS_DETECT_OFFSET
 
-parameters.ms.offset = []; % TEMP
 parameters.ms.offset.run   = false; % Detect stimulus offset
 parameters.ms.offset.min   = [-0.0375,-0.0150]; % Approximate position of stimulus offset 
 parameters.ms.offset.win   = 0.0100; % Window around the approximate position
 parameters.ms.offset.delta = 0.0005;
-
-%% %%%% Experiment specific parameters %%%%
-
-%% Active vs. Passive
-parameters.exp.avp.process = false; 
-
-%% MAGNETO
-parameters.exp.mgn.process = false;

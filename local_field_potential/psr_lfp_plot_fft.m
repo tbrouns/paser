@@ -76,7 +76,7 @@ ylabel(['$\bf{' yLabelStr '}$'],  'Interpreter','Latex');
 set(gca,'TickLabelInterpreter','Latex');
 set(gca, 'XScale', 'log');
 
-if (~psr_isempty_field(parameters,'parameters.analysis.fft.plot.flim')); xlim(parameters.analysis.fft.plot.flim); end
-if (~psr_isempty_field(parameters,'parameters.analysis.fft.plot.plim')); ylim(parameters.analysis.fft.plot.plim); end
+if (~isempty_field(parameters,'parameters.analysis.fft.plot.flim')); xlim(parameters.analysis.fft.plot.flim); end
+if (~isempty_field(parameters,'parameters.analysis.fft.plot.plim')); ylim(parameters.analysis.fft.plot.plim); end
 
 end

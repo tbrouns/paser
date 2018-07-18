@@ -6,8 +6,8 @@ cfg        = [];
 cfg.method = 'jpsth';
 
 if (nargin == 3); cfg.channelcmb = psr_ft_combis(psth,clustIDs); end
-if (~psr_isempty_field(parameters,'parameters.analysis.jpsth.keeptrials')); cfg.keeptrials    = parameters.analysis.jpsth.keeptrials; end
-if (~psr_isempty_field(parameters,'parameters.analysis.jpsth.normalize'));  cfg.normalization = parameters.analysis.jpsth.normalize;  end
+if (~isempty_field(parameters,'parameters.analysis.jpsth.keeptrials')); cfg.keeptrials    = parameters.analysis.jpsth.keeptrials; end
+if (~isempty_field(parameters,'parameters.analysis.jpsth.normalize'));  cfg.normalization = parameters.analysis.jpsth.normalize;  end
 
 jpsth = psr_ft_spike_jpsth(cfg,psth);
 

@@ -51,7 +51,8 @@ void mexFunction( int nlhs, mxArray *plhs[],
     nid_t * Cn; //number of points in each cluster (length Nc vector)
     nid_t ** hC;//list of clusterid lists
     nid_t * P;  //parent cluster id of each cluster
-    int * dims;
+	// int * dims;
+	const mwSize *dims;
     mxArray * Cout; //cell array of clusters in matlab
     mxArray * curcell; //cell array of clusters in matlab
     double * ca; //cell array of clusters in matlab
@@ -60,7 +61,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     int MIN_CLUS_SIZE;
 
     // Get data values, # of points, and # dimensions from input
-    dims = mxGetDimensions(prhs[0]); //dimensions of the data array
+	dims = mxGetDimensions(prhs[0]); //dimensions of the data array
     d = (int) dims[0]; //number of dimensions
     n = (nid_t) dims[1]; //number of points
     Dm = mxGetPr(prhs[0]); //pointer to the data in matlab

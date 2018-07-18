@@ -1,11 +1,14 @@
 function psth = psr_ft_psth(spikesFT,parameters,trialIDs)
 
+% Initialize
+psth           = [];
 cfg            = [];
 cfg.keeptrials = 'yes';
 if (nargin == 3); cfg.trials = trialIDs; end
-
-if (~psr_isempty_field(parameters,'parameters.analysis.psth.binsize'));    cfg.binsize    = parameters.analysis.psth.binsize;    end
-if (~psr_isempty_field(parameters,'parameters.analysis.psth.outputunit')); cfg.outputunit = parameters.analysis.psth.outputunit; end
+if (isempty(spikesFT)); return; end
+if (~isempty_field(parameters,'parameters.analysis.psth.binsize'));    cfg.binsize    = parameters.analysis.psth.binsize;    end
+if (~isempty_field(parameters,'parameters.analysis.psth.outputunit')); cfg.outputunit = parameters.analysis.psth.outputunit; end
+if (isfield(cfg,'binsize') && any(spikesFT.trialtime(:,2) < cfg.binsize)); return; end
 
 psth = ft_spike_psth(cfg,spikesFT);
     

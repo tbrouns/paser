@@ -2,7 +2,7 @@ function spikes = psr_sst_cluster_remove(spikes)
 
 %% Remove spikes that are part of noise clusters
 
-if ~psr_isempty_field(spikes,'spikes.clusters.metrics.quality')
+if ~isempty_field(spikes,'spikes.clusters.metrics.quality')
     
     clusterIDs     = {spikes.clusters.metrics.id};
     clusterQuality = {spikes.clusters.metrics.quality};

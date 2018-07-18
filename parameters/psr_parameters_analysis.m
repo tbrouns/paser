@@ -1,3 +1,8 @@
+
+% Relevant function name is given in each box. Check function description
+% within the respective files to get more info on the parameters.
+
+
 %% Stimuli
 
 parameters.analysis.stimoffset = 0;
@@ -39,8 +44,9 @@ parameters.analysis.tfa.keepchans  = false;      % Whether to keep individual ch
 
 %% psr_lfp_baseline
 
-parameters.analysis.tfa.baseline     = [];        % 'pre' or [begin end] in seconds
-parameters.analysis.tfa.baselineType = 'decibel'; % absolute', 'relative', 'relchange', 'normchange' or 'decibel'
+parameters.analysis.tfa.base.window  = 'pre';     % The baseline window. Given as: [begin end] in seconds, or set to 'pre' for everything before t = 0.
+parameters.analysis.tfa.base.type    = 'decibel'; % The baseline calculation method: 'absolute', 'relative', 'relchange', 'normchange' or 'decibel'
+parameters.analysis.tfa.base.ncycles = [];        % Baseline window defined as the number of cycles, i.e. frequency dependent. Set to empty if you don't want to use it, otherwise needs to be an integer.
 
 %% psr_lfp_plot_tfa
 
@@ -101,3 +107,7 @@ parameters.analysis.xcorr.maxlag     = 0.1;   % Maximum lag for correlogram [s]
 parameters.analysis.xcorr.outputunit = 'proportion';
 parameters.analysis.xcorr.binsize    = 0.001; % [s]
 parameters.analysis.xcorr.debias     = 'yes';
+
+%% psr_multiscale_relevance
+parameters.analysis.msr.dt_min  = 0.001;
+parameters.analysis.msr.dt_step = 100; 

@@ -11,13 +11,11 @@ threshFactorLower = parameters.lfp.artifact.amp.lower;
 sWinSlope         = round(Fs * parameters.lfp.artifact.amp.slope / 1000);
 
 [~,sLength] = cellfun(@size,data);
-sLength     = [0;cumsum(sLength)];
+sLength     = [0,cumsum(sLength)];
 
 % Combine data across all blocks
 
-if (parameters.lfp.artifact.amp.cat)
-    data = {cat(2,data{:})};
-end
+if (parameters.lfp.artifact.amp.cat); data = {cell2mat(data)}; end
 
 % Find artifacts
 

@@ -12,11 +12,11 @@ cfg.trials     = 'all';
 cfg.keeptrials = 'yes';
 cfg.keeptapers = 'no';
 
-if (~psr_isempty_field(parameters,'parameters.analysis.fft.foi'));       cfg.foi       = parameters.analysis.fft.foi;       end
-if (~psr_isempty_field(parameters,'parameters.analysis.fft.taper'));     cfg.taper     = parameters.analysis.fft.taper;     end
-if (~psr_isempty_field(parameters,'parameters.analysis.fft.pad'));       cfg.pad       = parameters.analysis.fft.pad;       end
-if (~psr_isempty_field(parameters,'parameters.analysis.fft.tapsmofrq')); cfg.tapsmofrq = parameters.analysis.fft.tapsmofrq; end
-if (~psr_isempty_field(parameters,'parameters.analysis.fft.keepchans')); cfg.keepchans = parameters.analysis.fft.keepchans; end
+if (~isempty_field(parameters,'parameters.analysis.fft.foi'));       cfg.foi       = parameters.analysis.fft.foi;       end
+if (~isempty_field(parameters,'parameters.analysis.fft.taper'));     cfg.taper     = parameters.analysis.fft.taper;     end
+if (~isempty_field(parameters,'parameters.analysis.fft.pad'));       cfg.pad       = parameters.analysis.fft.pad;       end
+if (~isempty_field(parameters,'parameters.analysis.fft.tapsmofrq')); cfg.tapsmofrq = parameters.analysis.fft.tapsmofrq; end
+if (~isempty_field(parameters,'parameters.analysis.fft.keepchans')); cfg.keepchans = parameters.analysis.fft.keepchans; end
 
 % Temporariry remove some fields
 [data,~] = psr_remove_field(data,'artifacts');

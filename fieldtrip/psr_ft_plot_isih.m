@@ -7,10 +7,10 @@ if (nargin > 3 && plotRaw); parameters.analysis.isi.plot.window = 'no'; end
 
 cfg.spikechannel = isih.label{clustID};
     
-if (~psr_isempty_field(parameters,'parameters.analysis.isi.plot.window'));   cfg.window   = parameters.analysis.isi.plot.window;   end 
-if (~psr_isempty_field(parameters,'parameters.analysis.isi.plot.winlen'));   cfg.winlen   = parameters.analysis.isi.plot.winlen;   end
-if (~psr_isempty_field(parameters,'parameters.analysis.isi.plot.colormap')); cfg.colormap = parameters.analysis.isi.plot.colormap; end 
-if (~psr_isempty_field(parameters,'parameters.analysis.isi.plot.scatter'));  cfg.scatter  = parameters.analysis.isi.plot.scatter;  end 
+if (~isempty_field(parameters,'parameters.analysis.isi.plot.window'));   cfg.window   = parameters.analysis.isi.plot.window;   end 
+if (~isempty_field(parameters,'parameters.analysis.isi.plot.winlen'));   cfg.winlen   = parameters.analysis.isi.plot.winlen;   end
+if (~isempty_field(parameters,'parameters.analysis.isi.plot.colormap')); cfg.colormap = parameters.analysis.isi.plot.colormap; end 
+if (~isempty_field(parameters,'parameters.analysis.isi.plot.scatter'));  cfg.scatter  = parameters.analysis.isi.plot.scatter;  end 
 
 output = psr_ft_spike_plot_isireturn(cfg,isih);
 

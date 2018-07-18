@@ -1,9 +1,12 @@
 function psr_batch_analysis(cfg)
 
-if (psr_isempty_field(cfg,'cfg.subject'));  cfg.subject  = []; end
-if (psr_isempty_field(cfg,'cfg.loadpath')); cfg.loadpath = []; end
-if (psr_isempty_field(cfg,'cfg.savepath')); cfg.savepath = []; end
-if (psr_isempty_field(cfg,'cfg.pattern'));  cfg.pattern  = []; end
+if (isempty_field(cfg,'cfg.subject'));      cfg.subject      = [];    end
+if (isempty_field(cfg,'cfg.loadpath'));     cfg.loadpath     = [];    end
+if (isempty_field(cfg,'cfg.savepath'));     cfg.savepath     = [];    end
+if (isempty_field(cfg,'cfg.pattern'));      cfg.pattern      = [];    end % Pattern to look for in foldernames
+if (isempty_field(cfg,'cfg.cluster.run'));  cfg.cluster.run  = false; end % Plot spike sorting quality control figures
+if (isempty_field(cfg,'cfg.manual.run'));   cfg.manual.run   = false; end % Manual labelling
+if (isempty_field(cfg,'cfg.analysis.run')); cfg.analysis.run = false; end
 
 folderNames = dir([cfg.loadpath cfg.subject '*']);
 folderNames = char(folderNames.name);
@@ -68,7 +71,7 @@ for iFolder = 1:nFolders
             
             if (cfg.cluster.run)
                 savePathClusters = [savePath 'clusters\'];
-                if (~psr_isempty_field(spikes,'spikes.spiketimes'))
+                if (~isempty_field(spikes,'spikes.spiketimes'))
 
                     savePathQuality = [savePathClusters 'quality\'];
                     [~,~,~] = mkdir(savePathQuality);

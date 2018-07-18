@@ -13,7 +13,7 @@ if (strcmp(method,'add')) % Add field trip path
     end
     
     if (~FT_PRESENT)
-        if (psr_isempty_field(parameters,'parameters.path.ft'))
+        if (isempty_field(parameters,'parameters.path.ft'))
             FT_FOUND = false; % FT not found and no path specified
             disp('FieldTrip path has not been set.');
         else
@@ -23,9 +23,10 @@ if (strcmp(method,'add')) % Add field trip path
             addpath(parameters.path.ft);
             try
                 ft_defaults
-                rmpath(fullfile(parameters.path.ft, 'external', 'signal'))
-                rmpath(fullfile(parameters.path.ft, 'external', 'stats'))
-                rmpath(fullfile(parameters.path.ft, 'external', 'image'))
+                [~, ftpath] = ft_version;
+                rmpath(fullfile(ftpath, 'external', 'signal'));
+                rmpath(fullfile(ftpath, 'external', 'stats'));
+                rmpath(fullfile(ftpath, 'external', 'image'));
             catch
                 FT_FOUND = false; % Path set, but FT not found
                 disp('FieldTrip not found on given path.');

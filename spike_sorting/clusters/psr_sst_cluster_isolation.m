@@ -8,45 +8,44 @@ function spikes = psr_sst_cluster_isolation(spikes,parameters,weights)
 % Major edits by Terence Brouns (2017)
 
 if (nargin < 3); weights = ones(size(spikes.spiketimes)); end
-
-spikesOld = spikes;
+spikesTemp = spikes;
 
 % Positive non-zero assigns
 
 n = 0;
-while (min(unique(spikes.assigns))) <= 0
-    spikes.assigns = spikes.assigns + 1;
+while (min(unique(spikesTemp.assigns))) <= 0
+    spikesTemp.assigns = spikesTemp.assigns + 1;
     n = n + 1;
 end
 
 % Ignore clusters that are too small
 
-nClusts = max(spikes.assigns);
+nClusts = max(spikesTemp.assigns);
 if (isempty(nClusts) || nClusts == 0); return; end
 
 clustIDs = 1:nClusts;
 nspikes  = zeros(1,nClusts);
 for iClust = 1:nClusts
-    nspikes(iClust) = sum(spikes.assigns == clustIDs(iClust));
+    nspikes(iClust) = sum(spikesTemp.assigns == clustIDs(iClust));
 end
 
-I        = nspikes <= 2 * size(spikes.features,1);
+I        = nspikes <= 2 * size(spikesTemp.features,1);
 del      = clustIDs( I);
 clustIDs = clustIDs(~I); % Keep remaining clusters
 
-spikeIDs = ismember(spikes.assigns,del);
-spikes = psr_sst_remove_spikes(spikes,find(spikeIDs),'delete');
+spikeIDs = ismember(spikesTemp.assigns,del);
+spikesTemp = psr_sst_remove_spikes(spikesTemp,find(spikeIDs),'delete');
 
 % Convert to consecutive cluster assigns
 
 itr = 1;
 for iClust = clustIDs
-    spikeIDs = ismember(spikes.assigns,iClust);
-    spikes.assigns(spikeIDs) = itr;
+    spikeIDs = ismember(spikesTemp.assigns,iClust);
+    spikesTemp.assigns(spikeIDs) = itr;
     itr = itr + 1;
 end
 
-nClusts = max(spikes.assigns);
+nClusts = max(spikesTemp.assigns);
 if (isempty(nClusts) || nClusts == 0); return; end
 
 % Data conversion
@@ -58,9 +57,9 @@ if (isempty(nClusts) || nClusts == 0); return; end
 %     weighting       [N x 1] suggested weighting for training on a subset
 
 data             = [];
-data.spk_Y       = double(spikes.features);
-data.spk_t       = double(spikes.spiketimes' * 1000); % convert to ms
-data.spk_clustId = double(spikes.assigns');
+data.spk_Y       = double(spikesTemp.features);
+data.spk_t       = double(spikesTemp.spiketimes' * 1000); % convert to ms
+data.spk_clustId = double(spikesTemp.assigns');
 data.weighting   = double(weights');
 
 if (isempty(data.spk_Y)); return; end
@@ -137,8 +136,7 @@ for k = 1:nClust
     % L-ratio
     Lratio = sum(chi2cdf(mahalDistSq_otherSpikes, nDims, 'upper')) / N_k;
     
-    % Save these values
-    
+    % Save these values    
     metrics(k).id     = clustIDs(k) - n; % Cluster ID
     metrics(k).Lratio = Lratio;          % L-ratio
     metrics(k).IsoDis = isolationDist;   % isolation distance
@@ -147,25 +145,40 @@ for k = 1:nClust
     metrics(k).FP_g   = falsePosGauss;   % False positives (Gaussian)
     metrics(k).FN_g   = falseNegGauss;   % False negatives (Gaussian)
     
+    % Calculate F1 scores
+    metrics(k).F1_t = f1_score(falsePosMODT, falseNegMODT);
+    metrics(k).F1_g = f1_score(falsePosGauss,falseNegGauss);
+    
+    metrics = orderfields(metrics);
 end
 
 %% Save isolation metrics
 
-spikes   = spikesOld;
 clustID1 = [metrics.id];
 clustID2 = [spikes.clusters.metrics.id];
 nClusts  = length(clustID1);
 
+metrics = rmfield(metrics,'id');
+fields  = fieldnames(metrics);
+nFields = length(fields);
+        
 for iClust = nClusts:-1:1
     I = find(clustID2 == clustID1(iClust));
     if (~isempty(I))
-        spikes.clusters.metrics(I).Lratio = metrics(iClust).Lratio;
-        spikes.clusters.metrics(I).IsoDis = metrics(iClust).IsoDis;
-        spikes.clusters.metrics(I).FP_t   = metrics(iClust).FP_t;
-        spikes.clusters.metrics(I).FN_t   = metrics(iClust).FN_t;
-        spikes.clusters.metrics(I).FP_g   = metrics(iClust).FP_g;
-        spikes.clusters.metrics(I).FN_g   = metrics(iClust).FN_g;
+        for iField = 1:nFields
+            spikes.clusters.metrics(I).(fields{iField}) = metrics(iClust).(fields{iField});
+        end
     end
 end
+
+end
+
+function f1 = f1_score(fp,fn)
+
+tp = 1 - fp;
+precision = tp;
+recall    = tp ./ (tp + fn);
+
+f1 = 2 ./ ((1 ./ recall) + (1 ./ precision));
 
 end

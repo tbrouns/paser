@@ -35,7 +35,7 @@ spikesOld  = spikes;
 artifacts  = [];
 
 % Extract LFP artifacts
-if (~psr_isempty_field(spikes,'spikes.info.artifacts.lfp'))
+if (~isempty_field(spikes,'spikes.info.artifacts.lfp'))
     trialOnsets  = [0;cumsum(spikes.info.dur)];
     nTrials = length(spikes.info.artifacts.lfp);
     for iTrial = 1:nTrials

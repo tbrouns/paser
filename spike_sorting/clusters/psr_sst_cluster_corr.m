@@ -25,7 +25,7 @@ end
 
 function r = clusterCorr(spikes, clustID_1, clustID_2, parameters)
 
-maxlag = round(0.001 * parameters.spikes.max_desync * spikes.Fs);
+maxlag = round(spikes.Fs * (parameters.spikes.max_desync / 1000));
 
 spikeIDs_1 = ismember(spikes.assigns, clustID_1);
 spikeIDs_2 = ismember(spikes.assigns, clustID_2);

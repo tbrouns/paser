@@ -120,7 +120,7 @@ cfg = ft_checkconfig(cfg, 'allowed', ...
 % check if a third input is present, and check if it's a timelock structure
 if (nargin == 3)
     doTopData = true;
-    timelock  = ft_checkdata(timelock,'datatype', 'timelock', 'feedback', 'yes');
+%     timelock  = ft_checkdata(timelock,'datatype', 'timelock', 'feedback', 'yes');
     if isfield(timelock,'cfg') && isfield(timelock.cfg, 'latency')
         cfg.latency = timelock.cfg.latency;
     end

@@ -1,134 +1,132 @@
-function spikes = psr_ms_denoise_cls(spikes,metadata,parameters)
+function deletedSpikes = psr_ms_denoise_cls(spikes,metadata,parameters)
 
-% Temp
-psr_parameters_display;
-parameters.display.metrics = false;
+VISUALIZE = false;
+if (VISUALIZE)
+    close all;
+    psr_parameters_display;
+    parameters.display.metrics = false;
+    savePathFig = 'G:\Data\electrophysiology\AVP\data_figures\artifacts\';
+    fig = figure; set(gcf,'position',get(0,'screensize'));
+end
 
 % Spike removal parameters
 
-Tmax     = sum(spikes.info.dur);
-Fs       = spikes.Fs;
-Nmax     = floor(Fs * Tmax) + 1;
-pBin     = round(Fs * parameters.ms.denoise.cls.tbin / 1000);
-pStm     = round(Fs * parameters.ms.denoise.cls.tstm / 1000);
-pArt     = round(Fs * parameters.ms.denoise.cls.tart / 1000);
-pSlp     = round(Fs * parameters.ms.denoise.cls.tslp / 1000);
-pSpk     = round(Fs * parameters.ms.denoise.cls.tspk / 1000);
-nChans   = size(spikes.waveforms,3);
-nTrials  = size(metadata.trialonset,1);
-trialonsets = [0;cumsum(spikes.info.dur)];
+Tmax    = sum(spikes.info.dur);
+Fs      = spikes.Fs;
+Nmax    = floor(Fs * Tmax) + 1;
+pBin    = round(Fs * parameters.ms.denoise.cls.tbin / 1000); % Convolution bin
+pStm    = round(Fs * parameters.ms.denoise.cls.tstm / 1000); % Stimulus window
+pArt    = round(Fs * parameters.ms.denoise.cls.tart / 1000); % Artifact window
+pSlp    = round(Fs * parameters.ms.denoise.cls.tslp / 1000); % Slope window
+pSpk    = round(Fs * parameters.ms.denoise.cls.tspk / 1000);
+nChans  = size(spikes.waveforms,3);
+nBlocks = size(metadata.blockonset,1);
+blockonsets = [0;cumsum(spikes.info.dur)];
 spikes.waveforms = psr_int16_to_single(spikes.waveforms,parameters);
 
 deletedSpikes = false(size(spikes.spiketimes)); % spikes to delete
 
 % Convert stimulus timings
 
-stimAmps = cell2mat(metadata.stimulus);
-% stimAmpsSorted = sort(stimAmps);
-% stimMin = stimAmpsSorted(floor(parameters.ms.denoise.cls.ampmin * length(stimAmpsSorted)));
-
-stimulusPoints = cell(0);
-for iTrial = 1:nTrials
-    if (stimAmps(iTrial) > 0)
-        stimulusPoints{end+1} = metadata.stimtimes{iTrial,1} + trialonsets(iTrial);
+stimulusTimes = cell(0);
+for iBlock = 1:nBlocks
+    if (metadata.stimamps(iBlock) > 0)
+        stimulusTimes{end+1} = metadata.stimtimes{iBlock,1} + blockonsets(iBlock);
     end
 end
-stimulusPoints = cat(1, stimulusPoints{:});
-if (isempty(stimulusPoints)); return; end
-stimulusPoints = stimulusPoints(:,1);
+stimulusTimes = cat(1, stimulusTimes{:});
+if (isempty(stimulusTimes)); return; end
+stimulusTimes = stimulusTimes(:,1);
 
 % Convert to data point index
 
-stimulusPoints = round(Fs * stimulusPoints) + 1;
+stimulusPoints = round(Fs * stimulusTimes) + 1;
 
 artTrialIDs = bsxfun(@plus,stimulusPoints,pArt(1):pArt(2));
-artTrialIDs(artTrialIDs < 1)    = 1;
-artTrialIDs(artTrialIDs > Nmax) = Nmax;
-
 stmTrialIDs = bsxfun(@plus,stimulusPoints,pStm(1):pStm(2));
+% artTrialIDs = artTrialIDs(:);
+% stmTrialIDs = stmTrialIDs(:);
+artTrialIDs(artTrialIDs < 1)    = 1;
 stmTrialIDs(stmTrialIDs < 1)    = 1;
+artTrialIDs(artTrialIDs > Nmax) = Nmax;
 stmTrialIDs(stmTrialIDs > Nmax) = Nmax;
 
-clustIDs = unique(spikes.assigns_prior);
-nClusts  = length(clustIDs);
+tBin = parameters.ms.denoise.cls.tbin / 1000;
+tArt = parameters.ms.denoise.cls.tart / 1000;
+tStm = parameters.ms.denoise.cls.tstm / 1000;
+dArt = tArt(2) - tArt(1);
+dStm = tStm(2) - tStm(1);
+artWindow = [stimulusTimes + tArt(1),stimulusTimes + tArt(2)];
+stmWindow = [stimulusTimes + tStm(1),stimulusTimes + tStm(2)];
+nTrials = size(stimulusTimes,1);
 
-spikeIDs = 1:length(spikes.spiketimes);
-spikesTemp = spikes;
+spikeIDs_art = getSpikeIDs(artWindow,spikes.spiketimes);
+spikeIDs_stm = getSpikeIDs(stmWindow,spikes.spiketimes);
+spikeIDs_stm = spikeIDs_stm & ~spikeIDs_art;
 
-for iClust = 1:nClusts
+unitIDs = unique(spikes.assigns_prior);
+nUnits  = length(unitIDs);
+
+for iUnit = 1:nUnits
     
-    clustID = clustIDs(iClust);
+    unitID = unitIDs(iUnit);
     
-    spikeIDs_clust = find(spikes.assigns_prior == clustID); % Spikes in cluster
+    if (VISUALIZE)
+        saveNameFig = [metadata.subject '_' cell2mat(join(metadata.session,'-')) '_P' num2str(metadata.probe,'%02d') '_C' num2str(unitID,'%03d')];
+    end
     
-    [IdxIn,IdxEx] = findIndices(spikes.spiketimes,stmTrialIDs,artTrialIDs,spikeIDs_clust,Nmax,Fs);
+    spikeIDs_unit = spikes.assigns_prior == unitID;
+    
+    spikeIDs_unit_art = spikeIDs_art & spikeIDs_unit;
+    spikeIDs_unit_stm = spikeIDs_stm & spikeIDs_unit;
     
     % Ignore clusters that have excessive amount of spikes in stimulus window
     % (likely artifact cluster)
     
-    Fr_ex = numel(IdxEx) / (numel(stmTrialIDs) - numel(artTrialIDs));
-    Fr_in = numel(IdxIn) /                       numel(artTrialIDs);
-    
+    Fr_ex = sum(spikeIDs_unit_stm) / (nTrials * (dStm - dArt)); % Firing rate outside artifact window
+    Fr_in = sum(spikeIDs_unit_art) / (nTrials *         dArt);  % Firing rate  inside artifact window
     Fr_ratio = Fr_in / Fr_ex;
     
-    Nspikes = length(IdxIn);
+    Nspikes = length(spikeIDs_unit_art);
     if (Nspikes < parameters.ms.denoise.cls.spkmin); continue; end
     
     if (Fr_ratio >= parameters.ms.denoise.cls.fc_upper)
         
-        deletedSpikes(spikeIDs_clust) = true;
+        % Ignore units that have excessive amount of spikes in the artifact window
+        % (likely artifact cluster)
+        
+        deletedSpikes(spikeIDs_unit) = true;
         
         %%%%%%%%%%%%%%%%%%%%%%%%% Visualize %%%%%%%%%%%%%%%%%%%%%%%%%%
-    
-        plotWaveforms(fig,spikes,clustID,parameters,IdxEx,IdxIn,[]);
-        suplabel(['F_{ratio} = ' num2str(Fr_ratio)],'t');
-
-        saveStr = [savePath metadata.subject '_' metadata.session{1} '_P' num2str(metadata.probe,'%02d') '_C' num2str(clustID,'%03d') '_REM'];
-        export_fig(saveStr);
-
+        if (VISUALIZE)
+            plotWaveforms(fig,spikes,unitID,parameters,spikeIDs_unit_stm,spikeIDs_unit_art,[]);
+            suplabel(['F_{ratio} = ' num2str(Fr_ratio)],'t');
+            saveStr = [savePathFig saveNameFig '_REM'];
+            export_fig(saveStr);
+        end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%        
         
     elseif (Fr_ratio >= parameters.ms.denoise.cls.fc_lower)
         
         %%%%%%%%%%%%%%%%%%%%%%%%% Visualize %%%%%%%%%%%%%%%%%%%%%%%%%%
-    
-        plotWaveforms(fig,spikes,clustID,parameters,IdxEx,IdxIn,[]);
-        suplabel(['F_{ratio} = ' num2str(Fr_ratio)],'t');
-
-        saveStr = [savePath metadata.subject '_' metadata.session{1} '_P' num2str(metadata.probe,'%02d') '_C' num2str(clustID,'%03d')];
-        export_fig(saveStr);
-
+        if (VISUALIZE)
+            plotWaveforms(fig,spikes,unitID,parameters,spikeIDs_unit_stm,spikeIDs_unit_art,[]);
+            suplabel(['F_{ratio} = ' num2str(Fr_ratio)],'t');
+            saveStr = [savePathFig saveNameFig];
+            export_fig(saveStr);
+        end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        
-        spikeIDs_clust = find(spikesTemp.assigns_prior == clustID); % Spikes in cluster
-        
-        [IdxIn,IdxEx] = findIndices(spikesTemp.spiketimes,stmTrialIDs,artTrialIDs,spikeIDs_clust,Nmax,Fs);
-        
-        % Ignore clusters that have excessive amount of spikes in stimulus window
-        % (likely artifact cluster)
-        
-        Fr_ex = numel(IdxEx) / (numel(stmTrialIDs) - numel(artTrialIDs));
-        %     Fr_in = numel(IdxIn) /                       numel(artTrialIDs);
-        %
-        %     Fr_ratio = Fr_in / Fr_ex;
-        %     spikes.clusters.metrics(iClust).stim = Fr_ratio;
-        %
-        %     if (Fr_ratio > parameters.ms.denoise.cls.ratio)
-        %         spikes.clusters.metrics(iClust).quality = 0; % Ignore cluster
-        %         continue;
-        %     end
-        
+                       
         % Find excessive amount of spikes in bin
         
-        spikePoints = round(Fs * spikesTemp.spiketimes(spikeIDs_clust)) + 1; % Get spike points
-        spikePoints(spikePoints > Nmax) = [];
-        spikeSignal = zeros(Nmax,1); % Binary vector of spike points
+        spikePoints = round(Fs * spikes.spiketimes(spikeIDs_unit) + 1);
+        spikeSignal = zeros(Nmax,1);
         spikeSignal(spikePoints) = 1;
         spikeSignalArt  = spikeSignal(artTrialIDs);
         spikeSignalArt  = mean(spikeSignalArt,1); % Average spike count over all trials inside artifact window
         spikeSignalConv = conv(spikeSignalArt,ones(1,pBin),'same'); % Number of spikes in bin inside artifact window
         
-        nSpikesBin = Fr_ex * pBin; % Number of spikes per bin outside artifact window
+        nSpikesBin = Fr_ex * tBin; % Number of spikes per bin outside artifact window
         I_art = find(spikeSignalConv > nSpikesBin * parameters.ms.denoise.cls.fr);
         
         if (isempty(I_art)); continue; end
@@ -137,105 +135,75 @@ for iClust = 1:nClusts
         range_off = [I_art(I_diff),I_art(end)     ];
         range_on  = [I_art(1),     I_art(I_diff+1)];
         binRanges = [range_on;range_off]';
+        binRanges = (binRanges - 1) / Fs;
         
         nBins = size(binRanges,1);
         
         for iBin = 1:nBins
             
-            I = (binRanges(iBin,1):binRanges(iBin,2)) + pArt(1);
-            binTrialIDs = bsxfun(@plus,stimulusPoints,I);
-            binTrialIDs(binTrialIDs < 1)    = 1;
-            binTrialIDs(binTrialIDs > Nmax) = Nmax;
+            t1 = artWindow(:,1) + binRanges(iBin,1);
+            t2 = artWindow(:,1) + binRanges(iBin,2);
+            binDur = mean(t2 - t1);
+            binWin = [t1,t2];         
+                        
+            spikeIDs_bin = getSpikeIDs(binWin,spikes.spiketimes(spikeIDs_unit));
+            ids = find(spikeIDs_unit);
+            spikeIDs_unit_bin = ids(spikeIDs_bin);
             
-            binLength = length(I) / Fs;
-            [~,IdxEx] = findIndices(spikesTemp.spiketimes,stmTrialIDs,artTrialIDs,spikeIDs_clust,Nmax,Fs);
-            IdxIn = spikeIDs_clust(psr_get_spike_ids(spikeSignal,binTrialIDs)); % Inside bin
-            Fr_in = numel(IdxIn) / numel(binTrialIDs);
+            Nspikes = length(spikeIDs_unit_bin);
+            
+            Fr_in = Nspikes / (nTrials * binDur); % Firing rate in bin
             Fr_ratio = Fr_in / Fr_ex;
-            
-            Nspikes = length(IdxIn);
-            if (Nspikes < parameters.ms.denoise.cls.spkmin); continue; end
-    
+                        
+            if (Nspikes  <  parameters.ms.denoise.cls.spkmin); continue; end
             if (Fr_ratio >= parameters.ms.denoise.cls.fb_upper)
                 
                 % Calculate mean error
-                waveformsEx = spikes.waveforms(IdxEx,:,:);
-                waveformsIn = spikes.waveforms(IdxIn,:,:);
+                waveformsEx = spikes.waveforms(spikeIDs_unit_stm,:,:);
+                waveformsIn = spikes.waveforms(spikeIDs_unit_bin,:,:);
                 errors = getError(waveformsEx,waveformsIn,pSlp,pSpk,parameters);
                 errorMean = mean(errors);
                 
                 if (errorMean > parameters.ms.denoise.cls.dlower)
-                    deletedSpikes(spikeIDs(IdxIn)) = true;
+                    deletedSpikes(spikeIDs_unit_bin) = true;
                 end
-                
+                                
                 %%%%%%%%%%%%%%%%%%%%%%%%% Visualize %%%%%%%%%%%%%%%%%%%%%%%%%%
-                
-                del = true(size(IdxIn));
-                plotWaveforms(fig,spikesTemp,clustID,parameters,IdxEx,IdxIn,del);
-                
-                suplabel(['F_{ratio} = ' num2str(Fr_ratio) ', Error = ' num2str(errorMean) ', Window = ' num2str(1000 * binLength) ' ms']);
-                saveStr = [savePath metadata.subject '_' metadata.session{1} '_P' num2str(metadata.probe,'%02d') '_C' num2str(clustID,'%03d') '_B' num2str(iBin,'%03d')];
-                export_fig(saveStr);
-                
+                if (VISUALIZE)
+                    del = true(size(spikeIDs_unit_bin));
+                    plotWaveforms(fig,spikes,unitID,parameters,spikeIDs_unit_stm,spikeIDs_unit_bin,del);
+                    suplabel(['F_{ratio} = ' num2str(Fr_ratio) ', Error = ' num2str(errorMean) ', Window = ' num2str(1000 * binDur) ' ms']);
+                    saveStr = [savePathFig saveNameFig '_B' num2str(iBin,'%03d')];
+                    export_fig(saveStr);
+                end
                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                
+                                
             elseif (Fr_ratio >= parameters.ms.denoise.cls.fb_lower)
                 
                 itr = 1;
                 SPIKES_DELETED = true;
+                spikeIDs = 1:length(spikes.spiketimes);
+                spikesTemp = spikes;
+                
+                spikeIDs_temp_stm = spikeIDs_unit_stm;
                 
                 while (SPIKES_DELETED)
                     
                     SPIKES_DELETED = false;
                     
-                    [~,IdxEx] = findIndices(spikesTemp.spiketimes,stmTrialIDs,artTrialIDs,spikeIDs_clust,Nmax,Fs);
-                    IdxIn = spikeIDs_clust(psr_get_spike_ids(spikeSignal,binTrialIDs)); % Inside bin
+                    spikeIDs_temp_unit = spikesTemp.assigns_prior == unitID;
+                    spikeIDs_temp_bin  = getSpikeIDs(binWin,spikesTemp.spiketimes(spikeIDs_temp_unit));
+                    ids = find(spikeIDs_temp_unit);
+                    spikeIDs_unit_bin = ids(spikeIDs_temp_bin);
+                                
+                    if (length(spikeIDs_unit_bin) < parameters.ms.denoise.cls.spkmin); break; end
                     
-                    if (length(IdxIn) < parameters.ms.denoise.cls.spkmin); break; end
-                    
-                    waveformsEx = spikes.waveforms(IdxEx,:,:);
-                    waveformsIn = spikes.waveforms(IdxIn,:,:);
+                    waveformsEx = spikesTemp.waveforms(spikeIDs_temp_stm,:,:);
+                    waveformsIn = spikesTemp.waveforms(spikeIDs_unit_bin,:,:);
                     errors = getError(waveformsEx,waveformsIn,pSlp,pSpk,parameters);
-                    
-                    %                 del = error > parameters.ms.denoise.cls.dupper;
-                    %
-                    %                 artifacts   = waveformsIn(del,:,:);
-                    %                 nartifacts  =   size(artifacts,1);
-                    %                 artifactMed = median(artifacts,1);
-                    %
-                    %                 if (nartifacts > thresh); artifactStd = std(artifacts,1);
-                    %                 else,                     artifactStd = waveformStd;
-                    %                 end
-                    %
-                    %                 % Calculate difference between artifact median and spike median
-                    %
-                    %                 d = abs(artifactMed - waveformMed);
-                    %                 thresh = parameters.ms.denoise.cls.spkmin;
-                    %                 d = d ./ artifactStd;
-                    %
-                    %                 del = error > parameters.ms.denoise.cls.dupper;
-                    %
-                    %                 % Classify waveforms inside artifact window
-                    %
-                    %                 d = calculateError(d, pSpk);
-                    %
-                    %                 if (d > parameters.ms.denoise.cls.dclus)
-                    %
-                    %                     diffArt = abs(bsxfun(@minus,artifactMed,waveformsIn));
-                    %                     diffSpk = abs(bsxfun(@minus,waveformMed,waveformsIn));
-                    %
-                    %                     diffArt = mean(diffArt,2);
-                    %                     diffSpk = mean(diffSpk,2);
-                    %
-                    %                     diffArt = sum(weights .* diffArt,3) / weightSum;
-                    %                     diffSpk = sum(weights .* diffSpk,3) / weightSum;
-                    %
-                    %                     del = diffArt < diffSpk;
-                    %
-                    %                 end
-                    
+                                        
                     [errorMax,errorMaxId] = max(errors);
-                    
+                           
                     while (~isempty(errors) && errorMax > parameters.ms.denoise.cls.dupper)
                         
                         artifactMax = waveformsIn(errorMaxId,:,:);
@@ -251,84 +219,47 @@ for iClust = 1:nClusts
                         diffSpk = mean(diffSpk,3);
                         
                         del = diffArt < diffSpk;
-                        IdxDel = IdxIn(del);
+                        IdxDel = spikeIDs_unit_bin(del);
                         
-                        if (length(IdxDel) >= parameters.ms.denoise.cls.spkmin)
-                            
-                            SPIKES_DELETED = true;
-                            
-                            deletedSpikes(spikeIDs(IdxDel)) = true;
-                            
-                            spikePoints = round(Fs * spikesTemp.spiketimes(IdxDel)) + 1; % Get spike points
-                            spikeSignal(spikePoints) = 0;
+                        if (sum(del) >= parameters.ms.denoise.cls.spkmin) 
                             
                             %%%%%%%%%%%%%%%%%%%%%%%%% Visualize %%%%%%%%%%%%%%%%%%%%%%%%%%
-                            
-                            plotWaveforms(fig,spikesTemp,clustID,parameters,IdxEx,IdxIn,del);
-                            
-                            suplabel(['F_{ratio} = ' num2str(Fr_ratio) ', Window = ' num2str(1000 * binLength) ' ms']);
-                            saveStr = [savePath metadata.subject '_' metadata.session{1} '_P' num2str(metadata.probe,'%02d') '_C' num2str(clustID,'%03d') '_B' num2str(iBin,'%03d') '_I' num2str(itr,'%03d')];
-                            export_fig(saveStr);
-                            itr = itr + 1;
-                            
+                            if (VISUALIZE)
+                                plotWaveforms(fig,spikesTemp,unitID,parameters,spikeIDs_temp_stm,spikeIDs_unit_bin,del);
+                                suplabel(['F_{ratio} = ' num2str(Fr_ratio) ', Window = ' num2str(1000 * binDur) ' ms']);
+                                saveStr = [savePathFig saveNameFig '_B' num2str(iBin,'%03d') '_I' num2str(itr,'%03d')];
+                                export_fig(saveStr);
+                                itr = itr + 1;
+                            end
                             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                             
                             % Remove spikes
                             
+                            SPIKES_DELETED = true;
+                            deletedSpikes(spikeIDs(IdxDel)) = true;
                             spikesTemp = psr_sst_remove_spikes(spikesTemp,IdxDel,'delete');
-                            spikeIDs_clust = find(spikesTemp.assigns_prior == clustID); % Spikes in cluster
                             
-                            errors(del)          = [];
-                            waveformsIn(del,:,:) = [];
-                            spikeIDs(IdxDel)     = [];
-                            
-                            %                         IdxEx = find(ismember(spikeIDs,IdxEx));
-                            %                         IdxIn = find(ismember(spikeIDs,IdxIn));
-                            
-                            [~,IdxEx] = findIndices(spikesTemp.spiketimes,stmTrialIDs,artTrialIDs,spikeIDs_clust,Nmax,Fs);
-                            IdxIn = spikeIDs_clust(psr_get_spike_ids(spikeSignal,binTrialIDs)); % Inside bin
-                            
+                            spikeIDs_temp_unit = spikesTemp.assigns_prior == unitID;
+                            spikeIDs_temp_bin  = getSpikeIDs(binWin,spikesTemp.spiketimes(spikeIDs_temp_unit));
+                            ids = find(spikeIDs_temp_unit);
+                            spikeIDs_unit_bin = ids(spikeIDs_temp_bin);
+
+                            errors           (del)     = [];
+                            waveformsIn      (del,:,:) = [];
+                            spikeIDs         (IdxDel)  = [];
+                            spikeIDs_temp_stm(IdxDel)  = [];
                         else
-                            
                             errors(errorMaxId) = 0; % Ignore error for next iterations
-                            
                         end
                         
                         [errorMax,errorMaxId] = max(errors);
-                        
+                                                
                     end
                 end
             end
         end
     end
 end
-
-spikes = psr_sst_remove_spikes(spikes,deletedSpikes,'delete');
-
-end
-
-function I = calculateRange(nPoints,n)
-
-nPointsHalf = round(0.5 * nPoints);
-I1 = nPointsHalf + n(1);
-I2 = nPointsHalf + n(2);
-i1 = I1; if (i1 < 1);       i1 = 1;       end
-i2 = I2; if (i2 > nPoints); i2 = nPoints; end
-
-I = i1:i2;
-
-end
-
-function [I_in,I_ex] = findIndices(spiketimes,stmTrialIDs,artTrialIDs,spikeIDs,Nmax,Fs)
-
-spikePoints = round(Fs * spiketimes(spikeIDs)) + 1; % Get spike points
-spikePoints(spikePoints > Nmax) = [];
-
-spikeIDs_stm = psr_get_spike_ids(spikePoints,stmTrialIDs); % Spikes inside stimulus window
-spikeIDs_art = psr_get_spike_ids(spikePoints,artTrialIDs); % Spikes inside artifact window
-
-I_ex = spikeIDs(~spikeIDs_art & spikeIDs_stm); % Outside of artifact window, but still inside stimulus window
-I_in = spikeIDs( spikeIDs_art);                %  Inside of artifact window
 
 end
 
@@ -381,18 +312,30 @@ error  =  max(error,[],3);
 
 end
 
-function plotWaveforms(fig,spikes,clustID,parameters,I_ex,I_in,del)
+function plotWaveforms(fig,spikes,unitID,parameters,I_ex,I_in,del)
 
 waveforms = spikes.waveforms;
 assigns   = spikes.assigns_prior;
 
+if (islogical(I_ex)); I_ex = find(I_ex); end
+if (islogical(I_in)); I_in = find(I_in); end
+
 set(0,'CurrentFigure',fig); clf; hold on;
-ax1 = subplot(2,2,1); spikes.waveforms = waveforms(I_ex,      :,:); spikes.assigns = assigns(I_ex);       psr_sst_plot_waveforms(spikes,clustID,parameters);        h = gca; title([h.Title.String ' - All']);
-ax2 = subplot(2,2,2); spikes.waveforms = waveforms(I_in,      :,:); spikes.assigns = assigns(I_in);       psr_sst_plot_waveforms(spikes,clustID,parameters);        h = gca; title([h.Title.String ' - Bin']);
-ax3 = subplot(2,2,3); spikes.waveforms = waveforms(I_in(~del),:,:); spikes.assigns = assigns(I_in(~del)); psr_sst_plot_waveforms(spikes,clustID,parameters,'line'); h = gca; title([h.Title.String ' - Bin']);
-ax4 = subplot(2,2,4); spikes.waveforms = waveforms(I_in( del),:,:); spikes.assigns = assigns(I_in( del)); psr_sst_plot_waveforms(spikes,clustID,parameters,'line'); h = gca; title([h.Title.String ' - Bin']);
+ax1 = subplot(2,2,1); spikes.waveforms = waveforms(I_ex,      :,:); spikes.assigns = assigns(I_ex);       psr_sst_plot_waveforms(spikes,unitID,parameters);        h = gca; title([h.Title.String ' - All']);
+ax2 = subplot(2,2,2); spikes.waveforms = waveforms(I_in,      :,:); spikes.assigns = assigns(I_in);       psr_sst_plot_waveforms(spikes,unitID,parameters);        h = gca; title([h.Title.String ' - Bin']);
+ax3 = subplot(2,2,3); spikes.waveforms = waveforms(I_in(~del),:,:); spikes.assigns = assigns(I_in(~del)); psr_sst_plot_waveforms(spikes,unitID,parameters,'line'); h = gca; title([h.Title.String ' - Bin']);
+ax4 = subplot(2,2,4); spikes.waveforms = waveforms(I_in( del),:,:); spikes.assigns = assigns(I_in( del)); psr_sst_plot_waveforms(spikes,unitID,parameters,'line'); h = gca; title([h.Title.String ' - Bin']);
 
 axs = [ax1 ax2 ax3 ax4];
 linkaxes(axs);
+
+end
+
+function spikeIDs = getSpikeIDs(window,spiketimes)
+
+signIni  = sign(window(:,1) - spiketimes);
+signEnd  = sign(window(:,2) - spiketimes);
+signMat  = signIni .* signEnd;
+spikeIDs = any(signMat < 0,1);
 
 end

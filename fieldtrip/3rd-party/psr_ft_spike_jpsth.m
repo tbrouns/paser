@@ -67,8 +67,6 @@ ft_preamble init
 ft_preamble provenance psth
 ft_preamble trackconfig
 
-psth = ft_checkdata(psth, 'datatype', 'timelock', 'hastrials', 'yes', 'feedback', 'yes');
-
 % get the default options
 cfg.trials        = ft_getopt(cfg,'trials',       'all');
 cfg.latency       = ft_getopt(cfg,'latency',      'maxperiod');

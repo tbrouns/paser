@@ -1,6 +1,7 @@
 function spikes = psr_sst_cluster_quality(spikes,parameters)
 
     parameters.filter.spikes.rpv.run = false; % Don't do this yet
+    parameters.filter.spikes.amp.run = false; % Don't do this yet
     
     spikes = psr_sst_filter_spikes     (spikes,parameters,'find');   % Find noise spikes ...
     spikes = psr_sst_filter_spikes     (spikes,parameters,'delete'); % ... and then delete them

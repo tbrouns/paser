@@ -68,7 +68,7 @@ axis([x(1) x(end) ylims])
 % Label axes
 
 titleSubString = ['$\bf{Cluster \ \# ' num2str(clustID) ', \ N_{spikes} = ' num2str(nSpikes)];
-if (parameters.display.metrics && ~psr_isempty_field(spikes,'spikes.clusters.metrics.rpv'))
+if (parameters.display.metrics && ~isempty_field(spikes,'spikes.clusters.metrics.rpv'))
     clustIDs = [spikes.clusters.metrics.id];
     I = find(clustIDs == clustID,1);
     fRPV = spikes.clusters.metrics(I).rpv;

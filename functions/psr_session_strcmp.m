@@ -9,6 +9,6 @@ end
 % Find active and passive trials
 I = find(~cellfun(@isempty,strfind(sessions,str)));
 k = false(size(parameters.general.sessionIndex));
-k(parameters.general.sessionIndex == I) = true;
+k(ismember(parameters.general.sessionIndex,I)) = true;
 
 end

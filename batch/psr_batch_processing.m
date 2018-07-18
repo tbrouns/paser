@@ -40,7 +40,11 @@ folderNames = folderNames(~ismember({folderNames.name},{'.','..'}));
 folderNames = folderNames([folderNames.isdir]); % Only keep folders
 folderNames = char(folderNames.name); % Convert to character array
 
-if (isempty(folderNames)); disp('No folders in directory'); return; end
+if (isempty(folderNames))
+    warning = {['No folders in directory: ' parameters.loadPath]};
+    psr_show_warning(warning,true)
+    return; 
+end
 
 if (~isempty(parameters.txtfile)) % Read sessions from text file
     filename = parameters.txtfile;
@@ -58,7 +62,6 @@ if (~isempty(parameters.txtfile)) % Read sessions from text file
         else
             str = [str ' %s'];
         end
-        
     end
     
     folders = cell(0,0);
@@ -109,9 +112,8 @@ else
             k = k | strcmpi(patterns,parameters.stimpatterns{iType});
         end
         folders = folderTypes(k);
+        folders = folders{:};
     end
-    
-    folders = cat(1,folders{:});
 end
 
 % Determine which folders to process
@@ -142,8 +144,6 @@ switch parameters.process
 end
 
 % Process data
-
-if (isempty(folders)); disp('No folders found.'); return; end
 
 nFolders = size(folders,1);
 for iFolder = 1:nFolders

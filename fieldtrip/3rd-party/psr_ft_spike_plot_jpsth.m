@@ -13,7 +13,7 @@ function [cfg] = psr_ft_spike_plot_jpsth(cfg, jpsth)
 % General configurations:
 %   cfg.channelcmb  = string or index of single channel combination to trigger on.
 %       See SPIKESTATION_FT_SUB_CHANNELCOMBINATION for details.
-%   cfg.barplot     = 'psth' (default), 'mean', 'sum' or 'no'. Plot PSTH with JPSTH if 'psth';
+%   cfg.barplot     = 'psth' (default), 'mean', 'sum' or 'no'.
 %   cfg.latency     = [begin end] in seconds or 'max' (default), 'prestim' or 'poststim';
 %   cfg.colorbar    = 'yes' (default) or 'no'
 %   cfg.colormap    =  N-by-3 colormap (see COLORMAP). or 'auto' (default,hot(256))
@@ -67,7 +67,7 @@ ft_preamble trackconfig
 
 % get the default options
 cfg.channelcmb  = ft_getopt(cfg,'channelcmb', 'all');
-cfg.barplot     = ft_getopt(cfg,'barplot',    'yes');
+cfg.barplot     = ft_getopt(cfg,'barplot',    'psth');
 cfg.latency     = ft_getopt(cfg,'latency',    'maxperiod');
 cfg.colorbar    = ft_getopt(cfg,'colorbar',   'yes');
 cfg.colormap    = ft_getopt(cfg,'colormap',    jet(256));

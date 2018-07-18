@@ -44,28 +44,48 @@ if (nClust > 0)
     
     while true
         
-        [I_row, I_col, score] = findClustersToMerge(spikes,parameters);
+        [mergeIDs_1, mergeIDs_2, score] = findClustersToMerge(spikes,parameters);
+        I = false(size(score,1),1);
         
-        if (~isempty(I_row))
+        nMerges = length(mergeIDs_1);
+        
+        if (nMerges > 0)
             
             %% Do the merging
-            
-            % Cluster pair to merge
-            
-            clusterX  = clusterIDs(I_row);
-            clusterY  = clusterIDs(I_col);
-            
-            % Find number of spikes for each cluster
-            
-            nSpikesX = sum(spikes.assigns == clusterX);
-            nSpikesY = sum(spikes.assigns == clusterY);
-            
-            % Change cluster ID of smaller cluster to ID of larger cluster
-            
-            if (nSpikesX >= nSpikesY); spikes.assigns(spikes.assigns == clusterY) = clusterX;
-            else,                      spikes.assigns(spikes.assigns == clusterX) = clusterY;
+            for iMerge = 1:nMerges
+                                
+                % Cluster pair to merge
+                
+                iClust = mergeIDs_1(iMerge);
+                jClust = mergeIDs_2(iMerge);
+                
+                % Only merge clusters if at least one of them hasn't been
+                % merged in this iteration
+                
+                if (~I(iClust) || ~I(jClust))
+                
+                    clusterX  = clusterIDs(iClust);
+                    clusterY  = clusterIDs(jClust);
+
+                    % Tag clusters that have been merged
+
+                    I(iClust) = true;
+                    I(jClust) = true;
+
+                    % Find number of spikes for each cluster
+
+                    nSpikesX = sum(spikes.assigns == clusterX);
+                    nSpikesY = sum(spikes.assigns == clusterY);
+
+                    % Change cluster ID of smaller cluster to ID of larger cluster
+
+                    if (nSpikesX >= nSpikesY); spikes.assigns(spikes.assigns == clusterY) = clusterX;
+                    else,                      spikes.assigns(spikes.assigns == clusterX) = clusterY;
+                    end
+
+                end
+                
             end
-            
         else
             break;
         end
@@ -81,11 +101,9 @@ end
 
 end
 
-function [I_row, I_col, score] = findClustersToMerge(spikes,parameters)
+function [IDs_1,IDs_2,score] = findClustersToMerge(spikes,parameters)
 
 score = [];
-I_row = [];
-I_col = [];
 
 % Find which clusters to merge
 
@@ -95,8 +113,13 @@ switch parameters.cluster.merge.type
     case 'bhat'; score =  psr_sst_cluster_bhat(spikes,parameters); tf = score(:) <=  parameters.cluster.merge.bhat_thresh;
 end
 
-[~,mergeID] = min(score(:));
-if (tf(mergeID)); [I_row, I_col] = ind2sub(size(score),mergeID); end
+s = score(:);
+s = s(tf);
+[~,Isort] = sort(s,'ascend');
+
+mergeIDs  = find(tf);
+mergeIDs  = mergeIDs(Isort);
+[IDs_1,IDs_2] = ind2sub(size(score),mergeIDs);
 
 end
 

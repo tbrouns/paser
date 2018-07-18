@@ -10,10 +10,10 @@ cfg.linewidth  = 1.5;
 cfg.marker     = 'none';
 cfg.markersize = 3;
 
-if (~psr_isempty_field(parameters,'parameters.analysis.xcorr.plot.color'));      cfg.color      = parameters.analysis.xcorr.plot.color;      end
-if (~psr_isempty_field(parameters,'parameters.analysis.xcorr.plot.linewidth'));  cfg.linewidth  = parameters.analysis.xcorr.plot.linewidth;  end
-if (~psr_isempty_field(parameters,'parameters.analysis.xcorr.plot.marker'));     cfg.marker     = parameters.analysis.xcorr.plot.marker;     end
-if (~psr_isempty_field(parameters,'parameters.analysis.xcorr.plot.markersize')); cfg.markersize = parameters.analysis.xcorr.plot.markersize; end
+if (~isempty_field(parameters,'parameters.analysis.xcorr.plot.color'));      cfg.color      = parameters.analysis.xcorr.plot.color;      end
+if (~isempty_field(parameters,'parameters.analysis.xcorr.plot.linewidth'));  cfg.linewidth  = parameters.analysis.xcorr.plot.linewidth;  end
+if (~isempty_field(parameters,'parameters.analysis.xcorr.plot.marker'));     cfg.marker     = parameters.analysis.xcorr.plot.marker;     end
+if (~isempty_field(parameters,'parameters.analysis.xcorr.plot.markersize')); cfg.markersize = parameters.analysis.xcorr.plot.markersize; end
 
 t = XCorr.time;
 y = squeeze(XCorr.xcorr(clustIDs(1),clustIDs(2),:));

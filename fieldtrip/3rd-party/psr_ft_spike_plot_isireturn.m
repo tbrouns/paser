@@ -92,8 +92,8 @@ cfg = ft_checkopt(cfg, 'gaussvar', 'double');
 cfg.interpolate = round(cfg.interpolate);
 
 % check if all the required fields are there
-isih = ft_checkdata(isih,'datatype', 'timelock', 'feedback', 'yes');
-if ~isfield(isih,'isi'), error('input struct should contain the fields isi, label and time'), end
+% isih = ft_checkdata(isih,'datatype', 'timelock', 'feedback', 'yes');
+% if ~isfield(isih,'isi'), error('input struct should contain the fields isi, label and time'), end
 
 cfg = ft_checkconfig(cfg, 'allowed', {'spikechannel', 'scatter', 'density', 'colormap', 'interpolate', 'scattersize', 'dt', 'window', 'winlen', 'gaussvar'});
 

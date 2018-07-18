@@ -1,7 +1,7 @@
 function filesSpikes = psr_stability_check(filesSpikes,filesData,sortMethod)
 
 nProbes    = size(filesData,1);
-nTrials    = size(filesData,2);
+nBlocks    = size(filesData,2);
 sortMethod = upper(sortMethod);
 
 for iProbe = 1:nProbes
@@ -11,9 +11,8 @@ for iProbe = 1:nProbes
     warning('off', MSGID);
     load(filesData{iProbe,1},'perturb'); % Load first temp file
     warning('on', MSGID);
-    if ~exist('perturb','var') || ...
-            isempty(perturb); perturbTemp = 0; perturb = []; % No perturbation done yet
-    else,                     perturbTemp = perturb + 1;
+    if ~exist('perturb','var') || isempty(perturb); perturbTemp = 0; perturb = []; % No perturbation done yet
+    else,                                           perturbTemp = perturb + 1;
     end
     
     % Save old spikes file with new name
@@ -22,57 +21,56 @@ for iProbe = 1:nProbes
     filename = getFilename(filesSpikes{iProbe,1},perturbTemp,sortMethod);
     save(filename,'spikes','metadata','parameters');
     
-    trialOnsets = metadata.trialonset;
+    blockOnsets = metadata.blockonset;
     
-    for iTrial = 1:nTrials
+    for iBlock = 1:nBlocks
         
-        % Perturb signal
-        
-        if (perturbTemp < 2)
+        if (perturbTemp < 2) % Perturb signal
             
             % Save old data
         
-            load(filesData{iProbe,iTrial});
-            filename = getFilename(filesData{iProbe,iTrial},perturbTemp,sortMethod);
+            load(filesData{iProbe,iBlock});
+            filename = getFilename(filesData{iProbe,iBlock},perturbTemp,sortMethod);
             save(filename,'metadata','parameters','ts_LFP','ts_Spikes','perturb');
                     
             % Load unperturbed data
             
-            filename = getFilename(filesData{iProbe,iTrial},0,sortMethod);
+            filename = getFilename(filesData{iProbe,iBlock},0,sortMethod);
             load(filename);
             
             signal        = ts_Spikes.data;
             parameters.Fs = ts_Spikes.Fs;
             
             % Grab spikes from trial
-            which = find(spikes.trials == iTrial);
-            spikesTrl = psr_sst_remove_spikes(spikes,which,'keep'); 
-            spikesTrl.spiketimes = spikesTrl.spiketimes - trialOnsets(iTrial);
+            keep = find(spikes.blocks == iBlock);
+            spikesBlock = psr_sst_remove_spikes(spikes,keep,'keep'); 
+            spikesBlock.spiketimes = spikesBlock.spiketimes - blockOnsets(iBlock);
             
-            if (perturbTemp == 0); signal = psr_stability_blurring(spikesTrl,signal,parameters);
-            else,                  signal = psr_stability_reversal(spikesTrl,signal,parameters);
+            if (perturbTemp == 0); signal = psr_stability_blurring(spikesBlock,signal,parameters);
+            else,                  signal = psr_stability_reversal(spikesBlock,signal,parameters);
             end
             
             ts_Spikes.data = signal;
             
             % Save
             perturb = perturbTemp;
-            save(filesData{iProbe,iTrial},'metadata','parameters','ts_LFP','ts_Spikes','perturb');
-        else
-            fileRAW = filesData{iProbe,iTrial};
+            save(filesData{iProbe,iBlock},'metadata','parameters','ts_LFP','ts_Spikes','perturb');
+        else % Done stability check
+            fileRAW = filesData{iProbe,iBlock};
             fileUNP = getFilename(fileRAW,0,sortMethod);
             fileBLR = getFilename(fileRAW,1,sortMethod);
             delete(fileRAW);
             delete(fileBLR);
             movefile(fileUNP,fileRAW);
-            if (iTrial == 1)
+            if (iBlock == 1)
                 delete(filesSpikes{iProbe,1});
                 filesSpikes{iProbe,1} = [];
             end
         end
     end
         
-    filesSpikes{iProbe,3} = [];
+    filesSpikes{iProbe,4} = [];
+    filesSpikes{iProbe,5} = [];
     clear perturb;
 end
 

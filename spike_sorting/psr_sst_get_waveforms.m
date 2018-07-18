@@ -12,7 +12,7 @@ timeArray = timeArray';
 timeArray = timeArray(:);
 waveforms = data(:,timeArray);
 waveforms = permute(waveforms,[3 2 1]);
-waveforms = reshape(waveforms,length(win),[],nChans);
+waveforms = reshape(waveforms,size(win,2),[],nChans);
 waveforms = permute(waveforms,[2 1 3]);
 
 end

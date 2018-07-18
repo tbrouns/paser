@@ -30,8 +30,8 @@ nTrials  = length(loadPath);
 MFAtimes = cell(nTrials,1);
 
 % Files to load
-ext         = '.continuous';
-pattern     = 'ADC6';
+ext     = '.continuous';
+pattern = 'ADC6';
 
 for iTrial = 1:nTrials
         
@@ -50,11 +50,10 @@ for iTrial = 1:nTrials
     % Filter raw data
                 
     file = [loadPath{iTrial} file]; % Filename
-
-    try % Load CONTINUOUS files [microvolts]
-        [signal, ~, info] = load_open_ephys_data_faster(file);
-    catch
-        [signal, ~, info] = load_open_ephys_data(file);
+    
+    % Load CONTINUOUS files [microvolts]
+    try    [signal, ~, info] = load_open_ephys_data_faster(file); 
+    catch, [signal, ~, info] = load_open_ephys_data(file);
     end
 
     Fs = info.header.sampleRate; % Sampling rate in Hz

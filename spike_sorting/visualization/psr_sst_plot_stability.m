@@ -31,7 +31,7 @@ function [ax1,ax2] = psr_sst_plot_stability(spikes,clustID,parameters,metadata)
 
 % Check input
 
-if nargin < 3 || psr_isempty_field(metadata,'metadata.trialonset'); blockOnsets = [];
+if nargin < 3 || isempty_field(metadata,'metadata.trialonset'); blockOnsets = [];
 else,                                                               blockOnsets = metadata.trialonset;
 end
 
@@ -45,7 +45,7 @@ spiketimes = sort(spikes.spiketimes(spikeIDs));
 
 noisetimes  = [];
 if (~isempty(blockOnsets))
-    if (~psr_isempty_field(spikes,'spikes.info.artifacts'))
+    if (~isempty_field(spikes,'spikes.info.artifacts'))
         nBlocks = length(spikes.info.artifacts.lfp);
         for iBlock = 1:nBlocks
             artifactsBlock = spikes.info.artifacts.lfp{iBlock};

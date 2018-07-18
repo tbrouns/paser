@@ -1,10 +1,10 @@
 function h = psr_lfp_plot_tfa(data,parameters)
 
-if (isempty(parameters.analysis.tfa.baseline))
+if (isempty(parameters.analysis.tfa.base.window))
     powtype = lower(parameters.analysis.tfa.plot.powtype);
     switch powtype; case 'decibel'; data.powspctrm = 10 * log10(data.powspctrm); end
 else
-    powtype = lower(parameters.analysis.tfa.baselineType);
+    powtype = lower(parameters.analysis.tfa.base.type);
 end
 yLabelStr = [upper(powtype(1)) powtype(2:end) ' \ power'];
 
@@ -48,8 +48,8 @@ title('');
 cmap = colormap;
 set(gca,'Color',cmap(round(0.5 * size(cmap,1)),:));
 
-if (~psr_isempty_field(parameters,'parameters.analysis.tfa.plot.tlim'));  xlim(parameters.analysis.tfa.plot.tlim); end
-if (~psr_isempty_field(parameters,'parameters.analysis.tfa.plot.flim'));  ylim(parameters.analysis.tfa.plot.flim); end
-if (~psr_isempty_field(parameters,'parameters.analysis.tfa.plot.plim')); caxis(parameters.analysis.tfa.plot.plim); end
+if (~isempty_field(parameters,'parameters.analysis.tfa.plot.tlim'));  xlim(parameters.analysis.tfa.plot.tlim); end
+if (~isempty_field(parameters,'parameters.analysis.tfa.plot.flim'));  ylim(parameters.analysis.tfa.plot.flim); end
+if (~isempty_field(parameters,'parameters.analysis.tfa.plot.plim')); caxis(parameters.analysis.tfa.plot.plim); end
 
 end

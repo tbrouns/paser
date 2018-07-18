@@ -7,7 +7,7 @@ if (nargin < 3); method = 'find'; end
 
 nlength = size(spikes.spiketimes,2);
 
-if (strcmp(method,'find') && ~psr_isempty_field(spikes,'spikes.clusters.rpvs'))
+if (strcmp(method,'find') && ~isempty_field(spikes,'spikes.clusters.rpvs'))
     spikes.clusters = rmfield(spikes.clusters,'rpvs');
 end
 

@@ -6,7 +6,7 @@ function spikes = psr_sst_cluster_thresholds(spikes,parameters)
 % type = 2: non-isolated single unit
 % type = 3: isolated single unit
 
-if (psr_isempty_field(spikes,'spikes.clusters.metrics')); return; end
+if (isempty_field(spikes,'spikes.clusters.metrics')); return; end
 
 nClusts = size(spikes.clusters.metrics,2);
 
@@ -31,8 +31,7 @@ quality = quality + (quality > 0) .* I;
 %% Check for isolated single unit
 
 I = ones(nClusts,1);
-if psr_isfield(spikes,'spikes.clusters.metrics.FP_t'); I = checkThreshold(I, {spikes.clusters.metrics.FP_t}, parameters.cluster.quality.max_fp, false); end % false positive rate
-if psr_isfield(spikes,'spikes.clusters.metrics.FN_t'); I = checkThreshold(I, {spikes.clusters.metrics.FN_t}, parameters.cluster.quality.max_fn, false); end % false negative rate
+if psr_isfield(spikes,'spikes.clusters.metrics.F1_t'); I = checkThreshold(I, {spikes.clusters.metrics.F1_t}, parameters.cluster.quality.min_f1, true); end % false positive rate
 quality = quality + (quality > 0) .* I;
 
 %% Save

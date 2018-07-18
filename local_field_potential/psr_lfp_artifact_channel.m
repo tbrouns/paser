@@ -23,7 +23,20 @@ for iChan = 1:nChans
 end
 
 % Remove channels
-keep = chanDiff <= parameters.lfp.artifact.chan.thresh;
+
+keep = ~all(isnan(dataAbs),2);
+data = removeChannels(data,keep);
+chanDiff = chanDiff(keep);
+
+if length(chanDiff) > 1
+    keep = chanDiff <= parameters.lfp.artifact.chan.thresh;
+    data = removeChannels(data,keep);
+end
+
+end
+
+function data = removeChannels(data,keep)
+    
 nBlocks = length(data);
 for iBlock = 1:nBlocks
     dataBlock = data{iBlock};
@@ -31,4 +44,6 @@ for iBlock = 1:nBlocks
         data{iBlock}.trial{1} = dataBlock.trial{1}(keep,:);
         data{iBlock}.label    = dataBlock.label(keep);
     end
+end
+
 end

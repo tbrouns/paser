@@ -49,6 +49,12 @@ for iBlock = nBlocks:-1:1
     end
 end
 
+keepPsd = any(~cellfun(@isempty,psdAll),1);
+keepSec = any(~cellfun(@isempty,secAll),1);
+
+psdAll = psdAll(:,keepPsd);
+secAll = secAll(:,keepSec);
+
 psdAll = cell2mat(psdAll);
 secAll = cell2mat(secAll);
 

@@ -32,59 +32,60 @@ elseif (isfield(input,'spikes'))
     %
     %     See FieldTrip documentation:
     %     http://www.fieldtriptoolbox.org/reference/ft_datatype_spike
-    
-    % input.onset: stimulus onset (t = 0)
+    %
+    %     input.onset: stimulus onset (t = 0)
     
     spikes   = input.spikes;
     nTrials  = size(input.trialtime,1);
-    clustIDs = unique(spikes.assigns);
-    nClusts  = length(clustIDs);
+    unitIDs  = unique(spikes.assigns);
+    probeID  = []; 
+    popUnit  = false;     
+    if (isfield(input,'probeID')); probeID = input.probeID; end
+    if (isfield(input,'popUnit')); popUnit = input.popUnit; end
+     
+    itr  = 1;
     
-    if (nClusts == 0); return; end
-    
-    if (isfield(input,'probeID')); probeID = input.probeID;
-    else,                          probeID = [];
+    % Add a population unit
+    if (popUnit && all(unitIDs ~= 0)) 
+        unitIDs(end+1) = 0;
+        unitIDs = sort(unitIDs);
     end
     
-    itr = 1;
-    
-    for iClust = 1:nClusts
+    for iUnit = unitIDs
         
-        clustID  = clustIDs(iClust);
-        spikeIDs = ismember(spikes.assigns, clustID);
-        
-        waveformsTemp = spikes.waveforms (spikeIDs,:,:);
-        timestampTemp = spikes.spiketimes(spikeIDs);
-        
-        trials = spikes.trials(:,spikeIDs);
-        
+        if (iUnit == 0); spikeIDs = spikes.assigns >= 0; % Population response
+        else,            spikeIDs = ismember(spikes.assigns, iUnit); % Single unit 
+        end
+                
         % Deal with spikes contained within more than one trial
         
         timestamp = [];
-        trialidxs = [];
+        trialIdxs = [];
         waveforms = [];
         for iTrial = 1:nTrials
-            spikeIDs_trial = find(trials(iTrial,:));
-            trialidxs = [trialidxs,iTrial * ones(size(spikeIDs_trial))];
-            timestamp = [timestamp,     timestampTemp(spikeIDs_trial)];
-            waveforms = [waveforms;     waveformsTemp(spikeIDs_trial,:,:)];
+            spikeIDs_trial = find(spikes.trials(iTrial,:) & spikeIDs);
+            trialIdxs = [trialIdxs,iTrial * ones(size(spikeIDs_trial),'int16')];
+            timestamp = [timestamp, spikes.spiketimes(spikeIDs_trial)];
+            if (isfield(spikes,'waveforms')); waveforms = [waveforms;spikes.waveforms(spikeIDs_trial,:,:)]; end
         end
         
         time = timestamp;
-        for iTrial = unique(trialidxs)
-            spikeIDs_trial = ismember(trialidxs,iTrial);
-            time(spikeIDs_trial) = timestamp(spikeIDs_trial) - input.onsets(iTrial);
+        for iTrial = unique(trialIdxs)
+            spikeIDs_trial = ismember(trialIdxs,iTrial);
+            time(spikeIDs_trial) = timestamp(spikeIDs_trial) - input.trialonsets(iTrial);
         end
         
-        output.id       {itr} = clustID;
-        output.label    {itr} = ['P' num2str(probeID) '-Unit-' num2str(clustID)];
-        output.waveforms{itr} = permute(waveforms,[3 2 1]);
+        output.id       {itr} = iUnit;
+        output.label    {itr} = ['P' num2str(probeID,'%03d') '-Unit-' num2str(iUnit,'%04d')];
         output.timestamp{itr} = timestamp;
-        output.trial    {itr} = trialidxs;
+        output.trial    {itr} = trialIdxs;
         output.time     {itr} = time;
-                
+        if (~isempty(waveforms)); output.waveforms{itr} = permute(waveforms,[3 2 1]); end
+        
         itr = itr + 1;
     end
     
-    output.trialtime = input.trialtime;
+    output.trialtime   = input.trialtime;
+    output.trialonsets = input.trialonsets;
+end
 end

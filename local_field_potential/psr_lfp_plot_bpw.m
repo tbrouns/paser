@@ -46,6 +46,6 @@ xticklabels({...
     [num2str(frange(4,1)) ' - ' num2str(frange(4,2))],...
     [num2str(frange(5,1)) ' - ' num2str(frange(5,2))]});
 
-if (~psr_isempty_field(parameters,'parameters.analysis.bpw.plot.plim')); ylim(parameters.analysis.bpw.plot.plim); end
+if (~isempty_field(parameters,'parameters.analysis.bpw.plot.plim')); ylim(parameters.analysis.bpw.plot.plim); end
 
 end

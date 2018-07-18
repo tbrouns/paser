@@ -1,4 +1,5 @@
 *.asv
 *.mexa64
 *.mexw64
+*.manifest
 desktop.ini

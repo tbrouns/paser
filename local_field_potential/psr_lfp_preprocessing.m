@@ -74,11 +74,11 @@ for iSection = 1:nSections
         data = removePadding(data,padding);
     catch ME
         str = 'FieldTrip ERROR:';
-        psr_show_warning({str,ME.message});
+        psr_show_warning({str,ME.message},true);
     end
     
     % Downsample filtered signal
-    if (~psr_isempty_field(data,'data.trial') && ~psr_isempty_field(parameters,'parameters.lfp.Fr'))
+    if (~isempty_field(data,'data.trial') && ~isempty_field(parameters,'parameters.lfp.Fr'))
         [dataProbe,timestamps] = resample(cell2mat(data.trial)',cell2mat(data.time),parameters.lfp.Fr);
         dataProbe(:,missingChanIDs) = NaN; % Insert NaNs
         dataTemp.trial = [dataTemp.trial,dataProbe'];

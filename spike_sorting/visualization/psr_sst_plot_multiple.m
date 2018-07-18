@@ -15,7 +15,7 @@ function psr_sst_plot_multiple(spikes,metadata,parameters,savePath,filename)
 %    filename   - Base filename of each image
 % 
 % Outputs:
-%    PNG images in output folder specified by "savePath".
+%    FIG and PNG images in output folder specified by "savePath".
 %
 % See also: PSR_BATCH_VISUALIZATION
 

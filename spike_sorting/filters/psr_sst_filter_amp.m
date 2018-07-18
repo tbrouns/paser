@@ -5,7 +5,7 @@ function removed = psr_sst_filter_amp(spikes,parameters)
 spikes.waveforms = psr_int16_to_single(spikes.waveforms,parameters);
 
 Fs               = spikes.Fs;
-window           = round(0.5 * Fs * (parameters.spikes.max_desync / 1000));
+window           = round(Fs * (parameters.spikes.max_desync / 1000));
 waveforms        = spikes.waveforms;
 waveforms        = psr_sst_norm_waveforms(waveforms,spikes.info.thresh);
 [waveforms,Imax] = max(waveforms,[],2);

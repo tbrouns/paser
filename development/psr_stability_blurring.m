@@ -5,7 +5,7 @@ nClust     = length(clusterIDs);
 nChan      = size(signal,1);
 sLength    = size(signal,2);
 precision  = 10^parameters.general.precision;
-Fs         = parameters.Fs;
+Fs         = spikes.Fs;
 
 window_samples = round(Fs * parameters.spikes.window_size / 1000);
 samples_hwidth = round(0.5 * window_samples);

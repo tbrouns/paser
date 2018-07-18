@@ -21,21 +21,20 @@ for iClust = clustIDs
     
     spikeIDs = ismember(spikes.assigns, iClust);
     
-    spiketimes = double(spikes.spiketimes(spikeIDs));
-    spiketimes = round(Fs * spiketimes)' + 1;
+    % Find maximum amplitude channel
+    chanMaxID = psr_sst_max_amp_chan(spikes,iClust,parameters); 
     
+    % Now align each waveform to peak on the maximum amplitude channel
     waveforms = spikes.waveforms(spikeIDs,:,:);
     waveforms = psr_int16_to_single(waveforms,parameters);
     waveforms = psr_sst_norm_waveforms(waveforms,spikes.info.thresh);
-        
-    % Find location of peak in maximum amplitude channel
-    [~,~,ampRel,~] = psr_sst_cluster_amp(spikes, iClust, parameters);    
-    [~, chanMaxID] = max(ampRel); 
-    [~,   peakLoc] = max(mean(waveforms(:,:,chanMaxID),1),[],2);
+    [~,peakLocs] = max(waveforms(:,:,chanMaxID),[],2); % Peak location of each spike
     
-    d = peakLoc - winHalf;
+    d = peakLocs - winHalf;
     winidx = d + (-winHalf:winHalf);
     
+    spiketimes = double(spikes.spiketimes(spikeIDs));
+    spiketimes = round(Fs * spiketimes)' + 1;
     waveformsNew(spikeIDs,:,:) = psr_sst_get_waveforms(spiketimes,dataProbe,winidx);
     
 end

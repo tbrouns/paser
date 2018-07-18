@@ -20,12 +20,12 @@ for iSession = 1:nSessions
     I = strcmp(stimTypes,'interval');
     stimTimes = metadata.stimtimes(I,1);
     stimTimes = cat(1, stimTimes{:});
-    stimTimes = stimTimes + metadata.camoffsets{iSession};
+    stimTimesOffset = stimTimes + metadata.camoffsets{iSession};
          
     % Extract event data from NIDAQ
     
-    foldername  =  parameters.general.session{iSession};
-    loadPathRaw = [parameters.general.loadPath '\' foldername];
+    foldername  =  metadata.session{iSession};
+    loadPathRaw = [metadata.loadPath '\' foldername];
     
     loadPathEvents = [loadPathRaw '\General.mat'];
     
@@ -72,7 +72,7 @@ for iSession = 1:nSessions
         index = regexp(filename, 'Data_(\d*)_', 'tokens', 'once');
         index = str2double(cell2mat(index));
         
-        touchTimesSession{index,2} = strtrim(filename); % Save filename
+        touchTimesSession{index,3} = strtrim(filename); % Save filename
         
         CurvesByFrame = [];
         load(filepath);
@@ -88,9 +88,10 @@ for iSession = 1:nSessions
                 whiskerID = [clickInfo{5} num2str(clickInfo{6})];
                 type = clickInfo{4};
                 I = find(strcmp(whiskerIDs,whiskerID));
-                if (isempty(I))
+                if (isempty(I)) % add new whisker ID
                     I = length(whiskerIDs) + 1;
                     whiskerIDs{I} = whiskerID;
+                    types(nFrames,I) = false; % extend matrix
                 end
                 if strcmp(type,'touch'); types(iFrame,I) = true; end
             end
@@ -118,9 +119,12 @@ for iSession = 1:nSessions
         else,                load(fileCam);
         end        
         
-        if (psr_isempty_field(Data,'Data.Time')); continue; end
-        if (nFrames ~= size(Data.Time,1))
-            warning('Frame number mismatch');
+        if (isempty_field(Data,'Data.Time')); continue; end
+        mFrames = size(Data.Time,1);
+        if (nFrames ~= mFrames)
+            str = ['Frame number mismatch. "CurvesByFrame": ' num2str(nFrames) ', "PointGrey": ' num2str(mFrames)];
+            psr_show_warning({str});
+            continue;
         end
         
         videoStartTimeAbs = Data.Time(1,2); % Master clock
@@ -128,15 +132,20 @@ for iSession = 1:nSessions
 
         videoStartTimeRel = eventTimes(I,1); % Relative to start of session
 
-        [d,I] = min(abs(stimTimes(:,1) - videoStartTimeRel));
+        [d,I] = min(abs(stimTimesOffset(:,1) - videoStartTimeRel));
         thresh = parameters.analysis.sync.desync / 1000;
         
         if (d <= thresh)
             videoRange = stimTimes(I,:); % Start and end time of video recording
+            touchTimesSession{index,1} = videoRange;
+            
+            jWhisker = 1;
             for iWhisker = 1:nWhiskers
                 touchRangeWhisker = touchTimesRel{iWhisker}; % Start and end time of touch
                 % Find touch ranges
-                if (~isempty(touchRangeWhisker))
+                if (~isempty(touchRangeWhisker))    
+                    
+                    % Segment touches
                     touchTimeDiff = diff(touchRangeWhisker);
                     time_off = find(touchTimeDiff > 1);
                     time_on  = time_off + 1;
@@ -153,9 +162,9 @@ for iSession = 1:nSessions
                     
                     dt = diff(videoRange);
                     if (all(time_on <= dt))
-                        touchTimesSession{index}{iWhisker,1} = videoRange;
-                        touchTimesSession{index}{iWhisker,2} = touchRangeWhisker;
-                        touchTimesSession{index}{iWhisker,3} = whiskerIDs{iWhisker};
+                        touchTimesSession{index,2}{jWhisker,1} = touchRangeWhisker;
+                        touchTimesSession{index,2}{jWhisker,2} = whiskerIDs{iWhisker};
+                        jWhisker = jWhisker + 1;
                     end
                 end
             end

@@ -76,7 +76,7 @@ r     = find(cumsum(d) / sum(d) > 0.95, 1);
 waves = spikes.waveforms(:,:) * spikes.info.pca.v(:,1:r);
 
 [M,N]              = size(waves);
-target_clustersize = M * spikes.params.kmeans_clustersize;
+target_clustersize = spikes.info.dur * spikes.params.kmeans_clustersize;
 jitter             = meandist_estim(waves) / 100 / N;        % heuristic
 
 %% DEFAULTS

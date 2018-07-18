@@ -26,16 +26,20 @@ We use the FieldTrip toolbox [Ref. 3] for LFP processing and analysis, which can
 
 https://github.com/fieldtrip/fieldtrip
 
+In case of problems with FieldTrip, please download the last version that was confirmed to be compatible with PASER: 
+https://github.com/fieldtrip/fieldtrip/tree/af6871348043f8c912b0c9c24552f9bb8db4b412
+
 If you are not planning on using FieldTrip for anything else, then do not add the FieldTrip toolbox to your MATLAB path. 
 This will be done at a later step. Otherwise, follow the directions here:
-
 http://www.fieldtriptoolbox.org/faq/should_i_add_fieldtrip_with_all_subdirectories_to_my_matlab_path
 
 ### KiloSort
 
 The default spike sorting method in PASER is KiloSort [Ref. 1], which can be downloaded or cloned from: 
-
 https://github.com/cortex-lab/KiloSort
+
+In case of problems with KiloSort, please download the last version that was confirmed to be compatible with PASER: 
+https://github.com/cortex-lab/KiloSort/tree/0ea839e33527891a379e29ff9a4512d89f27bf60
 
 It is highly recommended to use KiloSort with a CUDA enabled GPU. Attempting to run KiloSort on the CPU is errorprone and not guaranteed to result in satisfactory cluster quality. 
 Therefore, please follow the installation instructions given in the KiloSort README file and "Docs" folder. 
@@ -46,8 +50,10 @@ We will instead load the toolbox the moment it is needed in the data processing 
 ### OpenEphys
 
 The OpenEphys toolbox is used to load the raw data:
-
 https://github.com/open-ephys/analysis-tools
+
+In case of problems with OpenEphys, please download the last version that was confirmed to be compatible with PASER: 
+https://github.com/open-ephys/analysis-tools/tree/f66b83f09e1896b1b5874daabadde3cff9424e9c
 
 As with the FieldTrip and KiloSort toolboxes, it is not required to add it to the MATLAB path straight away. 
 

@@ -1,75 +1,75 @@
-function [spikes,freq] = psr_stimulus_window(spikes,freq,metadata,parameters)
+function [out_spikes,out_freq] = psr_stimulus_window(spikes,freq,metadata,parameters)
 
-Fs   = spikes.Fs;
-Nmax = floor(Fs * metadata.duration) + 1;
+% Output
+out_spikes = [];
+out_freq   = [];
 
 % Extract stimulus windows
 
-stimulusTimes = metadata.stimtimes{1};
-stimulusType  = metadata.stimtimes{2};
+stimulusTimes  = metadata.stimtimes{1};
+stimulusType   = metadata.stimtimes{2};
+stimulusOnset  = [];
+stimulusOffset = [];
+stimTimesTemp  = [];
 
 if (~isempty(stimulusTimes))
-    stimulusOnset = stimulusTimes(:,1) + parameters.analysis.stimoffset;
-    stimulusOnset = stimulusOnset(~isnan(stimulusOnset));
+    stimulusOnset  = stimulusTimes(:,1) + parameters.analysis.stimoffset;
+    keep = ~isnan(stimulusOnset);
+    stimulusOnset = stimulusOnset(keep);
+    stimTimesTemp = stimulusOnset;
+end 
+
+if (~isempty(stimulusTimes) && size(stimulusTimes,2) >= 2)
+    stimulusOffset = stimulusTimes(:,2); 
+    stimulusOffset = stimulusOffset(keep);
+    stimTimesTemp  = [stimulusOnset,stimulusOffset]; 
 end
 
-nOnsets = length(stimulusOnset); % number of stimulus onsets
-    
-if (~isempty(stimulusOnset))
+stimulusTimes = stimTimesTemp;
+nOnsets = size(stimulusTimes,1); % number of stimulus onsets
+
+if (~isempty(stimulusTimes))
     
     %% Local field potential
-    
-    if (~isempty(freq))
-        freq = psr_ft_convert2trials(freq,parameters,stimulusOnset,stimulusType); 
-    end
+    if (~isempty(freq)); out_freq = psr_ft_convert2trials(freq,parameters,stimulusTimes,stimulusType); end
     
     %% Spikes
+    if (~isempty(spikes))
         
-    switch stimulusType
-        case 'onset'
-            tPre  = parameters.analysis.spk.t_win(1);
-            tPost = parameters.analysis.spk.t_win(2);
-            tPost = repmat(tPost,nOnsets,1);
-        case 'interval'
-            tPre  = 0;
-            tPost = stimulusTimes(:,2) - stimulusOnset;
-    end
-
-    spikePoints = round(Fs * spikes.spiketimes) + 1;
-    spikes.trials = false(nOnsets,length(spikes.spiketimes));
-    spikes.info.trialonset = stimulusOnset + tPre;
-    spikes.info.trialtime  = [repmat(tPre,length(tPost),1),tPost];
-    
-    if (~isempty(spikePoints))
+        spikeTimes = spikes.spiketimes;
         
-        spikeSignal = zeros(Nmax,1);
-        [spikePoints,uniqueIDs] = unique(spikePoints);
-        spikeSignal(spikePoints) = 1;
-                
-        sPre  = round(Fs * tPre);  % pre- stimulus window
-        sPost = round(Fs * tPost); % post-stimulus window
+        % Initialize
+        spikes.info.trialtime  = [];
+        spikes.info.trialonset = [];
+        spikes.info.stimdur    = [];
         
-        stimulusPoints = round(Fs * stimulusOnset) + 1;   
-
-        for iTrial = 1:nOnsets
-
-            % In-line version of "psr_get_spike_ids" for speed-up
-            
-            sOnset = stimulusPoints(iTrial);
-            I = sOnset + sPre : sOnset + sPost(iTrial);
-            I = I(I >= 1 & I <= Nmax);
-            I = I(spikeSignal(I) == 1);
-            spikeSignal(I) = spikeSignal(I) + 1;
-            spikeIDs = spikeSignal(spikeSignal > 0) == 2;
-            spikeSignal(I) = spikeSignal(I) - 1; % Reset for next iteration
-            spikeIDs = uniqueIDs(spikeIDs);
-
-            spikes.trials(iTrial,spikeIDs) = true;
+        switch stimulusType
+            case 'onset'
+                tPre  = parameters.analysis.spk.t_win(1);
+                tPost = parameters.analysis.spk.t_win(2);
+                tPost = repmat(tPost,nOnsets,1);
+            case 'interval'
+                tPre  = 0;
+                tPost = stimulusOffset - stimulusOnset;
         end
 
-        del = ~any(spikes.trials,1); % remove spikes outside of trials
-        spikes = psr_sst_remove_spikes(spikes,del,'delete');
-    
+        spikes.info.trialonset = stimulusOnset;
+        spikes.info.trialtime  = [repmat(tPre,length(tPost),1),tPost];
+
+        trials = false(nOnsets,length(spikeTimes));
+        
+        if (~isempty(spikeTimes))
+            for iTrial = 1:nOnsets
+                tOnset = stimulusOnset(iTrial);
+                spikeIDs = spikeTimes >= tOnset + tPre & spikeTimes <= tOnset + tPost(iTrial);
+                trials(iTrial,spikeIDs) = true;
+            end
+            keep = any(trials,1); % only keep spikes inside of trials
+            spikes = psr_sst_remove_spikes(spikes,keep,'keep');
+            spikes.trials = trials(:,keep);
+        end
+        
+        out_spikes = spikes;
     end
 end
 
