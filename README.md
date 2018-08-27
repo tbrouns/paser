@@ -27,18 +27,22 @@ We use the FieldTrip toolbox [Ref. 3] for LFP processing and analysis, which can
 https://github.com/fieldtrip/fieldtrip
 
 In case of problems with FieldTrip, please download the last version that was confirmed to be compatible with PASER: 
+
 https://github.com/fieldtrip/fieldtrip/tree/af6871348043f8c912b0c9c24552f9bb8db4b412
 
 If you are not planning on using FieldTrip for anything else, then do not add the FieldTrip toolbox to your MATLAB path. 
 This will be done at a later step. Otherwise, follow the directions here:
+
 http://www.fieldtriptoolbox.org/faq/should_i_add_fieldtrip_with_all_subdirectories_to_my_matlab_path
 
 ### KiloSort
 
 The default spike sorting method in PASER is KiloSort [Ref. 1], which can be downloaded or cloned from: 
+
 https://github.com/cortex-lab/KiloSort
 
 In case of problems with KiloSort, please download the last version that was confirmed to be compatible with PASER: 
+
 https://github.com/cortex-lab/KiloSort/tree/0ea839e33527891a379e29ff9a4512d89f27bf60
 
 It is highly recommended to use KiloSort with a CUDA enabled GPU. Attempting to run KiloSort on the CPU is errorprone and not guaranteed to result in satisfactory cluster quality. 
@@ -50,9 +54,11 @@ We will instead load the toolbox the moment it is needed in the data processing 
 ### OpenEphys
 
 The OpenEphys toolbox is used to load the raw data:
+
 https://github.com/open-ephys/analysis-tools
 
 In case of problems with OpenEphys, please download the last version that was confirmed to be compatible with PASER: 
+
 https://github.com/open-ephys/analysis-tools/tree/f66b83f09e1896b1b5874daabadde3cff9424e9c
 
 As with the FieldTrip and KiloSort toolboxes, it is not required to add it to the MATLAB path straight away. 
@@ -68,9 +74,12 @@ addpath(genpath('C:\Path\To\paser-master'));
 ## Quick start
 
 To verify that the toolbox is working, you can download a test data set at:
+
 https://drive.google.com/open?id=1pelaK9NgXjJh_bOGas_ujpRpmjUcpYB9
-The data set is a relatively short extracellular recording by just two tetrodes. 
+
 [You should download the "loadPath" folder]
+
+The data set is a relatively short extracellular recording by just two tetrodes. 
 
 Then create the following script:
 
@@ -434,23 +443,23 @@ psr_batch_analysis(cfg);
 
 Again, we explain the various fields below.
 
-### `cfg.loadpath`
+#### `cfg.loadpath`
 
 Directory to load the processed data from. This field should probably be the same as the `parameters.savePath` field in the data processing section. 
 
-### `cfg.savepath`
+#### `cfg.savepath`
 
 Directory to save your analysis output files. 
 
-### `cfg.subject`
+#### `cfg.subject`
 
-Which subject's data we are going to analyse. If `cfg.subject = SubjectID', then we only load processed data from folders containing the `SubjectID` string at the start of their names. 
+Which subject's data we are going to analyse. If `cfg.subject = 'SubjectID'`, then we only load processed data from folders containing the `SubjectID` string at the start of their names. 
 
-### `cfg.analysis.run`
+#### `cfg.analysis.run`
 
 Boolean indicating whether we want to run the analysis or not, i.e. whether we call the analysis function given by `cfg.analysis.fpath`. 
 
-### `cfg.analysis.fpath`
+#### `cfg.analysis.fpath`
 
 The `cfg.analysis.fpath` field points to an M-file that is supplied by the user to carry out data analysis. 
 The M-file must contain a function, which is called in the `psr_batch_analysis` routine at the end of your analysis script, given above. 
@@ -461,11 +470,11 @@ You should be able to run this analysis function on your own data, by setting:
 For most experiments, however, you want to create a more advanced analysis, but the `psr_example_analysis.m` file can be used as a starting point. 
 The `psr_example_analysis.m` file has therefore been heavily annotated to make it easier for people to make their own custom analysis function. 
 
-### `cfg.plot.quality`
+#### `cfg.plot.quality`
 
 Boolean indicating whether we want to plot unit quality figures. 
 
-### `cfg.plot.merges`
+#### `cfg.plot.merges`
 
 Boolean indicating whether we want to plot the cluster merges. 
 
