@@ -466,9 +466,9 @@ The M-file must contain a function, which is called in the `psr_batch_analysis` 
 
 For an analysis function example, you can look at the `psr_example_analysis.m` file in the `examples` folder. 
 You should be able to run this analysis function on your own data, by setting:
-
-`cfg.analysis.fpath = 'C:\path\to\examples\psr_example_analysis'; % Location of the "psr_example_analysis.m" file`
-
+```
+cfg.analysis.fpath = 'C:\path\to\examples\psr_example_analysis'; % Location of the "psr_example_analysis.m" file
+```
 For most experiments, however, you want to create a more advanced analysis, but the `psr_example_analysis.m` file can be used as a starting point. The `psr_example_analysis.m` file has therefore been heavily annotated to make it easier for people to make their own custom analysis function. 
 
 #### `cfg.plot.quality`
