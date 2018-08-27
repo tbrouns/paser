@@ -172,7 +172,7 @@ parameters.filter.chan.mse.thresh  = 0.05;  % mean-squared error threshold
 %% psr_sst_filter_chan_rip
 parameters.filter.chan.rip.run    = false; % Whether to do the filtering or not
 parameters.filter.chan.rip.fmin   =   600; % Minimum frequency of noisy oscillations
-parameters.filter.chan.rip.thresh =  0.15; % Maximum amplitude in power spectrum
+parameters.filter.chan.rip.thresh =  0.15; % Maximum relative amplitude in power spectrum
 
 %% psr_sst_filter_chan_loc
 % Uses parameters.spikes.max_desync

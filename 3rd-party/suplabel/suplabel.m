@@ -1,4 +1,4 @@
-function [ax,h]=suplabel(text,whichLabel,supAxes)
+function [ax,h]=suplabel(text,whichLabel,supAxes,Interpreter)
 % PLaces text as a title, xlabel, or ylabel on a group of subplots.
 % Returns a handle to the label and a handle to the axis.
 %  [ax,h]=suplabel(text,whichLabel,supAxes)
@@ -7,12 +7,12 @@ function [ax,h]=suplabel(text,whichLabel,supAxes)
 % returns a handle to the axis only.
 %  suplabel(text) with one input argument assumes whichLabel='x'
 %
-% whichLabel is any of 'x', 'y', 'yy', or 't', specifying whether the 
-% text is to be the xlable, ylabel, right side y-label, 
+% whichLabel is any of 'x', 'y', 'yy', or 't', specifying whether the
+% text is to be the xlable, ylabel, right side y-label,
 % or title respectively.
 %
-% supAxes is an optional argument specifying the Position of the 
-%  "super" axes surrounding the subplots. 
+% supAxes is an optional argument specifying the Position of the
+%  "super" axes surrounding the subplots.
 %  supAxes defaults to [.08 .08 .84 .84]
 %  specify supAxes if labels get chopped or overlay subplots
 %
@@ -32,70 +32,60 @@ function [ax,h]=suplabel(text,whichLabel,supAxes)
 
 % Author: Ben Barrowes <barrowes@alum.mit.edu>
 
-%modified 3/16/2010 by IJW to make axis behavior re "zoom" on exit same as
-%at beginning. Requires adding tag to the invisible axes
+% modified 3/16/2010 by IJW to make axis behavior re "zoom" on exit same as
+% at beginning. Requires adding tag to the invisible axes
 
+% modified by Terence Brouns (2018): added an additional "Interpreter"
+% argument and cleaned up the code
 
-currax=findobj(gcf,'type','axes','-not','tag','suplabel');
+currax = findobj(gcf,'type','axes','-not','tag','suplabel');
 
-if nargin < 3
- supAxes=[.08 .08 .84 .84];
- ah=findall(gcf,'type','axes');
- if ~isempty(ah)
-  supAxes=[inf,inf,0,0];
-  leftMin=inf;  bottomMin=inf;  leftMax=0;  bottomMax=0;
-  axBuf=.04;
-  set(ah,'units','normalized')
-  ah=findall(gcf,'type','axes');
-  for ii=1:length(ah)
-   if strcmp(get(ah(ii),'Visible'),'on')
-    thisPos=get(ah(ii),'Position');
-    leftMin=min(leftMin,thisPos(1));
-    bottomMin=min(bottomMin,thisPos(2));
-    leftMax=max(leftMax,thisPos(1)+thisPos(3));
-    bottomMax=max(bottomMax,thisPos(2)+thisPos(4));
-   end
-  end
-  supAxes=[leftMin-axBuf,bottomMin-axBuf,leftMax-leftMin+axBuf*2,bottomMax-bottomMin+axBuf*2];
- end
+if (nargin < 4); Interpreter = 'tex'; end
+if (nargin < 3) || isempty(supAxes)
+    supAxes = [.08 .08 .84 .84];
+    ah = findall(gcf,'type','axes');
+    if ~isempty(ah)
+        supAxes    = [inf,inf,0,0];
+        min_left   = inf;  
+        min_bottom = inf;  
+        max_left   = 0;  
+        max_bottom = 0;
+        axBuf      = .04;
+        set(ah,'units','normalized')
+        ah = findall(gcf,'type','axes');
+        for ii = 1:length(ah)
+            if strcmp(get(ah(ii),'Visible'),'on')
+                thisPos = get(ah(ii),'Position');
+                min_left   = min(min_left,  thisPos(1));
+                min_bottom = min(min_bottom,thisPos(2));
+                max_left   = max(max_left,  thisPos(1) + thisPos(3));
+                max_bottom = max(max_bottom,thisPos(2) + thisPos(4));
+            end
+        end
+        supAxes = [...
+            min_left   - axBuf,...
+            min_bottom - axBuf,...
+            max_left   - min_left   + axBuf * 2, ...
+            max_bottom - min_bottom + axBuf * 2];
+    end
 end
-if nargin < 2, whichLabel = 't';  end
-if nargin < 1, help(mfilename); return; end
+if (nargin < 2) || isempty(whichLabel); whichLabel = 't';  end
+if (nargin < 1); help(mfilename); return; end
 
-if ~isstr(text) | ~isstr(whichLabel)
-  error('text and whichLabel must be strings')
-end
-whichLabel=lower(whichLabel);
+if ~isstr(text) || ~isstr(whichLabel); error('text and whichLabel must be strings'); end
+whichLabel = lower(whichLabel);
 
-ax=axes('Units','Normal','Position',supAxes,'Visible','off','tag','suplabel');
-if strcmp('t',whichLabel)
-  set(get(ax,'Title'),'Visible','on')
-  title(text);
-elseif strcmp('x',whichLabel)
-  set(get(ax,'XLabel'),'Visible','on')
-  xlabel(text);
-elseif strcmp('y',whichLabel)
-  set(get(ax,'YLabel'),'Visible','on')
-  ylabel(text);
-elseif strcmp('yy',whichLabel)
-  set(get(ax,'YLabel'),'Visible','on')
-  ylabel(text);
-  set(ax,'YAxisLocation','right')
-end
-
-for k=1:length(currax), axes(currax(k));end % restore all other axes
-
-if (nargout < 2)
-  return
-end
-if strcmp('t',whichLabel)
-  h=get(ax,'Title');
-  set(h,'VerticalAlignment','middle')
-elseif strcmp('x',whichLabel)
-  h=get(ax,'XLabel');
-elseif strcmp('y',whichLabel) | strcmp('yy',whichLabel)
-  h=get(ax,'YLabel');
+ax = axes('Units','Normal','Position',supAxes,'Visible','off','tag','suplabel');
+if     strcmp('t', whichLabel); set(get(ax,'Title'), 'Visible','on');  title(text,'Interpreter',Interpreter); 
+elseif strcmp('x', whichLabel); set(get(ax,'XLabel'),'Visible','on'); xlabel(text,'Interpreter',Interpreter);
+elseif strcmp('y', whichLabel); set(get(ax,'YLabel'),'Visible','on'); ylabel(text,'Interpreter',Interpreter);
+elseif strcmp('yy',whichLabel); set(get(ax,'YLabel'),'Visible','on'); ylabel(text,'Interpreter',Interpreter); set(ax,'YAxisLocation','right');
 end
 
-%%%ah=findall(gcf,'type','axes');
-%%%'sssssssss',kb
+for k = 1:length(currax), axes(currax(k));end % restore all other axes
+
+if (nargout < 2); return; end
+if     strcmp('t',whichLabel);                            h = get(ax,'Title'); set(h,'VerticalAlignment','middle')
+elseif strcmp('x',whichLabel);                            h = get(ax,'XLabel');
+elseif strcmp('y',whichLabel) || strcmp('yy',whichLabel); h = get(ax,'YLabel');
+end

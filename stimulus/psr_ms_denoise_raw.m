@@ -85,13 +85,13 @@ for iArtifact = 1:nArtifacts
     Ymean = 0.5 * (Y1 + Y2);
     
     I = T1(2):T2(1);
-    pulseWindow = data(I);
-    pulseWindow = pulseWindow - mean(pulseWindow) + Ymean;
+    pulseWindow = data(I); % Between-peak window
+    pulseWindow = pulseWindow - mean(pulseWindow) + Ymean; % Offset amplitudes to lie between start and end point amplitudes
     
     dY1 = Y1 - pulseWindow(1);
     dY2 = Y2 - pulseWindow(end);
     dY = linspace(dY1,dY2,length(pulseWindow))';
-    pulseWindow = pulseWindow + dY;
+    pulseWindow = pulseWindow + dY; % Add linear function to the window data so it joins start and end point
     data(I) = pulseWindow;
     
     % Silence artifact

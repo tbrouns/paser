@@ -35,15 +35,21 @@ elseif (isfield(input,'spikes'))
     %
     %     input.onset: stimulus onset (t = 0)
     
-    spikes   = input.spikes;
-    nTrials  = size(input.trialtime,1);
-    unitIDs  = unique(spikes.assigns);
-    probeID  = []; 
-    popUnit  = false;     
+    % Parse inputs 
+    
+    spikes  = input.spikes;
+    unitIDs = unique(spikes.assigns);
+    probeID = []; 
+    popUnit = false; 
+    
+    if (~isfield(input,'trialtime')   && ~isempty_field(spikes,'spikes.info.trialtime'));  input.trialtime   = spikes.info.trialtime;  end
+    if (~isfield(input,'trialonsets') && ~isempty_field(spikes,'spikes.info.trialonset')); input.trialonsets = spikes.info.trialonset; end
+    if (~isfield(input,'probeID')     && ~isempty_field(spikes,'spikes.probeID'));         input.probeID     = spikes.probeID;         end
+    
     if (isfield(input,'probeID')); probeID = input.probeID; end
     if (isfield(input,'popUnit')); popUnit = input.popUnit; end
-     
-    itr  = 1;
+    
+    nTrials = size(input.trialtime,1);
     
     % Add a population unit
     if (popUnit && all(unitIDs ~= 0)) 
@@ -51,6 +57,7 @@ elseif (isfield(input,'spikes'))
         unitIDs = sort(unitIDs);
     end
     
+    itr = 1;
     for iUnit = unitIDs
         
         if (iUnit == 0); spikeIDs = spikes.assigns >= 0; % Population response

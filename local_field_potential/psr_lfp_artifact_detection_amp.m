@@ -60,14 +60,17 @@ artifacts = artifactsAll;
 
 end
 
-function stdev = findStd(data,tSection,Fs)
+function bgNoise = findBackgroundNoise(data,tSection,Fs)
 
 % Find background noise
+
+% We determine the median absolute deviation (MAD) in data sections of length
+% "tSection" and then use the smallest MAD as the 
 
 nLength  = length(data);
 nSamples = round(tSection * Fs); % cut data in sections of X seconds
 nStep    = round(0.1 * (nSamples)); % move window with steps of 0.1*nsection
-stdev    = [];
+bgNoise  = [];
 
 iStart = 1;
 iEnd   = iStart + nSamples;
@@ -85,21 +88,21 @@ while (~STOP)
     if (iStart <       1); iStart = 1;       end
     
     data_section = data(iStart:iEnd);
-    stdev  = [stdev;psr_mad(data_section)]; %#ok
+    bgNoise  = [bgNoise;psr_mad(data_section)]; %#ok
     iStart = iStart + nStep;
     iEnd   = iStart + nSamples;
 end
 
-stdev = min(stdev);
+bgNoise = min(bgNoise);
 
 end
 
 function artifacts = findArtifacts(signal,tSection,Fs,threshFactorUpper,threshFactorLower)
 
 sLength = length(signal);
-stdev = findStd(signal,tSection,Fs);
-threshUpper = threshFactorUpper * stdev;
-threshLower = threshFactorLower * stdev;
+bgNoise = findBackgroundNoise(signal,tSection,Fs);
+threshUpper = threshFactorUpper * bgNoise;
+threshLower = threshFactorLower * bgNoise;
 
 [peakAmps,peakLocs] = findpeaks(double(signal)); % detect peaks in raw data signal
 peakLocs = peakLocs(peakAmps > threshUpper); % Find peaks above threshold
@@ -116,15 +119,5 @@ offsets = IDs(peakIDs + 1);
 onsets  = onsets (ids(onsets)  == 1);
 offsets = offsets(ids(offsets) == 1);
 artifacts = ([onsets;offsets])';
-
-% %% Visualization
-% figure;
-% artifactsTrial = unique(artifacts,'rows');
-% t = ((1:size(signal,2)) - 1) / Fs;
-% plot(t,signal); hold on;
-% scatter((artifactsTrial(:,1)-1)/Fs,threshLower * ones(size(artifactsTrial(:,1))),'filled');
-% scatter((artifactsTrial(:,2)-1)/Fs,threshLower * ones(size(artifactsTrial(:,2))),'filled');
-% plot([t(1) t(end)],[threshUpper threshUpper]);
-% plot([t(1) t(end)],[threshLower threshLower]);
 
 end

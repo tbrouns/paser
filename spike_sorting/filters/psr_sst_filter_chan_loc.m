@@ -30,43 +30,12 @@ for iClust = fliplr(clusterIDs)
     end
     dt = 1000 * dLocs / Fs;
     I = find(dt > parameters.spikes.max_desync);
-    
-%     if (~isempty(I)) % TEMP
-%         close all; 
-%         figure; set(gcf,'position',get(0,'screensize')); 
-%         
-%         % Extract waveforms for this cluster
-%         spikeIDs  = ismember(spikes.assigns,iClust);
-%         waveforms = psr_int16_to_single(spikes.waveforms(spikeIDs,:,:),parameters);
-%         waveforms = psr_sst_norm_waveforms(waveforms,spikes.info.thresh); % Normalize waveforms by spike threshold
-%         waveformMedian = median(waveforms,1); % Mean across spikes
-%         
-%         subplot(2,1,1); hold on;
-%         for iChan = 1:size(waveformMedian,3)
-%             w = waveformMedian(1,:,iChan);
-%             w = w(:);
-%             plot(1:length(w),w);
-%         end 
-%         legend('Chan 1','Chan 2','Chan 3','Chan 4');
-%         
-%         subplot(2,1,2);
-%         psr_parameters_display;
-%         psr_sst_plot_waveforms(spikes, iClust, parameters);
-%         
-%         suplabel(num2str(dt'));
-%         
-%         % Save        
-%         savePathFig = 'G:\Data\electrophysiology\AVP\data_figures\LOC\';
-%         filename = join([spikes.session,spikes.probeID,num2str(iClust)],'-');
-%         savePathFig = [savePathFig filename{1}];
-%         export_fig(savePathFig);
-%     end
-    
+        
     %% Save
     jClust = find(iClust == clustIDs_saved);
     if (isempty(jClust))
         if (~isempty_field(spikes,'spikes.clusters.noise')); jClust = length(spikes.clusters.noise) + 1;
-        else,                                                    jClust = 1;
+        else,                                                jClust = 1;
         end
         spikes.clusters.noise(jClust).id = iClust;
     end

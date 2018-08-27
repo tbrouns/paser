@@ -1,6 +1,10 @@
 function psr_ft_plot_xcorr(XCorr,parameters,clustIDs)
 
-if (length(clustIDs) ~= 2); disp(['Error in "' mfilename '" -- Must input two unit indices']); return; end 
+if (length(clustIDs) ~= 2)
+    str = {'ERROR in "psr_ft_plot_xcorr": Input must contain two unit indices.'};
+    psr_show_warning(str);
+    return;
+end
 
 % Initialize
 

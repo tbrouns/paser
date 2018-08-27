@@ -21,7 +21,6 @@ quality = I;
 %% Check for single unit quality
 
 I = ones(nClusts,1);
-if psr_isfield(spikes,'spikes.clusters.metrics.nspikes'); I = checkThreshold(I, {spikes.clusters.metrics.nspikes}, parameters.cluster.quality.min_spikes, true);  end % small spike number
 if psr_isfield(spikes,'spikes.clusters.metrics.sub');     I = checkThreshold(I, {spikes.clusters.metrics.sub},     parameters.cluster.quality.max_sub,    false); end % fraction of sub-threshold spikes
 if psr_isfield(spikes,'spikes.clusters.metrics.rpv');     I = checkThreshold(I, {spikes.clusters.metrics.rpv},     parameters.cluster.quality.max_rpv,    false); end % fraction of refractory period violations
 if psr_isfield(spikes,'spikes.clusters.metrics.mse');     I = checkThreshold(I, {spikes.clusters.metrics.mse},     parameters.cluster.quality.max_mse,    false); end % stability measure
@@ -31,7 +30,8 @@ quality = quality + (quality > 0) .* I;
 %% Check for isolated single unit
 
 I = ones(nClusts,1);
-if psr_isfield(spikes,'spikes.clusters.metrics.F1_t'); I = checkThreshold(I, {spikes.clusters.metrics.F1_t}, parameters.cluster.quality.min_f1, true); end % false positive rate
+if psr_isfield(spikes,'spikes.clusters.metrics.nspikes'); I = checkThreshold(I, {spikes.clusters.metrics.nspikes}, parameters.cluster.quality.min_spikes, true); end % small spike number
+if psr_isfield(spikes,'spikes.clusters.metrics.F1_t');    I = checkThreshold(I, {spikes.clusters.metrics.F1_t},    parameters.cluster.quality.min_f1,     true); end % false positive rate
 quality = quality + (quality > 0) .* I;
 
 %% Save

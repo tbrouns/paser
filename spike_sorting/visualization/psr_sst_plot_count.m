@@ -22,9 +22,10 @@ I = find(cumsum(yDist) > 0.99,1);
 if (~isempty(I)); xmax = xDist(I);
 else,             xmax = xDist(end);
 end
-ymax = 2 * max(y); if (ymax > 1.0); ymax = 1.0; end
 xlim([-0.5, xmax + 0.5]);
-ylim([0 ymax]);
+
+ymax = 2 * max(y); if (ymax > 1.0); ymax = 1.0; end
+if (ymax > 0); ylim([0 ymax]); end
 
 % Set x-ticks
 

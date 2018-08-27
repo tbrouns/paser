@@ -39,8 +39,7 @@ for iClust = clustIDs
     waveformMedian = median(waveforms,1);
     waveformMedian = squeeze(waveformMedian);
         
-    % Calculate auto-correlation for individual channels
-    % Large peaks at non-zero lag indicative of noise ripples
+    % Calculate FFT for individual channels. Large power indicative of noise ripples
 
     for iChan = nChans:-1:1
         w = waveformMedian(:,iChan);
@@ -60,7 +59,7 @@ for iClust = clustIDs
     jClust = find(iClust == clustIDs_saved);
     if (isempty(jClust))
         if (~isempty_field(spikes,'spikes.clusters.noise')); jClust = length(spikes.clusters.noise) + 1;
-        else,                                                    jClust = 1;
+        else,                                                jClust = 1;
         end
         spikes.clusters.noise(jClust).id = iClust;
     end

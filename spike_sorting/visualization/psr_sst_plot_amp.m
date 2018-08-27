@@ -31,19 +31,14 @@ function p = psr_sst_plot_amp(spikes,clustID,parameters)
 [x,n]        = psr_sst_amp_hist    (spikes,clustID,parameters,true);
 
 % Determine global extreme
-my_sign   = sign(mean(spikes.info.thresh));
-my_ex     = max(abs(x));
-global_ex = my_ex * my_sign;
+global_ex = max(abs(x));
 
 % Histogram
 bar(x,n,1.0,'FaceColor','k','EdgeColor','none','FaceAlpha',1.0);
-set(gca,'XLim',sort([global_ex 0]));
 
 if (spikes.info.detected)
     if (parameters.display.show_gaussfit) % Draw Gaussian fit
-        if (my_sign == -1); a = linspace(global_ex,0,200);
-        else,               a = linspace(0,global_ex,200);
-        end
+        a = linspace(0,global_ex,200);
         b = normpdf(a,mu,stdev);
         b = b * (max(n) / max(b));
         l = line(a,b); set(l,'Color',[1 0 0],'LineWidth',1.5)
@@ -51,7 +46,7 @@ if (spikes.info.detected)
 end
 
 % Threshold line
-l = line([1 1]*my_sign, get(gca,'YLim'));
+l = line([1 1], get(gca,'YLim'));
 set(l,'LineStyle','--','Color',[0 0 1],'LineWidth',2)
 
 % Prettify axes
@@ -73,9 +68,7 @@ N = cumsum(n);
 N = N / sum(n);
 I = find(N > 0.99,1,'first');
 global_ex = x(I);
-if (global_ex < 0)
-    xlim([global_ex,0]);
-end
+xlim([0 global_ex])
 
 end
 

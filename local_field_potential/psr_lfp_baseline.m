@@ -49,7 +49,6 @@ function baseline = getBaseline(data,cfg)
 nDims = ndims(data.powspctrm);
 if (nDims < 4); error('error:FaultyDimensions',['The "powspctrm" field has ' num2str(nDims) ' dimensions, but should have 4 dimensions.']); end
 
-nTrials =  size(data.powspctrm,1);
 nFreqs  =  size(data.powspctrm,3);
 nTimes  =  size(data.powspctrm,4);
 
@@ -80,8 +79,7 @@ end
 % Extrace the baseline window
 baseline = data.powspctrm(cfg.trials,:,:,idxT); % extract baseline window
 baseline(:,:,del) = NaN; % Ignore data points that are outside of cycle window
-baseline = nanmean(baseline,1); % average over trials
 baseline = nanmean(baseline,4); % average over time bins
-baseline =  repmat(baseline,nTrials,1,1,nTimes);
+baseline =  repmat(baseline,1,1,1,nTimes);
 
 end

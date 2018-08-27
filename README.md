@@ -18,7 +18,7 @@ PASER contains the following types of processing routines:
 
 ## Install third-party dependencies
 
-In order to use the toolbox, a couple of third-party software packages need to be installed on your system.
+In order to use the toolbox, a few third-party software packages need to be installed on your system.
 
 ### FieldTrip 
 
@@ -67,17 +67,41 @@ addpath(genpath('C:\Path\To\paser-master'));
 
 ## Quick start
 
+To verify that the toolbox is working, you can download a test data set at:
+https://drive.google.com/open?id=1pelaK9NgXjJh_bOGas_ujpRpmjUcpYB9
+The data set is a relatively short extracellular recording by just two tetrodes. 
+[You should download the "loadPath" folder]
+
+Then create the following script:
+
+```
+psr_parameters_general;
+parameters.loadPath   = 'C:\path\to\loadPath\;  % Location of the downloaded "loadPath" folder
+parameters.savePath   = 'D:\path\to\savePath\;  % Where you want to save the output data 
+parameters.path.ft    = 'E:\path\to\FieldTrip'; % Path to the FieldTrip main directory (folder that contains e.g. ft_defaults.m)
+parameters.path.kst   = 'F:\path\to\KiloSort';  % Path to the KiloSort  main directory (folder that contains e.g. preprocessData.m)
+parameters.path.ephys = 'G:\path\to\OpenEphys'; % Path to the OpenEphys main directory (folder that contains e.g. load_open_ephys_data.m)
+
+psr_example_batch_processing(parameters)
+```
+
+Where you have to specify the five different path variables yourself. When you run the script and everything is working correctly, PASER should begin to load data from the `loadPath` directory and generate data in the `savePath` directory.
+As soon as PASER is finished processing the data, a few figures will be created showing some quality metrics of a detected neuron, which are saved in the `savePath` directory. 
+Furthermore, we perform a basic analysis on the data and plot some figures in the `analysis_figures` folder in the `savePath` directory. Note that these figures are only for illustrative purposes and won't show any interesting results. 
+
+## Further details
+
 ### Default processing script
 
-Create a MATLAB script containing the following lines of code:
+To process data using PASER, you should create a MATLAB script containing the following lines of code:
 
 ```
 parameters = [];
 
-parameters.configPath   = 'E:\PathToConfigFile\ConfigFile; % Where the parameters are loaded from
-parameters.loadPath     = 'C:\PathToLoadFolder\LoadFolder\'; % Where the data folders are
-parameters.savePath     = 'D:\PathToSaveFolder\SaveFolder\'; % Where you want to save the output MAT files
-parameters.subject      = 'SubjectName'; % Name of subject used in output MAT filename (no spaces)
+parameters.configPath   = 'C:\path\to\ConfigFile';  % Where the parameters are loaded from
+parameters.loadPath     = 'D:\path\to\LoadFolder\'; % Where the data folders are
+parameters.savePath     = 'E:\path\to\SaveFolder\'; % Where you want to save the output MAT files
+parameters.subject      = 'SubjectID';   % Name of subject used in output MAT filename (no spaces)
 parameters.nelectrodes  = 4;             % Number of electrodes per polytrode (e.g. tetrode: 4)
 parameters.extension    = 'continuous';  % File extension of raw data files
 parameters.rawpattern   = 'CH';          % Pattern to look for in data files
@@ -105,9 +129,9 @@ This script should at least contain the following lines of code:
 
 ```
 psr_parameters_general;
-parameters.path.ft    = 'C:\PathToFieldTrip\FieldTrip'; % Path to the FieldTrip repository
-parameters.path.kst   = 'D:\PathToKiloSort\KiloSort';   % Path to the KiloSort  repository
-parameters.path.ephys = 'E:\PathToOpenEphys\OpenEphys'; % Path to the OpenEphys repository
+parameters.path.ft    = 'C:\path\to\FieldTrip'; % Path to the FieldTrip repository
+parameters.path.kst   = 'D:\path\to\KiloSort';  % Path to the KiloSort  repository
+parameters.path.ephys = 'E:\path\to\OpenEphys'; % Path to the OpenEphys repository
 ```
 
 To avoid clogging up the MATLAB path, we add the third-party toolboxes given above whenever we need them and remove them afterwards. 
@@ -124,7 +148,7 @@ See `psr_parameters_general` for all other parameter fields. Comments next to ea
 
 #### `parameters.loadPath`
 
-`parameters.loadPath` should point to a directory tree like the one given below. 
+`parameters.loadPath` should point to a directory tree like the one given below. This is the directory tree of the test data. 
 
 ```
 loadPath
@@ -170,7 +194,7 @@ loadPath
 The `loadPath` folder should include one or more folders for specific experimental sessions. Here, we have two such folders called `Session_1` and `Session_1_Condition`.
 Each session folder then contains one or more folders for specific experimental blocks that hold the raw data files. 
 In the case of `Session_1_Condition`, we have the `Block_0M` and `Block_1M`, which contain the `continuous` files. 
-To be clear, the names `Session` and `Block` are arbitrary here, you can use any other name you desire.
+To be clear, the names `Session` and `Block` are arbitrary, you can use any other name you want.
 
 ##### Note on experimental "sessions" and "blocks" 
 
@@ -266,9 +290,9 @@ Session_2 Session_2_Condition_1 Session_2_Condition_2
 
 As mentioned under `parameters.savePath`, a MAT file will be saved for each probe to the `savePath` for the current session. These files have the following naming convention:
 
-`PSR_%SubjectName%_%Session%_P%ProbeNumber%.mat`
+`PSR_%SubjectID%_%Session%_P%ProbeNumber%.mat`
 
-Where `%SubjectName%` is specified by `parameters.subject`, `%Session%` by the name of the session folder and `%ProbeNumber%` by the probe number.
+Where `%SubjectID%` is specified by `parameters.subject`, `%Session%` by the name of the session folder and `%ProbeNumber%` by the probe number.
 
 The data in every MAT file is organized in the following way:
 
@@ -387,9 +411,63 @@ These temporary MAT files are deleted after they are no longer needed.
 It is highly recommended to make sure that MATLAB deletes these files permanently, so no manual clean-up is needed. 
 You can select this option by going to the `Home` tab in MATLAB, selecting `Preferences` (the cogwheel), then the `General` menu and clicking on the `Delete permanently` option under `Deleting files`. 
 
-## Visualization and Quality Control
+## Visualization & Analysis
 
-## Analysis
+### Default analysis script 
+
+After processing the data, we would like to visualize and analyse it. Similar to the data processing section, we should create a default analysis script as follows:
+
+```
+cfg = [];
+cfg.loadpath = 'C:\path\to\LoadFolder'; % Location of output files from LFP and spike processing
+cfg.savepath = 'D:\path\to\SaveFolder'; % Where to save the output analysis files
+cfg.subject  = 'SubjectID';             % The subject we want to analysis 
+
+cfg.analysis.run   = true; % Whether to do the analysis
+cfg.analysis.fpath = 'E\path\to\AnalysisFunction'; % Location of your custom analysis function
+
+cfg.plot.quality = true; % Plot unit quality figures
+cfg.plot.merges  = true; % Plot unit merges
+
+psr_batch_analysis(cfg);
+```
+
+Again, we explain the various fields below.
+
+### `cfg.loadpath`
+
+Directory to load the processed data from. This field should probably be the same as the `parameters.savePath` field in the data processing section. 
+
+### `cfg.savepath`
+
+Directory to save your analysis output files. 
+
+### `cfg.subject`
+
+Which subject's data we are going to analyse. If `cfg.subject = SubjectID', then we only load processed data from folders containing the `SubjectID` string at the start of their names. 
+
+### `cfg.analysis.run`
+
+Boolean indicating whether we want to run the analysis or not, i.e. whether we call the analysis function given by `cfg.analysis.fpath`. 
+
+### `cfg.analysis.fpath`
+
+The `cfg.analysis.fpath` field points to an M-file that is supplied by the user to carry out data analysis. 
+The M-file must contain a function, which is called in the `psr_batch_analysis` routine at the end of your analysis script, given above. 
+
+For an analysis function example, you can look at the `psr_example_analysis.m` file in the `examples` folder. 
+You should be able to run this analysis function on your own data, by setting:
+`cfg.analysis.fpath = 'C:\path\to\examples\psr_example_analysis'; % Location of the "psr_example_analysis.m" file`
+For most experiments, however, you want to create a more advanced analysis, but the `psr_example_analysis.m` file can be used as a starting point. 
+The `psr_example_analysis.m` file has therefore been heavily annotated to make it easier for people to make their own custom analysis function. 
+
+### `cfg.plot.quality`
+
+Boolean indicating whether we want to plot unit quality figures. 
+
+### `cfg.plot.merges`
+
+Boolean indicating whether we want to plot the cluster merges. 
 
 ## Troubleshooting
 

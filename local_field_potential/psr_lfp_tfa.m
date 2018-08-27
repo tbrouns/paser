@@ -27,7 +27,7 @@ end
 [data,missing] = psr_remove_field(data,'missing');
 
 % Time-frequency analysis
-try output = ft_freqanalysis(cfg,data);
+try output = ft_freqanalysis(cfg,data); % FieldTrip function
 catch ME
     output = [];
     str = ME.message;

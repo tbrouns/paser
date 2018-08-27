@@ -23,10 +23,9 @@ for iChan = 1:nChans
     % Find mode of signal envelope: magnitude of analytical signal
     
     [yUpper,~] = envelope(dataChan);
-
     binsize = 10^-parameters.general.precision;
     binmax  = mean(yUpper) + 5 * std(yUpper);
-    edges   = 0:binsize:binmax;
+    edges   = binsize:binsize:binmax;
     [count,edges] = histcounts(yUpper,edges);
     if (length(edges) > 1)
         edges = edges(1:end-1) + 0.5 * diff(edges);

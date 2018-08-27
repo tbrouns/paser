@@ -62,8 +62,6 @@ end
 ids = [spikes.clusters.metrics.id];
 clusterIDs = ids(clusterIDs);
 
-run(parameters.general.configPath); % TEMP
-
 %% Ignore low spike count clusters
 nspikes = zeros(nClust,1);
 for iClust = 1:nClust

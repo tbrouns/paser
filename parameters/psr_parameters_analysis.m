@@ -2,14 +2,13 @@
 % Relevant function name is given in each box. Check function description
 % within the respective files to get more info on the parameters.
 
-
 %% Stimuli
 
 parameters.analysis.stimoffset = 0;
 
 % Windows to extract before and after stimulus [s] 
 parameters.analysis.spk.t_win = [-0.25,0.50]; % Spiking window
-parameters.analysis.lfp.t_win = [-0.25,0.50]; % Local field potential window (should include some padding)
+parameters.analysis.lfp.t_win = [-2.00,4.00]; % Local field potential window (should include sufficient padding to avoid FieldTrip warnings)
 
 %% Fast fourier transform
 
@@ -37,7 +36,7 @@ parameters.analysis.tfa.taper      = 'hanning';
 parameters.analysis.tfa.pad        = 'nextpow2';
 parameters.analysis.tfa.foi        = 0.5:0.5:70; % Frequencies of interest [Hz]
 parameters.analysis.tfa.tapsmofrq  = 2;          % Amount of spectral smoothing through multi-tapering (when taper = 'dpss') [Hz]
-parameters.analysis.tfa.toi        = 'all';      % The times on which the analysis windows should be centered [s]
+parameters.analysis.tfa.toi        = 'all';      % The times on which the analysis windows should be centered [s] (Note that you typically DO NOT want to use the default option here, due to very long processing times)
 parameters.analysis.tfa.ncycles    = 5;          % Number of cycles for frequency in sliding time window. If empty, "t_ftimwin" is used instead.
 parameters.analysis.tfa.t_ftimwin  = 2;          % Length of sliding time window [s]
 parameters.analysis.tfa.keepchans  = false;      % Whether to keep individual channels, or to average over them

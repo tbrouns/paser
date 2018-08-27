@@ -18,6 +18,13 @@ pos{1}(2) = bottom + plotspace / 2;
 set(h(1),'position',pos{1});
 set(h(2),'position',pos{2});
 
+% Fix alignment in case of colorbar
+pos1 = get(h(1),'Position');
+pos2 = get(h(2),'Position');
+pos2(3) = pos1(3);
+set(h(2),'Position',pos2)
+
+% Move y-labels to the right
 set(h(2),'YAxisLocation','right');
         
 end

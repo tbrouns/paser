@@ -1,12 +1,12 @@
 function psr_batch_analysis(cfg)
 
-if (isempty_field(cfg,'cfg.subject'));      cfg.subject      = [];    end
-if (isempty_field(cfg,'cfg.loadpath'));     cfg.loadpath     = [];    end
-if (isempty_field(cfg,'cfg.savepath'));     cfg.savepath     = [];    end
+if (isempty_field(cfg,'cfg.subject'));      cfg.subject      = [];    end % Which subject to load data from
+if (isempty_field(cfg,'cfg.loadpath'));     cfg.loadpath     = [];    end % Where to load the processed data
+if (isempty_field(cfg,'cfg.savepath'));     cfg.savepath     = [];    end % Where to save the analysed  data
 if (isempty_field(cfg,'cfg.pattern'));      cfg.pattern      = [];    end % Pattern to look for in foldernames
-if (isempty_field(cfg,'cfg.cluster.run'));  cfg.cluster.run  = false; end % Plot spike sorting quality control figures
-if (isempty_field(cfg,'cfg.manual.run'));   cfg.manual.run   = false; end % Manual labelling
-if (isempty_field(cfg,'cfg.analysis.run')); cfg.analysis.run = false; end
+if (isempty_field(cfg,'cfg.analysis.run')); cfg.analysis.run = false; end % Whether to run the analysis script
+if (isempty_field(cfg,'cfg.plot.quality')); cfg.plot.quality = false; end % Plot spike sorting quality control figures
+if (isempty_field(cfg,'cfg.plot.merges'));  cfg.plot.merges  = false; end % Plot the cluster merges
 
 folderNames = dir([cfg.loadpath cfg.subject '*']);
 folderNames = char(folderNames.name);
@@ -28,6 +28,9 @@ folders = folders(~cellfun('isempty',folders)); % remove empty cells
 nFolders = length(folders);
 
 for iFolder = 1:nFolders
+    
+    % Grab the processed data files
+    
     foldername = folders{iFolder};
     
     loadPath = [cfg.loadpath, foldername];
@@ -42,14 +45,17 @@ for iFolder = 1:nFolders
     if (isempty(filenames)); continue; end
     
     % LFP and spike analysis
+    
     if (cfg.analysis.run)
         cfg.analysis.files    = filenames;
         cfg.analysis.loadpath = loadPath;
         cfg.analysis.savepath = savePath;
         psr_wrapper_function(cfg.analysis);
     end
-        
-    if (cfg.cluster.run) || (cfg.manual.run)
+    
+    % Quality control: visualize unit quality and merges
+
+    if (cfg.plot.quality || cfg.plot.merges)
         
         for iFile = 1:nFiles
             
@@ -67,30 +73,15 @@ for iFolder = 1:nFolders
             load(filepath);
             [~,filename,~] = fileparts(filename);
 
-            % Visualize spike clusters
+            savePathFigs = [savePath 'clusters\'];
             
-            if (cfg.cluster.run)
-                savePathClusters = [savePath 'clusters\'];
-                if (~isempty_field(spikes,'spikes.spiketimes'))
+            if (~isempty_field(spikes,'spikes.spiketimes'))
 
-                    savePathQuality = [savePathClusters 'quality\'];
-                    [~,~,~] = mkdir(savePathQuality);
-                    psr_sst_plot_multiple(spikes,metadata,parameters,savePathQuality,filename);
-
-                    savePathMerges = [savePathClusters 'merges\'];
-                    [~,~,~] = mkdir(savePathMerges);
-                    psr_sst_plot_merges(spikes,parameters,savePathMerges,filename);
-                end
-            end
-
-            % Spike cluster labelling (for development)
-            
-            if (cfg.manual.run)
-                if (~isfield(spikes.clusters.metrics,'labels'))
-                    labels = psr_manual_labelling(spikes,metadata,parameters,freq);
-                    for iClust = 1:length(labels); spikes.clusters.metrics(iClust).labels = labels(iClust); end
-                    save(filepath,'spikes','-append');
-                end
+                savePathQuality = [savePathFigs 'quality\'];
+                savePathMerges  = [savePathFigs  'merges\'];
+                
+                if (cfg.plot.quality); [~,~,~] = mkdir(savePathQuality); psr_sst_plot_multiple(spikes,metadata,parameters,savePathQuality,filename); end % Plot the unit quality         
+                if (cfg.plot.merges);  [~,~,~] = mkdir(savePathMerges);  psr_sst_plot_merges  (spikes,         parameters,savePathMerges, filename); end % Plot the merges 
             end
         end
     end

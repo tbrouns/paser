@@ -8,6 +8,8 @@ function output = psr_wrapper_cSPIKE(spiketrains,parameters)
 %
 % trange: [1x2] vector of start and end time of recording
 % twin:   [1x2] vector of start and end time of window of interest
+% 
+% See: http://wwwold.fi.isc.cnr.it/users/thomas.kreuz/Source-Code/cSPIKE.html
 
 rootPath = parameters.analysis.cspike.path;
 addpath(rootPath);
@@ -15,7 +17,7 @@ addpath([rootPath '\cSPIKEmex']);
 
 trange = parameters.analysis.cspike.trange;
 if (~isempty_field(parameters,'parameters.analysis.cspike.twin')); twin = parameters.analysis.cspike.twin;
-else,                                                                  twin = trange;
+else,                                                              twin = trange;
 end
 time1 = twin(1);
 time2 = twin(2);

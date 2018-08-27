@@ -1,14 +1,14 @@
-function spikes = psr_convert2spikes(spikes,data,spiketimes,assigns,parameters)
+function spikes = psr_convert2spikes(spikes,data,spikepoints,assigns,parameters)
 
 % PSR_CONVERT2SPIKES - Convert spike times and cluster assigns to PASER data format.
 %
 % Syntax:  spikes = psr_convert2spikes(rez,data,parameters)
 %
 % Inputs:
-%    spikes - Can be empty 
-%    data - Filtered time series of extracellular recording [Nchannels x Npoints]
-%    spiketimes - Data points of each spike [Nspikes x 1] 
-%    assigns - Cluster index of each spike [Nspikes x 1]
+%    spikes     - Can be empty 
+%    data       - Filtered time series of extracellular recording [Nchannels x Npoints]
+%    spiketimes - Sample points of each spike [Nspikes x 1] 
+%    assigns    - Cluster index of each spike [Nspikes x 1]
 %    parameters - See README
 %
 % Outputs:
@@ -32,7 +32,7 @@ win = -samples_hwidth:samples_hwidth;
 %% Save results
 
 spikes.assigns    = int16(assigns');
-spikes.spiketimes = single((spiketimes - 1)' / Fs); % in secs
-spikes.waveforms  = psr_sst_get_waveforms(spiketimes,data,win);
+spikes.spiketimes = single((spikepoints - 1)' / Fs); % in secs
+spikes.waveforms  = psr_sst_get_waveforms(spikepoints,data,win);
 
 %------------- END OF CODE --------------

@@ -40,36 +40,12 @@ for iClust = fliplr(clusterIDs)
         MSE(iLower) = mean(d.^2); % mean-squared error
     end
     I = find(MSE > thresh); % Tag channel if above threshold
-    
-%     if (~isempty(I)) % TEMP
-%         close all; 
-%         figure; set(gcf,'position',get(0,'screensize')); 
-%         
-%         subplot(2,1,1); hold on;
-%         for iChan = 1:size(waveformMedian,3) 
-%             plot(waveformMedian(1,:,iChan)); 
-%         end 
-%         legend('Chan 1','Chan 2','Chan 3','Chan 4');
-%         title(['Chan ID max: ' num2str(chanMaxID)]);
-%         
-%         subplot(2,1,2);
-%         psr_parameters_display;
-%         psr_sst_plot_waveforms(spikes,iClust,parameters);
-%         
-%         suplabel(num2str(MSE'));
-%         
-%         % Save        
-%         savePathFig = 'G:\Data\electrophysiology\AVP\data_figures\MSE\';
-%         filename = join([spikes.session,spikes.probeID,num2str(iClust)],'-');
-%         savePathFig = [savePathFig filename{1}];
-%         export_fig(savePathFig);
-%     end
-    
+        
     %% Save
     jClust = find(iClust == clustIDs_saved);
     if (isempty(jClust))
         if (~isempty_field(spikes,'spikes.clusters.noise')); jClust = length(spikes.clusters.noise) + 1;
-        else,                                                    jClust = 1;
+        else,                                                jClust = 1;
         end
         spikes.clusters.noise(jClust).id = iClust;
     end

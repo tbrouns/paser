@@ -26,18 +26,18 @@ function MFAtimes = psr_ms_detect_onset(loadPath,parameters)
 
 %------------- BEGIN CODE --------------
 
-nTrials  = length(loadPath);
-MFAtimes = cell(nTrials,1);
+nBlocks  = length(loadPath);
+MFAtimes = cell(nBlocks,1);
 
 % Files to load
 ext     = '.continuous';
 pattern = 'ADC6';
 
-for iTrial = 1:nTrials
+for iBlock = 1:nBlocks
         
     % Load new file
     
-    files = dir([loadPath{iTrial} '\*' pattern '*' ext]);
+    files = dir([loadPath{iBlock} '\*' pattern '*' ext]);
     files = char(files.name);
     
     if (size(files,1) == 1)
@@ -49,7 +49,7 @@ for iTrial = 1:nTrials
             
     % Filter raw data
                 
-    file = [loadPath{iTrial} file]; % Filename
+    file = [loadPath{iBlock} file]; % Filename
     
     % Load CONTINUOUS files [microvolts]
     try    [signal, ~, info] = load_open_ephys_data_faster(file); 
@@ -79,12 +79,11 @@ for iTrial = 1:nTrials
     %% Display results
 
     period = mean(diff(onsets));
-    N = floor(((length(signal) - 1) / Fs) * (1 / period));
-    disp(['Detected ' num2str(length(onsets)) ' of ' num2str(N) ' magnetic field artifacts at ' num2str(1 / period) ' Hz.']);
+    disp(['Detected ' num2str(length(onsets)) ' magnetic stimulus onsets at ' num2str(1 / period) ' Hz.']);
     
     %% Save
     
-    MFAtimes{iTrial} = [onsets,offsets];
+    MFAtimes{iBlock} = [onsets,offsets];
     
 end
 

@@ -36,17 +36,14 @@ if (~isempty(filename)); [~,filename,~] = fileparts(filename);
 else,                    filename = ['QC_P' num2str(metadata.probe,'%02d')]; 
 end
 
+[~,~,~] = mkdir(savePath);
+
 nClust = size(spikes.clusters.metrics,2);
 
 % Convert and set necessary parameters
 
 spikes.waveforms = psr_int16_to_single(spikes.waveforms,parameters);
-
 parameters = psr_load_parameters(parameters,'display');
-spikes.info.kmeans.assigns = spikes.assigns; % Remove this
-numclusts                  = max(spikes.info.kmeans.assigns); % perhaps redundant? see nClust
-cmap                       = jetm(numclusts);
-spikes.info.kmeans.colors  = cmap(randperm(numclusts),:); % Remove this
 
 %% Plot
 fig = figure; set(gcf,'position',get(0,'screensize'));

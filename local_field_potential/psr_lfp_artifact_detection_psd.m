@@ -26,9 +26,9 @@ for iBlock = nBlocks:-1:1
         for iChan = 1:nChans
                         
             dataChan    = dataBlock(iChan,:); % average across channels
-            dataSegment = buffer(dataChan,sWin,sOff);
+            dataSegment = buffer(dataChan,sWin,sOff); % extract the segments, with overlap
             dataSegment = dataSegment(:,2:end-1); % ignore first and last segments
-            nSecs = size(dataSegment,2);
+            nSecs = size(dataSegment,2); 
 
             psdTemp = [];
             for iSec = nSecs:-1:1 
@@ -58,12 +58,12 @@ secAll = secAll(:,keepSec);
 psdAll = cell2mat(psdAll);
 secAll = cell2mat(secAll);
 
-psdMean = mean(psdAll,2);
+psdMean = mean(psdAll,2); % Average across all segments
 psdAll  = bsxfun(@rdivide,psdAll,psdMean); % Normalize
 
 % Total PSD threshold
-psdSum  = sum(psdAll); 
-thresh  = parameters.lfp.artifact.psd.thresh * psr_mad(psdSum);
+psdSum  = sum(psdAll); % Sum across all frequencies 
+thresh  = parameters.lfp.artifact.psd.thresh * psr_mad(psdSum); % Artifact thresholding
 artifacts = psdSum > thresh;
 
 % Extract intervals

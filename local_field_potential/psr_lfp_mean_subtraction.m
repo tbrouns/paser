@@ -1,6 +1,7 @@
 function data = psr_lfp_mean_subtraction(data)
 
 % Subtract channel mean from all probe channels
+% Common average referencing 
 
 nBlocks = length(data);
 for iBlock = 1:nBlocks

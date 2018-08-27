@@ -11,6 +11,5 @@ if (bin < minBin); bin = minBin; end
 X = min(A):bin:max(A);
 n = histcounts(A,X);
 x = X(1:end-1) + (X(2) - X(1))/2;
-if all(spikes.info.thresh < 0); x = -x; end
 
 end

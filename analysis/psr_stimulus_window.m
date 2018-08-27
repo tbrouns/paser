@@ -1,4 +1,4 @@
-function [out_spikes,out_freq] = psr_stimulus_window(spikes,freq,metadata,parameters)
+function [out_spikes,out_freq] = psr_stimulus_window(spikes,freq,stimtimes,parameters)
 
 % Output
 out_spikes = [];
@@ -6,8 +6,8 @@ out_freq   = [];
 
 % Extract stimulus windows
 
-stimulusTimes  = metadata.stimtimes{1};
-stimulusType   = metadata.stimtimes{2};
+stimulusTimes  = stimtimes{1};
+stimulusType   = stimtimes{2};
 stimulusOnset  = [];
 stimulusOffset = [];
 stimTimesTemp  = [];

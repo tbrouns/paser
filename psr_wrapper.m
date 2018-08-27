@@ -50,6 +50,12 @@ metadata     = temp.general;
 parameters   = temp;
 clear temp;
 
+%% Move path field. Only relevant for example script
+if (isfield(parameters.general,'path'))
+    parameters.path    = parameters.general.path;
+    parameters.general = rmfield(parameters.general,'path');
+end
+
 %% Load processing parameters
 parameters = psr_load_parameters(parameters);
 
@@ -790,10 +796,7 @@ if (parameters.process.spikes)
                 
                 spikes = psr_sst_assigns_reorder(spikes); % Re-order assign IDs
                 spikes = psr_sst_cluster_quality(spikes,parameters);
-                
-                spikes.session = join(metadata.session,'-'); % TEMP
-                spikes.probeID = num2str(iProbe); % TEMP
-                
+                                
                 if (parameters.ms.denoise.off.run);  spikes = psr_ms_denoise_off     (spikes,metadata,parameters);   end % Stimulus artifact removal
                 if (parameters.filter.chan.rip.run); spikes = psr_sst_filter_chan_rip(spikes,parameters,filesProbe); end % Remove ripples on non-spike channels
                 if (parameters.filter.chan.mse.run); spikes = psr_sst_filter_chan_mse(spikes,parameters);            end % Remove noise on non-spike channels

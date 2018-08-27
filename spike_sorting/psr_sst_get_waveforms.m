@@ -5,6 +5,8 @@ function waveforms = psr_sst_get_waveforms(spikePoints,data,win)
 
 nChans  = size(data,1);
 sLength = size(data,2);
+spikePoints = double(spikePoints); % Avoids erroneous results
+spikePoints = spikePoints(spikePoints <= sLength);
 timeArray = bsxfun(@plus,spikePoints,win);
 timeArray(timeArray < 1) = 1;
 timeArray(timeArray > sLength) = sLength;
