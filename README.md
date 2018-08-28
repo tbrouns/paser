@@ -71,6 +71,8 @@ Clone or download PASER and add it to your MATLAB path:
 addpath(genpath('C:\Path\To\paser-master'));
 ```
 
+Note that PASER also relies on the "Signal Processing" and "Statistics and Machine Learning" MATLAB toolboxes. In the future, we would like to remove these dependencies by finding alternative functions.
+
 ## Quick start
 
 To verify that the toolbox is working, you can download a test data set at:
