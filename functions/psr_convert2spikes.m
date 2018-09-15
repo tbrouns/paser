@@ -1,24 +1,36 @@
 function spikes = psr_convert2spikes(spikes,data,spikepoints,assigns,parameters)
 
-% PSR_CONVERT2SPIKES - Convert spike times and cluster assigns to PASER data format.
-%
-% Syntax:  spikes = psr_convert2spikes(rez,data,parameters)
+% PSR_CONVERT2SPIKES - Convert to PASER spike data format 
+% This function takes spike sample points and cluster assigns as inputs and
+% generates a structure that complies with the PASER data format
+%  
+% Syntax:  spikes = psr_convert2spikes(spikes,data,spikepoints,assigns,parameters)
 %
 % Inputs:
-%    spikes     - Can be empty 
-%    data       - Filtered time series of extracellular recording [Nchannels x Npoints]
-%    spiketimes - Sample points of each spike [Nspikes x 1] 
-%    assigns    - Cluster index of each spike [Nspikes x 1]
-%    parameters - See README
+%    spikes      - Structure to add data to. Can also be empty.
+% 
+%    data        - Matrix of band-pass filtered voltage time series, with
+%                  shape:
+%                  [Number of channels x Number of data points]
+% 
+%    spikepoints - Vector of sample points of each spike, with shape:
+%                  [Number of spikes x 1] 
+% 
+%    assigns     - Vector of cluster indices of all spikes, with shape:
+%                  [Number of spikes x 1]
+% 
+%    parameters  - See README
 %
 % Outputs:
 %    spikes - See README
+% 
+% See also: PSR_SST_SORTING_KST,  PSR_SST_GET_WAVEFORMS
 
-% PASER: Processing and Analysis Schemes for Extracellular Recordings 
+% PASER: Processing and Analysis Schemes for Extracellular Recordings
 % https://github.com/tbrouns/paser
 
 % Author: Terence Brouns
-% Radboud University, Neurophysiology Dept. 
+% Radboud University, Neurophysiology Dept.
 % E-mail address: t.s.n.brouns@gmail.com
 % Date: 2017
 

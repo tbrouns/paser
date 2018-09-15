@@ -1,4 +1,27 @@
-function h = psr_lfp_plot_fft(data,parameters)
+function h = psr_lfp_plot_fft(fftfreq,parameters)
+
+% PSR_LFP_PLOT_FFT - Plot power spectrum
+%
+% Syntax:  h = psr_lfp_plot_fft(fftfreq,parameters)
+%
+% Inputs:
+%    fftfreq    - Output from PSR_LFP_FFT function
+%    parameters - See PSR_PARAMETERS_ANALYSIS
+%
+% Outputs:
+%    h - Handle for power spectrum plot
+%
+% See also: PSR_LFP_FFT
+
+% PASER: Processing and Analysis Schemes for Extracellular Recordings 
+% https://github.com/tbrouns/paser
+
+% Author: Terence Brouns
+% Radboud University, Neurophysiology Dept. 
+% E-mail address: t.s.n.brouns@gmail.com
+% Date: 2018
+
+%------------- BEGIN CODE --------------
 
 if (strcmp(parameters.analysis.fft.plot.error,'no')); PLOT_ERROR = false;
 else,                                                 PLOT_ERROR = true;
@@ -12,14 +35,14 @@ powtype = parameters.analysis.fft.plot.powtype;
 
 powtype = lower(powtype);
 switch powtype
-    case 'decibel'; data.powspctrm = 10 * log10(data.powspctrm);
+    case 'decibel'; fftfreq.powspctrm = 10 * log10(fftfreq.powspctrm);
 end
 yLabelStr = [upper(powtype(1)) powtype(2:end) ' \ power'];
 
 % Power spectrum (Power vs. Frequency)
 
-powSpctrm = data.powspctrm;
-freqArray = data.freq;
+powSpctrm = fftfreq.powspctrm;
+freqArray = fftfreq.freq;
 
 nDims   = ndims(powSpctrm);
 nTrials =  size(powSpctrm,1);

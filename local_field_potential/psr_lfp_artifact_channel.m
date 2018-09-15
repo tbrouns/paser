@@ -1,5 +1,28 @@
 function data = psr_lfp_artifact_channel(data,parameters)
 
+% PSR_LFP_ARTIFACT_CHANNEL - Remove high noise channels
+%
+% Syntax:  data = psr_lfp_artifact_channel(data,parameters)
+%
+% Inputs:
+%    data       - Same as input for PSR_LFP_CONVERSION
+%    parameters - See README and PSR_PARAMETERS_GENERAL
+%
+% Outputs:
+%    data - Data without high noise channels
+% 
+% See also: PSR_WRAPPER
+
+% PASER: Processing and Analysis Schemes for Extracellular Recordings 
+% https://github.com/tbrouns/paser
+
+% Author: Terence Brouns
+% Radboud University, Neurophysiology Dept. 
+% E-mail address: t.s.n.brouns@gmail.com
+% Date: 2018
+
+%------------- BEGIN CODE --------------
+
 dataAbs = psr_lfp_conversion(data);
 dataAbs = cat(2,dataAbs{:}); % Combine data across all blocks
 
@@ -22,12 +45,12 @@ for iChan = 1:nChans
     
 end
 
-% Remove channels
-
+% Only keep channels that aren't all NaNs
 keep = ~all(isnan(dataAbs),2);
 data = removeChannels(data,keep);
 chanDiff = chanDiff(keep);
 
+% Only keep channels that have low channel difference
 if length(chanDiff) > 1
     keep = chanDiff <= parameters.lfp.artifact.chan.thresh;
     data = removeChannels(data,keep);
@@ -47,3 +70,5 @@ for iBlock = 1:nBlocks
 end
 
 end
+
+%------------- END OF CODE --------------

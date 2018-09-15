@@ -13,7 +13,7 @@ function signalFiltered = psr_artifact_fft(signal,parameters,Fs)
 % Syntax:  [dataFiltered] = psr_artifact_fft(data,parameters,Fs)
 %
 % Inputs:
-%    signal     - Vector of time series signal
+%    signal     - Vector of voltage time series
 %    parameters - See "PSR_ARTIFACT_FFT" section in PSR_PARAMETER_DEFAULT
 %    Fs         - Sampling frequency of data [Hz]
 %

@@ -1,6 +1,29 @@
-function data = psr_lfp_preprocessing(dataInput,parameters)
+function freqFilt = psr_lfp_preprocessing(freq,parameters)
 
-data = [];
+% PSR_LFP_PREPROCESSING - Wrapper function for FieldTrip's FT_PREPROCESSING
+% This function carries out mains hum removal, zero-phase filtering for
+% the local field potential data and then downsampling 
+% 
+% Syntax:  freqFilt = psr_lfp_preprocessing(freq,parameters)
+%
+% Inputs:
+%    freq       - See README
+%    parameters - See README and PSR_PARAMETERS_GENERAL
+%
+% Outputs:
+%    freqFilt - Filtered data
+%
+% See also: FT_PREPROCESSING, FILTFILT
+
+% PASER: Processing and Analysis Schemes for Extracellular Recordings 
+% https://github.com/tbrouns/paser
+
+% Author: Terence Brouns
+% Radboud University, Neurophysiology Dept. 
+% E-mail address: t.s.n.brouns@gmail.com
+% Date: 2018
+
+%------------- BEGIN CODE --------------
 
 % Set parameters
 cfg         = [];
@@ -20,24 +43,25 @@ switch (parameters.lfp.filter.type)
         cfg.lpinstabilityfix = 'split';
 end
 
-sLength   = size(dataInput.trial{1},2);
+sLength   = size(freq.trial{1},2);
 sPoints   = 60 * parameters.general.twin * parameters.Fs;
 nSections = ceil(sLength / sPoints);
 sPoints   = ceil(sLength / nSections);
 itr       = 1;
 
-dataTemp = [];
-dataTemp.trial = [];
-dataTemp.time  = [];
+freqTemp       = [];
+freqTemp.trial = [];
+freqTemp.time  = [];
 
 for iSection = 1:nSections
     
-    I = itr:itr+sPoints-1; I(I > sLength) = []; 
-    dataSection.label   = dataInput.label;
-    dataSection.fsample = dataInput.fsample;
-    dataSection.trial   = {dataInput.trial{1}(:,I)};
-    dataSection.time    = {dataInput.time{1}(:,I)};
-    dataSection.sampleinfo = [1 length(I)];
+    I = itr : itr + sPoints - 1; 
+    I(I > sLength) = []; 
+    freqSection.label      = freq.label;
+    freqSection.fsample    = freq.fsample;
+    freqSection.trial      = {freq.trial{1}(:,I)};
+    freqSection.time       = {freq.time{ 1}(:,I)};
+    freqSection.sampleinfo = [1 length(I)];
     
     itr = I(end) + 1;
     
@@ -48,48 +72,51 @@ for iSection = 1:nSections
             lf = parameters.lfp.filter.eps.freq + hw; % Lower frequency
             uf = parameters.lfp.filter.eps.freq - hw; % Upper frequency
             od = parameters.lfp.filter.eps.order;
-            filterDesign = designfilt('bandstopiir',  ...
-                'FilterOrder',         od, ...
-                'HalfPowerFrequency1', lf, ...
-                'HalfPowerFrequency2', uf, ...
+            filterDesign = designfilt(           ...
+                'bandstopiir',                   ...
+                'FilterOrder',               od, ...
+                'HalfPowerFrequency1',       lf, ...
+                'HalfPowerFrequency2',       uf, ...
                 'DesignMethod',        'butter', ...
-                'SampleRate', parameters.Fs);
-            dataSection.trial = filtfilt(filterDesign,cell2mat(dataSection.trial)')';
-            dataSection.trial = {dataSection.trial};
+                'SampleRate',     parameters.Fs);
+            freqSection.trial = filtfilt(filterDesign,cell2mat(freqSection.trial)')';
+            freqSection.trial = {freqSection.trial};
         catch ME
-            disp(ME.message);
-            disp('Error using "filtfilt". Mains hum not removed.');
+            str_1 = ME.message;
+            str_2 = 'Error using FILTFILT. Mains hum not removed.';
+            warning = {str_1,str_2};
+            psr_show_warning(warning,false,mfilename);
         end
     end
     
     % Add mirror padding
-    [dataSection,padding] = addPadding(dataSection,parameters);
+    [freqSection,padding] = addPadding(freqSection,parameters);
     
     % Remove NaNs
-    dataSection = psr_ft_nan_removal(dataSection);
-    missingChanIDs = any(dataSection.missing{1},2);
+    freqSection = psr_ft_nan_removal(freqSection);
+    missingChanIDs = any(freqSection.missing{1},2);
     
     try
-        data = ft_preprocessing(cfg, dataSection); % Do FieldTrip pre-processing
-        data = removePadding(data,padding);
+        freqFilt = ft_preprocessing(cfg,freqSection); % Do FieldTrip pre-processing
+        freqFilt = removePadding(freqFilt,padding);
     catch ME
-        str = 'FieldTrip ERROR:';
-        psr_show_warning({str,ME.message},true);
+        psr_show_warning({ME.message},true,mfilename);
     end
     
     % Downsample filtered signal
-    if (~isempty_field(data,'data.trial') && ~isempty_field(parameters,'parameters.lfp.Fr'))
-        [dataProbe,timestamps] = resample(cell2mat(data.trial)',cell2mat(data.time),parameters.lfp.Fr);
+    if (~isempty_field(freqFilt,'freqFilt.trial') && ~isempty_field(parameters,'parameters.lfp.Fr'))
+        [dataProbe,timestamps] = resample(cell2mat(freqFilt.trial)',cell2mat(freqFilt.time),parameters.lfp.Fr);
         dataProbe(:,missingChanIDs) = NaN; % Insert NaNs
-        dataTemp.trial = [dataTemp.trial,dataProbe'];
-        dataTemp.time  = [dataTemp.time, timestamps];
+        freqTemp.trial = [freqTemp.trial,dataProbe'];
+        freqTemp.time  = [freqTemp.time, timestamps];
     end
 end
 
-data.fsample    = parameters.lfp.Fr;
-data.trial      = {dataTemp.trial};
-data.time       = {dataTemp.time};
-data.sampleinfo = [1 length(dataTemp.time)];
+freq            = [];
+freq.fsample    = parameters.lfp.Fr;
+freq.trial      = {freqTemp.trial};
+freq.time       = {freqTemp.time};
+freq.sampleinfo = [1 length(freqTemp.time)];
 
 end
 

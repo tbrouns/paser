@@ -1,15 +1,15 @@
 function psr_sst_plot_multiple(spikes,metadata,parameters,savePath,filename)
 
-% PSR_SST_PLOT_MULTIPLE - Visualization of spike cluster obtained by PASER.
+% PSR_SST_PLOT_MULTIPLE - Visualization of spike clusters obtained by PASER.
 % This function creates a multi-plot of various visualization methods to
-% access spike sorting quality and saves it as a PNG image.
+% access spike sorting quality and saves it as FIG and PNG images.
 %
 % Syntax:  psr_sst_plot_multiple(spikes,metadata,parameters,freq,savePath,filename)
 %
 % Inputs:
 %    spikes     - See README
 %    metadata   - See README
-%    parameters - See README
+%    parameters - See README and PSR_PARAMETERS_DISPLAY
 %    freq       - See README
 %    savePath   - Directory to save output images in
 %    filename   - Base filename of each image
@@ -43,7 +43,7 @@ nClust = size(spikes.clusters.metrics,2);
 % Convert and set necessary parameters
 
 spikes.waveforms = psr_int16_to_single(spikes.waveforms,parameters);
-parameters = psr_load_parameters(parameters,'display');
+parameters = psr_parameters_load(parameters,'display');
 
 %% Plot
 fig = figure; set(gcf,'position',get(0,'screensize'));

@@ -1,28 +1,52 @@
-function [bandpwr,missing] = psr_lfp_bpw(data,parameters)
+function bandpwr = psr_lfp_bpw(freq,parameters)
+
+% PSR_LFP_BPW - Bandpower calculation from time-series data
+%
+% Syntax:  bandpwr = psr_lfp_bpw(freq,parameters)
+%
+% Inputs:
+%    freq       - FieldTrip LFP data structure
+%    parameters - See PSR_PARAMETERS_ANALYSIS
+%
+% Outputs:
+%    bandpwr - Array containing bandpowers, with shape:
+%              [Number of trials x Number of frequency bands]
+%
+% Dependencies: Signal Processing Toolbox
+%
+% See also: BANDPOWER
+
+% PASER: Processing and Analysis Schemes for Extracellular Recordings 
+% https://github.com/tbrouns/paser
+
+% Author: Terence Brouns
+% Radboud University, Neurophysiology Dept. 
+% E-mail address: t.s.n.brouns@gmail.com
+% Date: 2018
+
+%------------- BEGIN CODE --------------
 
 Fr      = parameters.Fr;
 fRange  = parameters.analysis.bpw.frange;
 tRange  = [];
 fNorm   = [];
 bandpwr = [];
-missing = [];
     
 if (~isempty_field(parameters,'parameters.analysis.bpw.trange')); tRange = parameters.analysis.bpw.trange; end
 if (~isempty_field(parameters,'parameters.analysis.bpw.fnorm'));  fNorm  = parameters.analysis.bpw.fnorm;  end
 
-if (isempty_field(data,'data.trial') || isempty_field(data,'data.time')); return; end
+if (isempty_field(freq,'freq.trial') || isempty_field(freq,'freq.time')); return; end
 
 % Set parameters
 
-nFreqs  =  size(fRange,1);
-nTrials =  size(data.trial,2);
-missing = zeros(nTrials,1);
-bandpwr = zeros(nTrials,nFreqs);
+nBands  =  size(fRange,1);
+nTrials =  size(freq.trial,2);
+bandpwr = zeros(nTrials,nBands);
 
 for iTrial = 1:nTrials
     
-    T = data.time {iTrial};
-    X = data.trial{iTrial}';
+    T = freq.time {iTrial};
+    X = freq.trial{iTrial}';
     
     if (~isempty(tRange))    
         i1 = find(T >= tRange(1),1);
@@ -32,9 +56,7 @@ for iTrial = 1:nTrials
         X = X(i1:i2,:);
         T = T(i1:i2);
     end
-        
-    missing(iTrial) = sum(isnan(sum(X,2))) / size(X,1);
-    
+            
     % Remove NaNs
     
     temp = [];
@@ -49,7 +71,7 @@ for iTrial = 1:nTrials
         else,                 norm = 1;
         end
         
-        for iFreq = 1:nFreqs
+        for iFreq = 1:nBands
             bandpwr(iTrial,iFreq) = mean(bandpower(X,Fr,fRange(iFreq,:))) / norm; % Mean across channels
         end
         

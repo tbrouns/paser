@@ -1,8 +1,45 @@
-function data = psr_ft_convert2trials(data,parameters,stimtimes,method)
+function freq = psr_ft_convert2trials(freq,parameters,stimtimes,method)
+
+% PSR_FT_CONVERT2TRIALS - Segment FieldTrip data into trials 
+% This function uses input stimulus timings to divide the FieldTrip data
+% structure for LFP data into trials aligned to each stimulus onset
+% 
+% Syntax:  freq = psr_ft_convert2trials(freq,parameters,stimtimes,method)
+%
+% Inputs:
+%    freq       - FieldTrip data structure for LFP data
+%    parameters - See PSR_PARAMETERS_ANALYSIS
+%    stimtimes  - Array containing stimulus timings [sec]:
+% 
+%                 ## If method = 'onset', 
+%                    then stimtimes should be a column vector containing
+%                    each stimulus onset
+% 
+%                 ## If method = 'interval',
+%                    then stimtimes should be a two-column matrix
+%                    containing the stimulus onsets in the first column and
+%                    the stimulus offsets in the second column
+% 
+%    method     - Either 'onset' or 'interval' (see above)
+% 
+% Outputs:
+%    freq - Segmented data
+%
+% See also: PSR_STIMULUS_WINDOW, FT_REDEFINETRIAL, PSR_FT_CONVERT2FIELDTRIP
+
+% PASER: Processing and Analysis Schemes for Extracellular Recordings 
+% https://github.com/tbrouns/paser
+
+% Author: Terence Brouns
+% Radboud University, Neurophysiology Dept. 
+% E-mail address: t.s.n.brouns@gmail.com
+% Date: 2018
+
+%------------- BEGIN CODE --------------
 
 % Initialize
 
-Fr = data.fsample;
+Fr = freq.fsample;
 stimOnset  = [];
 stimOffset = [];
 if (nargin < 2); stimtimes = []; end
@@ -39,21 +76,21 @@ if (~isempty(stimOnset))
         
     % Adjust trials outside boundary
     
-    stimOnset (stimOnset  < data.sampleinfo(1)) = data.sampleinfo(1);
-    stimOffset(stimOffset > data.sampleinfo(2)) = data.sampleinfo(2);
+    stimOnset (stimOnset  < freq.sampleinfo(1)) = freq.sampleinfo(1);
+    stimOffset(stimOffset > freq.sampleinfo(2)) = freq.sampleinfo(2);
     
     cfg = [];
     cfg.trl = [stimOnset,stimOffset,zeros(size(stimOnset))];
-    data = ft_redefinetrial(cfg,data);
+    freq = ft_redefinetrial(cfg,freq);
     
     cfg = [];
     cfg.offset = sPre;
-    data = ft_redefinetrial(cfg,data);
+    freq = ft_redefinetrial(cfg,freq);
     
     % Save additional metrics
     
-    data.cfg.trialtime = stimTimes; 
-    data.cfg.stimdur   = stimDurations;
+    freq.cfg.trialtime = stimTimes; 
+    freq.cfg.stimdur   = stimDurations;
     
 end
 

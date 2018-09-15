@@ -1,21 +1,44 @@
-function [data,nTrials] = psr_lfp_conversion(data)
+function [data,nBlocks] = psr_lfp_conversion(data)
 
-% "Data" can be given as single time-series (Nchans x Npoints), or as a
-% cell array of such matrices or FieldTrip data structures
+% PSR_LFP_CONVERSION - Convert local field potential data format
+%
+% Syntax:  [data,nBlocks] = psr_lfp_conversion(data)
+%
+% Inputs:
+%    data - Can be given as: 
+%           (1) Single time-series with shape: [Number of channels x Number of data points]
+%           (2) A cell array of the matrix type given by (1) 
+%           (3) Cell array of FieldTrip data structures
+%
+% Outputs:
+%    data    - Data in format given by (2)
+%    nBlocks - Number of experimental blocks
+
+% PASER: Processing and Analysis Schemes for Extracellular Recordings 
+% https://github.com/tbrouns/paser
+
+% Author: Terence Brouns
+% Radboud University, Neurophysiology Dept. 
+% E-mail address: t.s.n.brouns@gmail.com
+% Date: 2018
+
+%------------- BEGIN CODE --------------
 
 if (iscell(data))
-    nTrials = length(data);
-else % Single time-series (Nchans x Npoints)
+    nBlocks = length(data);
+else % Single time-series
     data = {data};
-    nTrials = 1;
+    nBlocks = 1;
 end
 
 % Check for FieldTrip, and do conversion if necessary
 
-for iTrial = 1:nTrials
-    if isfield(data{iTrial},'trial') 
-        data{iTrial} = data{iTrial}.trial{1};
+for iBlock = 1:nBlocks
+    if isfield(data{iBlock},'trial') 
+        data{iBlock} = data{iBlock}.trial{1};
     end
 end
 
 end
+
+%------------- END OF CODE --------------

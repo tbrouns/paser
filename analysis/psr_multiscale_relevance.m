@@ -1,15 +1,35 @@
 function MSR = psr_multiscale_relevance(spiketimes,tobs,parameters)
 
-% Ref.: "Finding informative neurons in the brain using Multi-Scale
-% Relevance", Cubero et al. (2018)
+% PSR_MULTISCALE_RELEVANCE - Calculates the multi-scale relevance metric
+% 
+% References: 
+% [1] "Finding informative neurons in the brain using Multi-Scale
+%     Relevance", Cubero et al. (2018)
+% 
+% Syntax:  MSR = psr_multiscale_relevance(spiketimes,tobs,parameters)
+%
+% Inputs:
+%    spiketimes - Spike times [in sec] for a particular neuron, given as a vector
+%    tobs       - Total observation time [sec]
+%    parameters - See PSR_PARAMETERS_ANALYSIS
+%
+% Outputs:
+%    MSR - The multi-scale relevance measure for the spike train
 
-% spiketimes: spike times (in sec) for a neuron (vector)
-% tobs: total observation time (scalar)
+% PASER: Processing and Analysis Schemes for Extracellular Recordings 
+% https://github.com/tbrouns/paser
 
-dt     = parameters.analysis.msr.dt_min;
+% Author: Terence Brouns
+% Radboud University, Neurophysiology Dept. 
+% E-mail address: t.s.n.brouns@gmail.com
+% Date: 2018
+
+%------------- BEGIN CODE --------------
+
+dt     = parameters.analysis.msr.dt_min; % Minimum time scale 
 dt_min = log10(dt);
 dt_max = log10(tobs);
-dTs    = logspace(dt_min,dt_max,parameters.analysis.msr.dt_step); % [sec]
+dTs    = logspace(dt_min,dt_max,parameters.analysis.msr.dt_step); % Time scale range [sec]
 
 % Initialize
 Ndt = length(dTs);

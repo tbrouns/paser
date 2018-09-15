@@ -1,5 +1,30 @@
 function artifacts = psr_lfp_artifact_detection_amp(data,parameters)
 
+% PSR_LFP_ARTIFACT_DETECTION_AMP - Detects LFP amplitude artifacts
+%
+% Syntax:  artifacts = psr_lfp_artifact_detection_amp(data,parameters)
+%
+% Inputs:
+%    data       - Same as input for PSR_LFP_CONVERSION
+%    parameters - See README and PSR_PARAMETERS_GENERAL
+%
+% Outputs:
+%    artifacts - Returns two-column array, where the first column are the
+%                onsets and the second column the offsets of the detected
+%                amplitude artifacts. Timestamps given in secs.
+%
+% See also: PSR_WRAPPER, PSR_LFP_ARTIFACT_REMOVAL
+
+% PASER: Processing and Analysis Schemes for Extracellular Recordings 
+% https://github.com/tbrouns/paser
+
+% Author: Terence Brouns
+% Radboud University, Neurophysiology Dept. 
+% E-mail address: t.s.n.brouns@gmail.com
+% Date: 2018
+
+%------------- BEGIN CODE --------------
+
 [data,nBlocks] = psr_lfp_conversion(data);
 
 % Set parameters
@@ -63,9 +88,8 @@ end
 function bgNoise = findBackgroundNoise(data,tSection,Fs)
 
 % Find background noise
-
-% We determine the median absolute deviation (MAD) in data sections of length
-% "tSection" and then use the smallest MAD as the 
+% We determine the median absolute deviation (MAD) in data sections of
+% length "tSection" and then use the smallest MAD as the threshold
 
 nLength  = length(data);
 nSamples = round(tSection * Fs); % cut data in sections of X seconds

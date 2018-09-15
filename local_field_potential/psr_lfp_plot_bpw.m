@@ -1,12 +1,36 @@
 function h = psr_lfp_plot_bpw(bandpwr,parameters)
 
+% PSR_LFP_PLOT_BPW - Plot bandpower figure
+%
+% Syntax:  h = psr_lfp_plot_bpw(bandpwr,parameters)
+%
+% Inputs:
+%    bandpwr    - Bandpower array, output from PSR_LFP_BANDPOWER or PSR_LFP_BPW
+%    parameters - See PSR_PARAMETERS_ANALYSIS
+%
+% Outputs:
+%    h - Handle for bandpower plot
+%
+% See also: PSR_LFP_BANDPOWER, PSR_LFP_BPW
+
+% PASER: Processing and Analysis Schemes for Extracellular Recordings 
+% https://github.com/tbrouns/paser
+
+% Author: Terence Brouns
+% Radboud University, Neurophysiology Dept. 
+% E-mail address: t.s.n.brouns@gmail.com
+% Date: 2018
+
+%------------- BEGIN CODE --------------
+
 nTrials = size(bandpwr,1);
 
 alpha  = parameters.analysis.bpw.plot.alpha;
 color  = parameters.analysis.bpw.plot.color;
 frange = parameters.analysis.bpw.frange;
+nrange = size(frange,1);
 
-x = (1:size(frange,1));
+x = 1:nrange;
 y = mean(bandpwr,1);
 z = [];
 
@@ -39,12 +63,12 @@ set(gca,'TickLabelInterpreter','Latex');
 
 xlim([min(x)-1 max(x)+1]);
 xticks(x);
-xticklabels({...
-    [num2str(frange(1,1)) ' - ' num2str(frange(1,2))],...
-    [num2str(frange(2,1)) ' - ' num2str(frange(2,2))],...
-    [num2str(frange(3,1)) ' - ' num2str(frange(3,2))],...
-    [num2str(frange(4,1)) ' - ' num2str(frange(4,2))],...
-    [num2str(frange(5,1)) ' - ' num2str(frange(5,2))]});
+
+xTicks = cell(0,0);
+for iRange = 1:nrange
+    xTicks{1,iRange} = [num2str(frange(iRange,1)) ' - ' num2str(frange(iRange,2))];
+end
+xticklabels(xTicks);
 
 if (~isempty_field(parameters,'parameters.analysis.bpw.plot.plim')); ylim(parameters.analysis.bpw.plot.plim); end
 
