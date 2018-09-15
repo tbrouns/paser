@@ -1,20 +1,71 @@
 function output = psr_ft_convert2fieldtrip(input,parameters)
 
-output = []; % Field trip data format
+% PSR_FT_CONVERT2FIELDTRIP - Convert PASER structure to FieldTrip structure
+%
+% Syntax:  output = psr_ft_convert2fieldtrip(input,parameters)
+%
+% Inputs:
+%    input - Can be an LFP or spike structure. 
+%            
+%            ## In case of LFP data, the input structure should contain the
+%               following fields:
+% 
+%               "data"       : Matrix containing the LFP time series data,
+%                              with shape: 
+%                              [Number of channels x Number of data points]
+%               "timestamps" : Vector containing the timestamp [sec] for
+%                              each data point, with shape:
+%                              [1 x Number of data points]
+%            
+%            ## In case of spike data, the input structure should at least
+%               contain the following field:
+% 
+%               "spikes"      : A PASER spike structure (see README)
+%            
+%               Optionally, it can also contain: 
+%  
+%               "trialtime"   : A two-column matrix, where the two columns
+%                               correspond to relative the on- and offset
+%                               of each trial
+%               "trialonsets" : Absolute timestamp of [t = 0] for each
+%                               trial
+%               "popUnit"     : Boolean indicating whether to include a
+%                               unit corresponding to the population
+%                               activity
+%               "probeID"     : Probe number corresponding to the spike
+%                               structure
+% 
+%    parameters - See README 
+%
+% Outputs:
+%    output - Corresponding FieldTrip structure.
+%   
+%             In case of LFP data, we convert the data to the
+%             FT_DATATYPE_RAW format. See FieldTrip documentation:
+%             http://www.fieldtriptoolbox.org/reference/ft_datatype_raw
+%             http://www.fieldtriptoolbox.org/faq/how_can_i_import_my_own_dataformat
+% 
+%             In case of spike data, we convert the data to the
+%             FT_DATATYPE_SPIKE format. See FieldTrip documentation:
+%             http://www.fieldtriptoolbox.org/reference/ft_datatype_spike
+
+% PASER: Processing and Analysis Schemes for Extracellular Recordings 
+% https://github.com/tbrouns/paser
+
+% Author: Terence Brouns
+% Radboud University, Neurophysiology Dept. 
+% E-mail address: t.s.n.brouns@gmail.com
+% Date: 2018
+
+%------------- BEGIN CODE --------------
+
+output = []; % FieldTrip data structure
 
 if (isfield(input,'data') && isfield(input,'timestamps'))
     
-    % Convert LFP data to FT_DATATYPE_RAW format
-    
-    % See FieldTrip documentation:
-    % http://www.fieldtriptoolbox.org/reference/ft_datatype_raw
-    % http://www.fieldtriptoolbox.org/faq/how_can_i_import_my_own_dataformat
-    
     data       = double(input.data);
     timestamps = double(input.timestamps);
-    
-    % Function that converts dataformat to field trip format
-    
+        
     Fs      = parameters.Fs;
     nchans  = size(data,1);
     labels  = 1:nchans;
@@ -27,14 +78,7 @@ if (isfield(input,'data') && isfield(input,'timestamps'))
     output.sampleinfo = [1 size(data,2)]; % Array containing [startsample endsample] of data
     
 elseif (isfield(input,'spikes'))
-    
-    %     Convert spike data to FT_DATATYPE_SPIKE format
-    %
-    %     See FieldTrip documentation:
-    %     http://www.fieldtriptoolbox.org/reference/ft_datatype_spike
-    %
-    %     input.onset: stimulus onset (t = 0)
-    
+        
     % Parse inputs 
     
     spikes  = input.spikes;
@@ -45,13 +89,14 @@ elseif (isfield(input,'spikes'))
     if (~isfield(input,'trialtime')   && ~isempty_field(spikes,'spikes.info.trialtime'));  input.trialtime   = spikes.info.trialtime;  end
     if (~isfield(input,'trialonsets') && ~isempty_field(spikes,'spikes.info.trialonset')); input.trialonsets = spikes.info.trialonset; end
     if (~isfield(input,'probeID')     && ~isempty_field(spikes,'spikes.probeID'));         input.probeID     = spikes.probeID;         end
-    
+
     if (isfield(input,'probeID')); probeID = input.probeID; end
     if (isfield(input,'popUnit')); popUnit = input.popUnit; end
     
     nTrials = size(input.trialtime,1);
     
     % Add a population unit
+    
     if (popUnit && all(unitIDs ~= 0)) 
         unitIDs(end+1) = 0;
         unitIDs = sort(unitIDs);

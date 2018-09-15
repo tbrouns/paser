@@ -1,5 +1,27 @@
 function psr_batch_analysis(cfg)
 
+% PSR_BATCH_ANALYSIS - Batch data analysis function
+% 
+% Syntax:  psr_batch_analysis(cfg)
+%
+% Inputs:
+%    cfg - See toolbox README on how to set these parameters.
+%
+% Outputs:
+%    One or more MAT files. See toolbox README for further details.
+%
+% See also: PSR_WRAPPER_FUNCTION
+
+% PASER: Processing and Analysis Schemes for Extracellular Recordings
+% https://github.com/tbrouns/paser
+
+% Author: Terence Brouns
+% Radboud University, Neurophysiology Dept.
+% E-mail address: t.s.n.brouns@gmail.com
+% Date: 2018
+
+%------------- BEGIN CODE --------------
+
 if (isempty_field(cfg,'cfg.subject'));      cfg.subject      = [];    end % Which subject to load data from
 if (isempty_field(cfg,'cfg.loadpath'));     cfg.loadpath     = [];    end % Where to load the processed data
 if (isempty_field(cfg,'cfg.savepath'));     cfg.savepath     = [];    end % Where to save the analysed  data
@@ -50,7 +72,7 @@ for iFolder = 1:nFolders
         cfg.analysis.files    = filenames;
         cfg.analysis.loadpath = loadPath;
         cfg.analysis.savepath = savePath;
-        psr_wrapper_function(cfg.analysis);
+        psr_wrapper_function(cfg.analysis); % Wrapper function for calling custom analysis function
     end
     
     % Quality control: visualize unit quality and merges

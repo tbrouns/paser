@@ -1,16 +1,42 @@
-function data = psr_lfp_baseline(data,baseline,parameters)
+function timefreq = psr_lfp_baseline(timefreq,baseline,parameters)
 
-% Based on FT_FREQBASELINE
+% PSR_LFP_BASELINE - Baseline correction for power spectrum
+% 
+% Syntax:  data = psr_lfp_baseline(timefreq,baseline,parameters)
+%
+% Based on FieldTrip's FT_FREQBASELINE
+%  
+% Inputs:
+%    timefreq    - Output structure from PSR_LFP_TFA
+%    baseline   - Input baseline, either with the same size as
+%                 "timefreq.powspctrm" or can be set to empty to calculate
+%                 the baseline from "timefreq.powspctrm".
+%    parameters - See PSR_PARAMETERS_ANALYSIS
+%
+% Outputs:
+%    timefreq - Baseline corrected power spectrum
+%
+% See also: FT_FREQBASELINE
 
-if (ndims(baseline) ~= ndims(data.powspctrm) || all(size(baseline) ~= size(data.powspctrm)))
+% PASER: Processing and Analysis Schemes for Extracellular Recordings 
+% https://github.com/tbrouns/paser
+
+% Author: Terence Brouns
+% Radboud University, Neurophysiology Dept. 
+% E-mail address: t.s.n.brouns@gmail.com
+% Date: 2018
+
+%------------- BEGIN CODE --------------
+
+if (ndims(baseline) ~= ndims(timefreq.powspctrm) || all(size(baseline) ~= size(timefreq.powspctrm)))
     
-    nTrials = size(data.powspctrm,1);
+    nTrials = size(timefreq.powspctrm,1);
     baseTrials = 1:nTrials;
     baseCycles = [];
     baseWindow = [];
        
     if (strcmp(parameters.analysis.tfa.base.window,'pre'))
-        baseWindow = [data.time(1) 0];
+        baseWindow = [timefreq.time(1) 0];
     elseif (numel(parameters.analysis.tfa.base.window == 2))
         baseWindow = parameters.analysis.tfa.base.window;
     end
@@ -24,22 +50,24 @@ if (ndims(baseline) ~= ndims(data.powspctrm) || all(size(baseline) ~= size(data.
         baseTrials = baseTrials(baseTrials >= 1 & baseTrials <= nTrials);
     end
 
-    if (~isempty_field(parameters,'parameters.analysis.tfa.base.ncycles')); baseCycles = parameters.analysis.tfa.base.ncycles; end
+    if (~isempty_field(parameters,'parameters.analysis.tfa.base.ncycles'))
+        baseCycles = parameters.analysis.tfa.base.ncycles; 
+    end
         
     cfg = [];
     cfg.cycles = baseCycles;
     cfg.trials = baseTrials;
     cfg.win    = baseWindow;
     
-    baseline = getBaseline(data,cfg);
+    baseline = getBaseline(timefreq,cfg);
 end
 
 switch parameters.analysis.tfa.base.type
-    case 'absolute';   data.powspctrm =  data.powspctrm -  baseline;
-    case 'relative';   data.powspctrm =  data.powspctrm ./ baseline;
-    case 'relchange';  data.powspctrm = (data.powspctrm -  baseline) ./ baseline;
-    case 'normchange'; data.powspctrm = (data.powspctrm -  baseline) ./ (data.powspctrm + baseline);
-    case 'decibel';    data.powspctrm = 10 * log10(data.powspctrm ./ baseline);
+    case 'absolute';   timefreq.powspctrm =  timefreq.powspctrm -  baseline;
+    case 'relative';   timefreq.powspctrm =  timefreq.powspctrm ./ baseline;
+    case 'relchange';  timefreq.powspctrm = (timefreq.powspctrm -  baseline) ./ baseline;
+    case 'normchange'; timefreq.powspctrm = (timefreq.powspctrm -  baseline) ./ (timefreq.powspctrm + baseline);
+    case 'decibel';    timefreq.powspctrm = 10 * log10(timefreq.powspctrm ./ baseline);
 end
 
 end

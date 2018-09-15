@@ -1,4 +1,23 @@
-%% DISPLAY PARAMETERS
+% PSR_PARAMETERS_DISPLAY - Script to set default visualization parameters
+% See comments before and after each parameter for its purpose.
+%
+% Syntax:  psr_parameters_display
+%
+% Outputs:
+%    parameters - Structure that contains parameters for data plotting
+% 
+% See also: PSR_PARAMETERS_LOAD
+
+% PASER: Processing and Analysis Schemes for Extracellular Recordings 
+% https://github.com/tbrouns/paser
+
+% Author: Terence Brouns
+% Radboud University, Neurophysiology Dept. 
+% E-mail address: t.s.n.brouns@gmail.com
+% Date: 2018
+
+%------------- BEGIN CODE --------------
+
 parameters.display.metrics = true; % show metrics in plot title
 
 % plot_waveforms

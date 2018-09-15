@@ -9,12 +9,10 @@ function spikes = psr_sst_cluster_features(spikes,parameters)
 % Inputs:
 %    spikes     - See README
 %    parameters - See README
-%    freq       - See README
+%                 See also: PSR_PARAMETERS_GENERAL
 %
 % Output:
-%    clusters - See 'spikes.clusters' in README
-%
-% See also: PSR_SST_CLUSTER_MERGE
+%    spikes - Contains the "spikes.clusters" field (see README)
 
 % PASER: Processing and Analysis Schemes for Extracellular Recordings
 % https://github.com/tbrouns/paser

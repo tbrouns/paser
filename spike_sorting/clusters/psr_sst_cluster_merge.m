@@ -17,8 +17,6 @@ function spikes = psr_sst_cluster_merge(spikes,parameters)
 %    spikes - The field "spikes.assigns" contains the new cluster ID for
 %             each spike after merging, while "spikes.assigns_prior" retains
 %             the old cluster IDs before merging.
-%
-% See also: PSR_SST_CLUSTER_FEATURES
 
 % PASER: Processing and Analysis Schemes for Extracellular Recordings
 % https://github.com/tbrouns/paser

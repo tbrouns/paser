@@ -9,7 +9,7 @@ function psr_wrapper(parameters)
 % Syntax:  psr_wrapper(parameters)
 %
 % Inputs:
-%    parameters - See PSR_PARAMETERS_GENERAL and PSR_BATCH_PROCESSING
+%    parameters - See README and PSR_PARAMETERS_GENERAL
 %
 % Outputs:
 %    One or more MAT files. See toolbox README for further details.
@@ -57,7 +57,7 @@ if (isfield(parameters.general,'path'))
 end
 
 %% Load processing parameters
-parameters = psr_load_parameters(parameters);
+parameters = psr_parameters_load(parameters);
 
 %% Constants
 rawpattern  =    parameters.general.rawpattern;

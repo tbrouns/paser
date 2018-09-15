@@ -1,14 +1,37 @@
-function data = psr_lfp_artifact_removal(data,artifacts,parameters)    
+function data = psr_lfp_artifact_removal(data,artifacts,parameters)
 
-% Signal can be given as single time-series (Nchans x Npoints), or as a
-% cell array of such matrices or FieldTrip data structures
+% PSR_LFP_ARTIFACT_REMOVAL - Remove detected artifacts from data 
+% Set data to NaN at locations of the detected input artifacts. 
+%  
+% Syntax:  data = psr_lfp_artifact_removal(data,artifacts,parameters)
+%
+% Inputs:
+%    data       - Cell array of time-series data. Each cell contains a
+%                 FieldTrip data structure or an array of shape:
+%                 [Number of channels x Number of data points]
+%    artifacts  - Two-column array, where the first column are the
+%                 onsets and the second column the offsets of the detected
+%                 power spectral density artifacts. Timestamps given in
+%                 secs.
+%    parameters - See README and PSR_PARAMETERS_GENERAL
+%
+% Outputs:
+%    data - Time-series data where artifact regions have been set to NaN
+%
+% See also: PSR_LFP_ARTIFACT_DETECTION_AMP, PSR_LFP_ARTIFACT_DETECTION_PSD
 
-if (iscell(data)); nBlocks = length(data);
-else,              nBlocks = 1;
-end
+% PASER: Processing and Analysis Schemes for Extracellular Recordings 
+% https://github.com/tbrouns/paser
+
+% Author: Terence Brouns
+% Radboud University, Neurophysiology Dept. 
+% E-mail address: t.s.n.brouns@gmail.com
+% Date: 2018
+
+%------------- BEGIN CODE --------------
 
 % Set constants
-
+nBlocks  = length(data);
 fields   = fieldnames(artifacts);
 nFields  = length(fields);
 Fs       = parameters.Fr; 
@@ -55,11 +78,9 @@ for iBlock = 1:nBlocks
                 x = artifactsBlock(iArtifact,1):artifactsBlock(iArtifact,2);
                 dataBlock(:,x) = NaN;
             end
-
         end
         
         artifactsAll.(fields{iField}){iBlock} = artifactsBlock;
-
     end
     
     if (isfield(data{iBlock},'trial')); data{iBlock}.trial = {dataBlock};

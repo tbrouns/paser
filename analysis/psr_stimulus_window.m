@@ -1,5 +1,42 @@
 function [out_spikes,out_freq] = psr_stimulus_window(spikes,freq,stimtimes,parameters)
 
+% PSR_STIMULUS_WINDOW - Extract data window around stimulus onsets.
+%
+% Syntax:  [out_spikes,out_freq] = psr_stimulus_window(spikes,freq,stimtimes,parameters)
+%
+% Inputs:
+%    spikes     - See README
+%    freq       - See README
+%    stimtimes  - Two-element cell array, structured as followed:
+%                 stimtimes{1}: stimulus timings [sec]
+%                 stimtimes{2}: 'onset' or 'interval'
+% 
+%                 ## If stimtimes{2} = 'onset', 
+%                    then stimtimes{1} should be a column vector containing
+%                    each stimulus onset
+% 
+%                 ## If stimtimes{2} = 'interval',
+%                    then stimtimes{1} should be a two-column matrix
+%                    containing the stimulus onsets in the first column and
+%                    the stimulus offsets in the second column
+% 
+%    parameters - See README and PSR_PARAMETERS_GENERAL
+%
+% Outputs:
+%    out_spikes - Contains the "trials" field, which indicates the stimulus
+%                 windows
+%    out_freq   - LFP data aligned to stimulus onset
+
+% PASER: Processing and Analysis Schemes for Extracellular Recordings 
+% https://github.com/tbrouns/paser
+
+% Author: Terence Brouns
+% Radboud University, Neurophysiology Dept. 
+% E-mail address: t.s.n.brouns@gmail.com
+% Date: 2018
+
+%------------- BEGIN CODE --------------
+
 % Output
 out_spikes = [];
 out_freq   = [];

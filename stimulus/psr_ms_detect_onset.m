@@ -1,18 +1,18 @@
-function MFAtimes = psr_ms_detect_onset(loadPath,parameters)
+function stimulusTimes = psr_ms_detect_onset(loadPath,parameters)
 
-% PSR_MFA_DETECTION - Detects onset of magnetic field artifacts.
-% This function finds the magnetic field artifact (MFA) onsets in the raw
-% data, which are marked by large peaks in the analog-to-digital
+% PSR_MS_DETECT_ONSET - Detects timings of magnetic field stimulus
+% This function finds the magnetic field stimulus onsets in the raw
+% data, which are marked by peaks in the analog-to-digital
 % converter (ADC) signal.
 %
-% Syntax:  MFAtimes = psr_ms_detect_onset(loadPath,parameters)
+% Syntax:  stimulusTimes = psr_ms_detect_onset(loadPath,parameters)
 %
 % Inputs:
 %    loadPath   - Path to ADC files [string]
-%    parameters - See "PSR_MFA_DETECTION" section in PSR_PARAMETER_DEFAULT
+%    parameters - See README and PSR_PARAMETERS_GENERAL
 %
 % Outputs:
-%    MFAtimes - Onset and offset of MFAs [sec]
+%    stimulusTimes - Onset and offset of stimuli [sec]
 %
 % See also: PSR_WRAPPER
 
@@ -27,7 +27,7 @@ function MFAtimes = psr_ms_detect_onset(loadPath,parameters)
 %------------- BEGIN CODE --------------
 
 nBlocks  = length(loadPath);
-MFAtimes = cell(nBlocks,1);
+stimulusTimes = cell(nBlocks,1);
 
 % Files to load
 ext     = '.continuous';
@@ -58,7 +58,7 @@ for iBlock = 1:nBlocks
 
     Fs = info.header.sampleRate; % Sampling rate in Hz
                 
-    %% MFA detection
+    %% Stimulus detection
     
     signal  = rescale(signal',-1,1);
     peaks   = find(signal > parameters.ms.detect.threshold); % check where magnetic pulse occurs
@@ -83,7 +83,7 @@ for iBlock = 1:nBlocks
     
     %% Save
     
-    MFAtimes{iBlock} = [onsets,offsets];
+    stimulusTimes{iBlock} = [onsets,offsets];
     
 end
 

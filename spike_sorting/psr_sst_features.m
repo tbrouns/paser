@@ -2,7 +2,7 @@ function spikes = psr_sst_features(spikes,parameters)
 
 spikes.features = [];
 switch parameters.cluster.feature
-    case 'pca'
+    case 'pca' % Principal component analysis
         nChans = size(spikes.waveforms,3);
         for iChan = 1:nChans
             [~,features,~] = pca(psr_int16_to_single(spikes.waveforms(:,:,iChan),parameters));
@@ -10,7 +10,7 @@ switch parameters.cluster.feature
                 spikes.features = [spikes.features;features(:,1:parameters.cluster.pca.dims)'];
             end
         end
-    case 'wave'
-        spikes = psr_sst_wavelet_features(spikes,parameters);
+    case 'wave' % Wavelet features
+        spikes = psr_sst_wavelet_features(spikes,parameters); % Requires 'wavelet' toolbox
 end
 end

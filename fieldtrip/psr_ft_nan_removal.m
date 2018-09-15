@@ -1,5 +1,31 @@
 function data = psr_ft_nan_removal(data)
 
+% PSR_FT_NAN_REMOVAL - Remove NaNs in data by interpolation
+% Eliminate NaNs in the FieldTrip structure for LFP data. We first try to
+% interpolate between start and end points, and otherwise substitute with
+% zeros.
+%
+% Syntax:  data = psr_ft_nan_removal(data)
+%
+% Inputs:
+%    data - A FieldTrip structure for LFP data
+%
+% Outputs:
+%    data - Data without NaNs, and adds an "missing" field that indicates
+%           which data points used to be NaNs
+%
+% See also: PSR_FT_CONVERT2FIELDTRIP, PSR_LFP_PREPROCESSING, PSR_LFP_TFA
+
+% PASER: Processing and Analysis Schemes for Extracellular Recordings 
+% https://github.com/tbrouns/paser
+
+% Author: Terence Brouns
+% Radboud University, Neurophysiology Dept. 
+% E-mail address: t.s.n.brouns@gmail.com
+% Date: 2018
+
+%------------- BEGIN CODE --------------
+
 if (isempty(data)); return; end
 
 % Deal with NaNs in data
@@ -33,7 +59,7 @@ for iTrial = 1:nTrials
         Y(iChan,del) = 0;
         
     end
-    data.trial{iTrial}   = Y;
+    data.trial  {iTrial} = Y;
     data.missing{iTrial} = M;
 end
 

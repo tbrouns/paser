@@ -1,5 +1,30 @@
 function artifacts = psr_lfp_artifact_detection_psd(data,parameters)
 
+% PSR_LFP_ARTIFACT_DETECTION_PSD - Detects LFP power spectral density artifacts
+%
+% Syntax:  artifacts = psr_lfp_artifact_detection_psd(data,parameters)
+%
+% Inputs:
+%    data       - Same as input for PSR_LFP_CONVERSION
+%    parameters - See README and PSR_PARAMETERS_GENERAL
+%
+% Outputs:
+%    artifacts - Returns two-column array, where the first column are the
+%                onsets and the second column the offsets of the detected
+%                power spectral density artifacts. Timestamps given in secs.
+%
+% See also: PSR_WRAPPER, PSR_LFP_ARTIFACT_REMOVAL
+
+% PASER: Processing and Analysis Schemes for Extracellular Recordings 
+% https://github.com/tbrouns/paser
+
+% Author: Terence Brouns
+% Radboud University, Neurophysiology Dept. 
+% E-mail address: t.s.n.brouns@gmail.com
+% Date: 2018
+
+%------------- BEGIN CODE --------------
+
 [data,nBlocks] = psr_lfp_conversion(data);
 
 % Artifact removal based on power spectral density

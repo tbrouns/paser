@@ -14,8 +14,8 @@ function tf = isempty_field(S,fname)
 %
 % Outputs:
 %    tf - Returns true if field is empty OR does not exist. Returns
-%    false when field exists AND is not empty. Returns a logical vector
-%    when input is cell array of structures.
+%         false when field exists AND is not empty. Returns a logical
+%         vector when input is cell array of structures.
 % 
 % Example:
 %    We want to know if the field "S.f1.f2" is empty/non-existent, so we

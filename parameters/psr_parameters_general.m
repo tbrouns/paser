@@ -1,11 +1,12 @@
-% PSR_PARAMETERS_GENERAL - Script to set default general parameters in PASER.
+% PSR_PARAMETERS_GENERAL - Script to set default general parameters
 % See comments before and after each parameter for its purpose.
 %
 % Syntax:  psr_parameters_general
 %
 % Outputs:
 %    parameters - Structure that contains general parameters for data processing
-%
+% 
+% See also: PSR_PARAMETERS_LOAD
 
 % PASER: Processing and Analysis Schemes for Extracellular Recordings 
 % https://github.com/tbrouns/paser
@@ -19,7 +20,6 @@
 
 %% Pipeline conditional parameters
 % Used to skip certain sections of data processing pipeline
-
 parameters.process.spikes  = true; % Perform spike detection
 parameters.process.lfp     = true; % Perform LFP detection
 parameters.process.delete  = true; % Delete temporary files 
@@ -40,11 +40,10 @@ parameters.develop.epsilon    = 0.5; % [ms]
 
 %% PSR_ARTIFACT_FFT
 % Parameters used in raw signal filtering in power spectrum
-
-parameters.filter.fft.run = false;
-parameters.filter.fft.freq    = 10;   % Size of frequency window [Hz]
-parameters.filter.fft.pad     = 0.1;  % Size of half-window to extract artifact [Hz]
-parameters.filter.fft.thresh  = 5;    % Threshold to detect artifact peaks, given by number of STDs above mean (using MAD)
+parameters.filter.fft.run    = false;
+parameters.filter.fft.freq   = 10;    % Size of frequency window [Hz]
+parameters.filter.fft.pad    = 0.1;   % Size of half-window to extract artifact [Hz]
+parameters.filter.fft.thresh = 5;     % Threshold to detect artifact peaks, given by number of STDs above mean (using MAD)
 
 %% %%%% Spike Detection %%%%
 
@@ -165,16 +164,16 @@ parameters.filter.spikes.mse.thresh = 12.0;  % Maximum MSE from mean waveform
 parameters.filter.spikes.amp.run    = false; % Remove spikes with amplitude at wrong channel or position
 parameters.filter.spikes.amp.offset = 0.2;   % Normalized amplitude difference from maximum, for channel selection
 
-%% psr_sst_filter_chan_mse
+%% PSR_SST_FILTER_CHAN_MSE
 parameters.filter.chan.mse.run     = false; % Whether to do the filtering or not
 parameters.filter.chan.mse.thresh  = 0.05;  % mean-squared error threshold 
 
-%% psr_sst_filter_chan_rip
+%% PSR_SST_FILTER_CHAN_RIP
 parameters.filter.chan.rip.run    = false; % Whether to do the filtering or not
 parameters.filter.chan.rip.fmin   =   600; % Minimum frequency of noisy oscillations
 parameters.filter.chan.rip.thresh =  0.15; % Maximum relative amplitude in power spectrum
 
-%% psr_sst_filter_chan_loc
+%% PSR_SST_FILTER_CHAN_LOC
 % Uses parameters.spikes.max_desync
 parameters.filter.chan.loc.run = false; % Whether to do the filtering or not
 
@@ -310,14 +309,6 @@ parameters.ms.denoise.raw.win.artifact = 2.0;   % [ms]
 parameters.ms.denoise.raw.win.padding  = 0.5;   % [ms]
 parameters.ms.denoise.raw.thresh       = 10;    % Number of MADs above background noise
 
-%% PSR_MS_DENOISE_SPK
-% Subject to removal
-parameters.ms.denoise.spk.process = false; % Remove magnetic stimulus artifacts in detected spikes
-parameters.ms.denoise.spk.twin    = 0.050; % Window size [s]
-parameters.ms.denoise.spk.tbin    = 0.001; % Bin size [s]
-parameters.ms.denoise.spk.stim    = 80;    % Minimum stimulus amplitude [V]
-parameters.ms.denoise.spk.thresh  = 5;     % Number of multiples above expected spike count
-
 %% PSR_MS_DENOISE_OFF
 
 parameters.ms.denoise.off.run  = false;
@@ -338,7 +329,7 @@ parameters.ms.denoise.cls.fr     = 2;          % Threshold as multiple of expect
 parameters.ms.denoise.cls.ampmin = 0.5;        % Fraction of highest stimulus amplitudes to consider
 parameters.ms.denoise.cls.spkmin = 6;          % Minimum number of spikes needed
 
-parameters.ms.denoise.cls.fc_upper = 36;% Threshold for artifact clusters
+parameters.ms.denoise.cls.fc_upper = 36;   % Threshold for artifact clusters
 parameters.ms.denoise.cls.fc_lower = 0.75;
 parameters.ms.denoise.cls.fb_upper = 10;
 parameters.ms.denoise.cls.fb_lower = 1.0;

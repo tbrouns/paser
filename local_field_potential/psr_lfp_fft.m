@@ -1,8 +1,29 @@
-function output = psr_lfp_fft(data,parameters)
+function fftfreq = psr_lfp_fft(freq,parameters)
 
-% Data preparation for FT_FREQANALYSIS
+% PSR_LFP_FFT - Fourier transform using FieldTrip's FT_FREQANALYSIS
+%
+% Syntax:  fftfreq = psr_lfp_fft(freq,parameters)
+%
+% Inputs:
+%    freq       - FieldTrip LFP data structure (see README)
+%    parameters - See PSR_PARAMETERS_ANALYSIS
+%
+% Outputs:
+%    fftfreq - Output from FT_FREQANALYSIS
+%
+% See also: FT_FREQANALYSIS
 
-data = psr_ft_nan_removal(data);
+% PASER: Processing and Analysis Schemes for Extracellular Recordings 
+% https://github.com/tbrouns/paser
+
+% Author: Terence Brouns
+% Radboud University, Neurophysiology Dept. 
+% E-mail address: t.s.n.brouns@gmail.com
+% Date: 2018
+
+%------------- BEGIN CODE --------------
+
+freq = psr_ft_nan_removal(freq);
 
 cfg            = [];
 cfg.output     = 'pow';
@@ -19,22 +40,22 @@ if (~isempty_field(parameters,'parameters.analysis.fft.tapsmofrq')); cfg.tapsmof
 if (~isempty_field(parameters,'parameters.analysis.fft.keepchans')); cfg.keepchans = parameters.analysis.fft.keepchans; end
 
 % Temporariry remove some fields
-[data,~] = psr_remove_field(data,'artifacts');
-[data,~] = psr_remove_field(data,'missing');
+[freq,~] = psr_remove_field(freq,'artifacts');
+[freq,~] = psr_remove_field(freq,'missing');
 
 % Fast Fourier Transform
-try    output = ft_freqanalysis(cfg,data);
-catch; output = []; return;
+try    fftfreq = ft_freqanalysis(cfg,freq);
+catch; fftfreq = []; return;
 end
 
 % Output results
 if (~cfg.keepchans) % Average over probe channels
-    output.powspctrm = nanmean(output.powspctrm,2);
-    output.label     = output.label{1};
+    fftfreq.powspctrm = nanmean(fftfreq.powspctrm,2);
+    fftfreq.label     = fftfreq.label{1};
 end
 
-output.freq      = single(output.freq);
-output.powspctrm = single(output.powspctrm);
-output           = orderfields(output);
+fftfreq.freq      = single(fftfreq.freq);
+fftfreq.powspctrm = single(fftfreq.powspctrm);
+fftfreq           = orderfields(fftfreq);
 
 end

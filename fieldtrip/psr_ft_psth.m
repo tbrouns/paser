@@ -1,5 +1,31 @@
 function psth = psr_ft_psth(spikesFT,parameters,trialIDs)
 
+% PSR_FT_PSTH - Wrapper function for FieldTrip's FT_SPIKE_PSTH
+% This function calls the FieldTrip function: FT_SPIKE_PSTH, which
+% calculates peri-stimulus time histogram (PSTH) metrics
+% 
+% Syntax:  psth = psr_ft_psth(spikesFT,parameters,trialIDs)
+%
+% Inputs:
+%    spikesFT   - FieldTrip spike structure
+%    parameters - See PSR_PARAMETERS_ANALYSIS
+%    trialIDs   - Which trials to include in the PSTH calculation
+%
+% Outputs:
+%    psth - Output from FT_SPIKE_PSTH
+%
+% See also: FT_SPIKE_PSTH, PSR_FT_CONVERT2FIELDTRIP
+
+% PASER: Processing and Analysis Schemes for Extracellular Recordings 
+% https://github.com/tbrouns/paser
+
+% Author: Terence Brouns
+% Radboud University, Neurophysiology Dept. 
+% E-mail address: t.s.n.brouns@gmail.com
+% Date: 2018
+
+%------------- BEGIN CODE --------------
+
 % Initialize
 psth           = [];
 cfg            = [];

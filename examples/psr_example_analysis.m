@@ -34,7 +34,7 @@ for iProbe = nProbes:-1:1 % Convert data for each probe
     % data, because we have to add to the loaded parameters
     
     parameters.analysis.configPath = cfg.configPath; % Path to your custom parameters script
-    parameters = psr_load_parameters(parameters,'analysis'); % Loads your custom parameters script. If no path is provided, we load "psr_parameters_analysis" instead
+    parameters = psr_parameters_load(parameters,'analysis'); % Loads your custom parameters script. If no path is provided, we load "psr_parameters_analysis" instead
     
     nBlocks = size(metadata.stimtimes,1); % The number of experimental blocks
     

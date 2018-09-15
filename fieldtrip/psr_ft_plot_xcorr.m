@@ -1,6 +1,28 @@
-function psr_ft_plot_xcorr(XCorr,parameters,clustIDs)
+function psr_ft_plot_xcorr(XCorr,parameters,unitIDs)
 
-if (length(clustIDs) ~= 2)
+% PSR_FT_PLOT_XCORR - Plots correlogram
+%
+% Syntax:  psr_ft_plot_xcorr(XCorr,parameters,unitIDs)
+%
+% Inputs:
+%    XCorr      - Output from PSR_FT_XCORR
+%    parameters - See PSR_PARAMETERS_ANALYSIS
+%    unitIDs    - Two-element vector containing the unit IDs we want to
+%                 calculate the correlogram for
+%
+% See also: PSR_FT_XCORR
+
+% PASER: Processing and Analysis Schemes for Extracellular Recordings 
+% https://github.com/tbrouns/paser
+
+% Author: Terence Brouns
+% Radboud University, Neurophysiology Dept. 
+% E-mail address: t.s.n.brouns@gmail.com
+% Date: 2018
+
+%------------- BEGIN CODE --------------
+
+if (length(unitIDs) ~= 2)
     str = {'ERROR in "psr_ft_plot_xcorr": Input must contain two unit indices.'};
     psr_show_warning(str);
     return;
@@ -20,7 +42,7 @@ if (~isempty_field(parameters,'parameters.analysis.xcorr.plot.marker'));     cfg
 if (~isempty_field(parameters,'parameters.analysis.xcorr.plot.markersize')); cfg.markersize = parameters.analysis.xcorr.plot.markersize; end
 
 t = XCorr.time;
-y = squeeze(XCorr.xcorr(clustIDs(1),clustIDs(2),:));
+y = squeeze(XCorr.xcorr(unitIDs(1),unitIDs(2),:));
 plot(t,y,...
     'Color',     cfg.color,...
     'LineWidth', cfg.linewidth,...

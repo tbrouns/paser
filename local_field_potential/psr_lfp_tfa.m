@@ -1,8 +1,29 @@
-function output = psr_lfp_tfa(data,parameters)
+function timefreq = psr_lfp_tfa(freq,parameters)
 
-% Data preparation for FT_FREQANALYSIS
+% PSR_LFP_TFA - Time-frequency analysis using FieldTrip's FT_FREQANALYSIS
+%
+% Syntax:  timefreq = psr_lfp_tfa(freq,parameters)
+%
+% Inputs:
+%    freq       - FieldTrip LFP data structure (see README)
+%    parameters - See PSR_PARAMETERS_ANALYSIS
+%
+% Outputs:
+%    timefreq - Output from FT_FREQANALYSIS
+%
+% See also: FT_FREQANALYSIS
 
-data = psr_ft_nan_removal(data);
+% PASER: Processing and Analysis Schemes for Extracellular Recordings 
+% https://github.com/tbrouns/paser
+
+% Author: Terence Brouns
+% Radboud University, Neurophysiology Dept. 
+% E-mail address: t.s.n.brouns@gmail.com
+% Date: 2018
+
+%------------- BEGIN CODE --------------
+
+freq = psr_ft_nan_removal(freq);
 
 cfg            = [];
 cfg.output     = 'pow';
@@ -23,38 +44,38 @@ else,                                                                cfg.t_ftimw
 end
 
 % Temporariry remove some fields
-[data,~]       = psr_remove_field(data,'artifacts');
-[data,missing] = psr_remove_field(data,'missing');
+[freq,~]       = psr_remove_field(freq,'artifacts');
+[freq,missing] = psr_remove_field(freq,'missing');
 
 % Time-frequency analysis
-try output = ft_freqanalysis(cfg,data); % FieldTrip function
+try timefreq = ft_freqanalysis(cfg,freq); % FieldTrip function
 catch ME
-    output = [];
+    timefreq = [];
     str = ME.message;
     psr_show_warning({str});
     return;
 end
 
 % Set artifacts to NaN
-nTime = length(output.time);
-nChan =   size(output.powspctrm,2);
+nTime = length(timefreq.time);
+nChan =   size(timefreq.powspctrm,2);
 for iTrial = 1:length(missing)
     for iChan = 1:nChan
         I  = missing{iTrial}(iChan,:);
         N  = size(I,2);
         I  = find(I);
         i  = unique(ceil((nTime/N)*I));        
-        output.powspctrm(iTrial,iChan,:,i) = NaN;
+        timefreq.powspctrm(iTrial,iChan,:,i) = NaN;
     end
 end
    
 % Output results
 if (~cfg.keepchans) % Average over probe channels
-    output.powspctrm = nanmean(output.powspctrm,2);
-    output.label     = output.label{1};
+    timefreq.powspctrm = nanmean(timefreq.powspctrm,2);
+    timefreq.label     = timefreq.label{1};
 end
 
-output.powspctrm = single(output.powspctrm); % To avoid memory issues
-output = orderfields(output);
+timefreq.powspctrm = single(timefreq.powspctrm); % To avoid memory issues
+timefreq = orderfields(timefreq);
 
 end

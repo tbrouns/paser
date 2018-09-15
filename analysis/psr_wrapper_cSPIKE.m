@@ -1,15 +1,77 @@
 function output = psr_wrapper_cSPIKE(spiketrains,parameters)
 
-% spiketrains: A cell array with SpikeTrains{1} containing an
-%              array of spike times [spike1 spike2 ...spikeN] for the
-%              first spike train and respectively for the other spike
-%              trains. The object accepts only spike data aligned as row
-%              vectors
+% PSR_WRAPPER_CSPIKE - Wrapper function for the cSPIKE toolbox
+% Calculates a number of different spike train distances 
+% 
+% References:
+% [1] http://wwwold.fi.isc.cnr.it/users/thomas.kreuz/Source-Code/cSPIKE.html
+% 
+% Syntax:  output = psr_wrapper_cSPIKE(spiketrains,parameters)
+%
+% Inputs:
+%    spiketrains - A cell array with each cell containing an
+%                  array of spike times [spike1 spike2 ...spikeN]. 
+%                  The object accepts only spike data aligned as row vectors
+% 
+%    parameters - See PSR_PARAMETERS_ANALYSIS
+%
+% Outputs:
+%    output - Structure of containing many different spike distance metrics
+%
+% Dependencies: Requires cSPIKE toolbox available from Ref. [1]
+%
+% See also: SPIKETRAINSET
+
+% These codes are free of charge for research and education purposes
+% only. Any commercial or military use of this software is prohibited.
+% 
+% The software on this site is provided "as-is," without any expressed or
+% implied warranty. In no event am I or my host institution liable for any
+% damages arising from the use of the software. Since it is distributed for
+% free, I do also not take responsibility for any eventual error in it.
+% 
+% BSD license:
+% 
+% Copyright (c) 2016 Eero Satuvuori All rights reserved.
+% 
+% Redistribution and use in source and binary forms, with or without
+% modification, are permitted provided that the following conditions are
+% met:
+% * Redistributions of source code must retain the above copyright notice,
+% this list of conditions and the following disclaimer.
+% * Redistributions in binary form must reproduce the above copyright
+% notice, this list of conditions and the following disclaimer in the
+% documentation and/or other materials provided with the distribution.
+% * Neither the name of the author nor the names of its contributors may be
+% used to endorse or promote products derived from this software without
+% specific prior written permission.
+% 
+% THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+% IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+% THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+% PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE
+% FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+% CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+% SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+% INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+% CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+% ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+% THE POSSIBILITY OF SUCH DAMAGE.
+
+% PASER: Processing and Analysis Schemes for Extracellular Recordings 
+% https://github.com/tbrouns/paser
+
+% Author: Terence Brouns
+% Radboud University, Neurophysiology Dept. 
+% E-mail address: t.s.n.brouns@gmail.com
+% Date: 2018
+
+%------------- BEGIN CODE --------------
+
+% spiketrains: 
 %
 % trange: [1x2] vector of start and end time of recording
 % twin:   [1x2] vector of start and end time of window of interest
-% 
-% See: http://wwwold.fi.isc.cnr.it/users/thomas.kreuz/Source-Code/cSPIKE.html
 
 rootPath = parameters.analysis.cspike.path;
 addpath(rootPath);

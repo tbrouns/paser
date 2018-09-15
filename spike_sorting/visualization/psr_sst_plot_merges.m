@@ -17,7 +17,7 @@ plotNum = 6;
 plotIds = fliplr([1,2,3,4,5,8]);
 
 % Load display parameters
-parameters = psr_load_parameters(parameters,'display');
+parameters = psr_parameters_load(parameters,'display');
 parameters.display.metrics = false;
 
 % Set pre-merge assigns and post-merge assigns

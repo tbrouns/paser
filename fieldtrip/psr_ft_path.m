@@ -1,9 +1,37 @@
 function [FT_FOUND,FT_PRESENT] = psr_ft_path(parameters,method)
 
+% PSR_FT_PATH - Adds or removes the FieldTrip toolbox to search path
+%
+% Syntax:  [FT_FOUND,FT_PRESENT] = psr_ft_path(parameters,method)
+%
+% Inputs:
+%    parameters - See README
+%    method     - String which can be set to:
+%                 'add'    :    Adds the FieldTrip toolbox to path
+%                 'remove' : Removes the FieldTrip toolbox to path
+%
+% Outputs:
+%    FT_FOUND   - Boolean indicating whether the FieldTrip toolbox has been
+%                 found and added to search path
+%    FT_PRESENT - Boolean indicating whether the FieldTrip is already on
+%                 the search path and didn't have to be added
+%
+% See also: PSR_WRAPPER, FT_DEFAULTS
+
+% PASER: Processing and Analysis Schemes for Extracellular Recordings 
+% https://github.com/tbrouns/paser
+
+% Author: Terence Brouns
+% Radboud University, Neurophysiology Dept. 
+% E-mail address: t.s.n.brouns@gmail.com
+% Date: 2018
+
+%------------- BEGIN CODE --------------
+
 % Initialize
 FT_FOUND = true;
 
-if (strcmp(method,'add')) % Add field trip path
+if (strcmp(method,'add')) % Add FieldTrip path
         
     % Check if FieldTrip (FT) exists on path
     names = who('global');
